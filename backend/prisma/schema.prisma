@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id              Int            @id @default(autoincrement())
+  username        String         @unique
+  password        String
+  nombreCompleto  String?
+  rol             Rol            @default(USUARIO_GENERAL)
+  activo          Boolean        @default(true)
+  ordenesCreadas  OrdenTrabajo[] @relation("Creador")
+  ordenesResponsable OrdenTrabajo[] @relation("Responsable")
+  logs            LogActividad[]
+}
+
+enum Rol {
+  ADMIN
+  RESPONSABLE
+  USUARIO_GENERAL
+}
+
+model CatalogoMaterial {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  precioBase  Decimal  @db.Decimal(10, 2)
+  actualizadoAt DateTime @updatedAt
+  detalles    OTMaterial[]
+}
+
+model OrdenTrabajo {
+  id                 Int          @id @default(autoincrement())
+  numeroOrden        String       @unique
+  fechaCreacion      DateTime     @default(now())
+  clienteNombre      String
+  clienteCelular     String?
+  trabajoSolicitado  String?      @db.Text
+  
+  placa              String
+  marca              String
+  modelo             String
+  horometro          Float?
+  kilometraje        Float?
+  
+  estado             EstadoOrden  @default(EN_REPARACION)
+  estaCerrada        Boolean      @default(false)
+
+  creadorId          Int
+  creador            Usuario      @relation("Creador", fields: [creadorId], references: [id])
+  responsableId      Int
+  responsable        Usuario      @relation("Responsable", fields: [responsableId], references: [id])
+
+  materiales         OTMaterial[]
+  servicios          OTServicio[]
+  terceros           OTTercero[]
+  
+  totalFinal         Decimal      @default(0) @db.Decimal(10, 2)
+  logs               LogActividad[]
+}
+
+enum EstadoOrden {
+  EN_REPARACION
+  CAMBIO_ACEITE
+  ESPERANDO_REPUESTO
+  TERMINADO
+  CANCELADO
+}
+
+model OTMaterial {
+  id           Int      @id @default(autoincrement())
+  ordenId      Int
+  orden        OrdenTrabajo @relation(fields: [ordenId], references: [id])
+  materialId   Int
+  material     CatalogoMaterial @relation(fields: [materialId], references: [id])
+  cantidad     Decimal  @db.Decimal(10, 2)
+  precioAplicado Decimal @db.Decimal(10, 2) // Precio congelado al momento de la venta
+}
+
+model OTServicio {
+  id          Int          @id @default(autoincrement())
+  ordenId     Int
+  orden       OrdenTrabajo @relation(fields: [ordenId], references: [id])
+  descripcion String
+  monto       Decimal      @db.Decimal(10, 2)
+}
+
+model OTTercero {
+  id          Int          @id @default(autoincrement())
+  ordenId     Int
+  orden       OrdenTrabajo @relation(fields: [ordenId], references: [id])
+  descripcion String
+  monto       Decimal      @db.Decimal(10, 2)
+}
+
+model LogActividad {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  ordenId   Int?
+  orden     OrdenTrabajo? @relation(fields: [ordenId], references: [id])
+  accion    String
+  fecha     DateTime @default(now())
+}
