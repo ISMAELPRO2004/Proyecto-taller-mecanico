@@ -48,7 +48,7 @@ const logout = () => {
           <h2 class="card-title">⛽ Materiales e Insumos</h2>
           <p>Precios de aceites, repuestos y herramientas.</p>
           <div class="card-actions justify-end mt-4">
-            <button class="btn btn-sm btn-warning">Gestionar Precios</button>
+            <button @click="router.push('/inventario')" class="btn btn-sm btn-warning">Gestionar Precios</button>
           </div>
         </div>
       </div>

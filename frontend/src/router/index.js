@@ -29,6 +29,12 @@ const routes = [
     name: 'home',
     component: () => import('../modules/home/HomeView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/inventario',
+    name: 'inventario',
+    component: () => import('../modules/inventario/CatalogoView.vue'),
+    meta: { requiresAuth: true, role: 'ADMIN' }
   }
 ];
 
