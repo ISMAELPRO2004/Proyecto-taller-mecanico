@@ -17,6 +17,12 @@ const routes = [
     name: 'logs',
     component: () => import('../modules/auth/AuditLogsView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' } // Solo el jefe entra aquí
+  },
+  {
+    path: '/usuarios/nuevo',
+    name: 'nuevo-usuario',
+    component: () => import('../modules/auth/UserManagementView.vue'),
+    meta: { requiresAuth: true, role: 'ADMIN' }
   }
 ];
 
