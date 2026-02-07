@@ -23,6 +23,12 @@ const routes = [
     name: 'nuevo-usuario',
     component: () => import('../modules/auth/UserManagementView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
+  },
+  {
+    path: '/home',
+    name: 'home',
+    component: () => import('../modules/home/HomeView.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

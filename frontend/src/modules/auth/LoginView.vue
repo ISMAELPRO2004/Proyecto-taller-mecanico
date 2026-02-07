@@ -10,8 +10,11 @@ const router = useRouter();
 
 const handleLogin = async () => {
   const success = await auth.login(username.value, password.value);
-  if (success) router.push('/logs');
-  else alert('Credenciales incorrectas');
+  if (success) {
+    router.push('/home');
+  } else {
+    alert('Credenciales incorrectas');
+  }
 };
 </script>
 
