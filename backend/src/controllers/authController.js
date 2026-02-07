@@ -1,16 +1,14 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import prisma from '../config/prisma.js'; // Usamos tu configuración centralizada
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_por_defecto';
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // 1. Buscar al usuario en la DB del taller
+    // 1. Buscar al usuario en la DB del taller LYER
     const usuario = await prisma.usuario.findUnique({
       where: { username }
     });
@@ -30,7 +28,7 @@ export const login = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { id: usuario.id, rol: usuario.rol },
       JWT_SECRET,
-      { expiresIn: '8h' } // Tiempo suficiente para una jornada laboral
+      { expiresIn: '8h' }
     );
 
     res.json({
@@ -43,6 +41,6 @@ export const login = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error en el servidor', error });
+    res.status(500).json({ message: 'Error en el servidor', error: error.message });
   }
 };
