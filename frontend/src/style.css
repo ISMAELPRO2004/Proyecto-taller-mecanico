@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@plugin "daisyui" {
+  themes: explayo --default;
+}
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

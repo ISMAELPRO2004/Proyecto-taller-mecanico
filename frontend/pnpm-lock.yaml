@@ -27,6 +27,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.23
         version: 10.4.23(postcss@8.5.6)
+      daisyui:
+        specifier: ^5.5.18
+        version: 5.5.18
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -436,6 +439,9 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  daisyui@5.5.18:
+    resolution: {integrity: sha512-VVzjpOitMGB6DWIBeRSapbjdOevFqyzpk9u5Um6a4tyId3JFrU5pbtF0vgjXDth76mJZbueN/j9Ok03SPrh/og==}
 
   delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
@@ -986,6 +992,8 @@ snapshots:
       is-what: 5.5.0
 
   csstype@3.2.3: {}
+
+  daisyui@5.5.18: {}
 
   delayed-stream@1.0.0: {}
 
