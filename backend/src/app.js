@@ -1,6 +1,9 @@
 import authRoutes from './routes/authRoutes.js'; 
 import userRoutes from './routes/userRoutes.js';
 import inventarioRoutes from './routes/inventarioRoutes.js';
+import ordenRoutes from './routes/ordenRoutes.js';
+import vehiculoRoutes from './routes/vehiculoRoutes.js';
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -14,6 +17,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', userRoutes);
 app.use('/api/inventario', inventarioRoutes);
+app.use('/api/ordenes', ordenRoutes);
+app.use('/api/vehiculos', vehiculoRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

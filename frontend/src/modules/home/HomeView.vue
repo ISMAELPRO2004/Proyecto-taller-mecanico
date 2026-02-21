@@ -21,13 +21,13 @@ const logout = () => {
       <button @click="logout" class="btn btn-outline btn-error">Cerrar Sesión</button>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div v-if="['ADMIN', 'RESPONSABLE'].includes(auth.usuario?.rol)" class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow border-l-4 border-red-600">
         <div class="card-body">
           <h2 class="card-title">📦 Órdenes de Trabajo</h2>
           <p>Registro y seguimiento de los vehículos en taller.</p>
           <div class="card-actions justify-end mt-4">
-            <button class="btn btn-sm btn-primary bg-red-600 border-none">Entrar</button>
+            <button @click="router.push('/ordenes/nueva')" class="btn btn-sm btn-primary bg-red-600 border-none">Entrar</button>
           </div>
         </div>
       </div>

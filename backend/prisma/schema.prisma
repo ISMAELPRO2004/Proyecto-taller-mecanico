@@ -32,6 +32,30 @@ model CatalogoMaterial {
   detalles    OTMaterial[]
 }
 
+model CatalogoServicio {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  precioBase  Decimal  @db.Decimal(10, 2)
+  actualizadoAt DateTime @updatedAt
+}
+
+model CatalogoTercero {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  montoBase   Decimal  @db.Decimal(10, 2)
+  actualizadoAt DateTime @updatedAt
+}
+
+model Vehiculo {
+  placa       String         @id // La placa es única
+  marca       String
+  modelo      String
+  horometro   Float?         @default(0)
+  kilometraje Float?         @default(0)
+  actualizadoAt DateTime      @updatedAt
+  ordenes     OrdenTrabajo[] // Relación con las órdenes
+}
+
 model OrdenTrabajo {
   id                 Int          @id @default(autoincrement())
   numeroOrden        String       @unique
@@ -41,6 +65,7 @@ model OrdenTrabajo {
   trabajoSolicitado  String?      @db.Text
   
   placa              String
+  vehiculo           Vehiculo     @relation(fields: [placa], references: [placa])
   marca              String
   modelo             String
   horometro          Float?

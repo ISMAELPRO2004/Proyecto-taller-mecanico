@@ -32,3 +32,21 @@ export const listarLogs = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const listarUsuarios = async (req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      where: { activo: true },
+      select: {
+        id: true,
+        username: true,
+        nombreCompleto: true,
+        rol: true
+      },
+      orderBy: { nombreCompleto: 'asc' }
+    });
+    res.json(usuarios);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
