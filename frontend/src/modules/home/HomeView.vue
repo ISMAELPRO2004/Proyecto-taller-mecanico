@@ -45,10 +45,10 @@ const logout = () => {
 
       <div v-if="['ADMIN', 'RESPONSABLE'].includes(auth.usuario?.rol)" class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow border-l-4 border-orange-600">
         <div class="card-body">
-          <h2 class="card-title">⛽ Materiales e Insumos</h2>
-          <p>Precios de aceites, repuestos y herramientas.</p>
+          <h2 class="card-title">⛽ Materiales y Servicios </h2>
+          <p>Administra materiales, mano de obra y servicios de terceros en un solo lugar.</p>
           <div class="card-actions justify-end mt-4">
-            <button @click="router.push('/inventario')" class="btn btn-sm btn-warning">Gestionar Precios</button>
+            <button @click="router.push('/catalogos')" class="btn btn-sm btn-warning">Gestionar Catálogos</button>
           </div>
         </div>
       </div>

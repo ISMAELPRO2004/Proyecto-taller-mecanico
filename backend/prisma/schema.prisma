@@ -37,13 +37,15 @@ model CatalogoServicio {
   descripcion String
   precioBase  Decimal  @db.Decimal(10, 2)
   actualizadoAt DateTime @updatedAt
+  detalles    OTServicio[]
 }
 
 model CatalogoTercero {
   id          Int      @id @default(autoincrement())
   descripcion String
-  montoBase   Decimal  @db.Decimal(10, 2)
+  precioBase  Decimal  @db.Decimal(10, 2)
   actualizadoAt DateTime @updatedAt
+  detalles    OTTercero[]
 }
 
 model Vehiculo {
@@ -54,6 +56,14 @@ model Vehiculo {
   kilometraje Float?         @default(0)
   actualizadoAt DateTime      @updatedAt
   ordenes     OrdenTrabajo[] // Relación con las órdenes
+}
+
+enum EstadoOrden {
+  EN_REPARACION
+  CAMBIO_ACEITE
+  ESPERANDO_REPUESTO
+  TERMINADO
+  CANCELADO
 }
 
 model OrdenTrabajo {
@@ -87,38 +97,34 @@ model OrdenTrabajo {
   logs               LogActividad[]
 }
 
-enum EstadoOrden {
-  EN_REPARACION
-  CAMBIO_ACEITE
-  ESPERANDO_REPUESTO
-  TERMINADO
-  CANCELADO
-}
-
 model OTMaterial {
-  id           Int      @id @default(autoincrement())
-  ordenId      Int
-  orden        OrdenTrabajo @relation(fields: [ordenId], references: [id])
-  materialId   Int
-  material     CatalogoMaterial @relation(fields: [materialId], references: [id])
-  cantidad     Decimal  @db.Decimal(10, 2)
-  precioAplicado Decimal @db.Decimal(10, 2) // Precio congelado al momento de la venta
+  id             Int              @id @default(autoincrement())
+  ordenId        Int
+  orden          OrdenTrabajo     @relation(fields: [ordenId], references: [id])
+  materialId     Int
+  material       CatalogoMaterial @relation(fields: [materialId], references: [id])
+  cantidad       Decimal          @db.Decimal(10, 2)
+  precioAplicado Decimal          @db.Decimal(10, 2)
 }
 
 model OTServicio {
-  id          Int          @id @default(autoincrement())
-  ordenId     Int
-  orden       OrdenTrabajo @relation(fields: [ordenId], references: [id])
-  descripcion String
-  monto       Decimal      @db.Decimal(10, 2)
+  id             Int              @id @default(autoincrement())
+  ordenId        Int
+  orden          OrdenTrabajo     @relation(fields: [ordenId], references: [id])
+  servicioId     Int
+  servicio       CatalogoServicio @relation(fields: [servicioId], references: [id])
+  descripcion    String           // Snapshot de la descripción en ese momento
+  monto          Decimal          @db.Decimal(10, 2)
 }
 
 model OTTercero {
-  id          Int          @id @default(autoincrement())
-  ordenId     Int
-  orden       OrdenTrabajo @relation(fields: [ordenId], references: [id])
-  descripcion String
-  monto       Decimal      @db.Decimal(10, 2)
+  id             Int              @id @default(autoincrement())
+  ordenId        Int
+  orden          OrdenTrabajo     @relation(fields: [ordenId], references: [id])
+  terceroId      Int
+  tercero        CatalogoTercero  @relation(fields: [terceroId], references: [id])
+  descripcion    String           // Snapshot de la descripción en ese momento
+  monto          Decimal          @db.Decimal(10, 2)
 }
 
 model LogActividad {

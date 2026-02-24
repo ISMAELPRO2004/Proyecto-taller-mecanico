@@ -6,6 +6,8 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 const catalogo = ref([]); 
 const usuarios = ref([]); 
+const catServicios = ref([]);
+const catTerceros = ref([]);
 
 const form = ref({
   numeroOrden: '',
@@ -25,13 +27,17 @@ const form = ref({
 
 onMounted(async () => {
   try {
-    const [resMat, resUser] = await Promise.all([
+    const [resMat, resUser, resServ, resTer] = await Promise.all([
       api.get('/inventario'),
-      api.get('/usuarios') 
+      api.get('/usuarios'),
+      api.get('/servicios'),
+      api.get('/terceros')
     ]);
 
     catalogo.value = resMat.data;
     usuarios.value = resUser.data.filter(u => ['ADMIN', 'RESPONSABLE'].includes(u.rol));
+    catServicios.value = resServ.data;
+    catTerceros.value = resTer.data;
   } catch (e) {
     console.error("Error cargando datos iniciales:", e);
   }

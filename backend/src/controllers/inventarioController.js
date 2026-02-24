@@ -1,41 +1,37 @@
 import prisma from '../config/prisma.js';
 
-// Obtener todos los materiales del catálogo
 export const listarMateriales = async (req, res) => {
-  try {
-    const materiales = await prisma.catalogoMaterial.findMany({
-      orderBy: { descripcion: 'asc' }
-    });
-    res.json(materiales);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const materiales = await prisma.catalogoMaterial.findMany({ orderBy: { descripcion: 'asc' } });
+  res.json(materiales);
 };
 
-// Crear un nuevo material (Solo ADMIN)
 export const crearMaterial = async (req, res) => {
   const { descripcion, precioBase } = req.body;
-  try {
-    const nuevo = await prisma.catalogoMaterial.create({
-      data: { descripcion, precioBase: parseFloat(precioBase) }
-    });
-    res.status(201).json(nuevo);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+  const nuevo = await prisma.catalogoMaterial.create({
+    data: { descripcion, precioBase: parseFloat(precioBase) }
+  });
+  res.status(201).json(nuevo);
 };
 
-// Actualizar precio (Solo ADMIN - Genera Log de Auditoría)
-export const actualizarPrecio = async (req, res) => {
+export const actualizarMaterial = async (req, res) => {
   const { id } = req.params;
-  const { precioBase } = req.body;
+  const { precioBase, descripcion } = req.body;
+  const actualizado = await prisma.catalogoMaterial.update({
+    where: { id: parseInt(id) },
+    data: { 
+      descripcion, 
+      precioBase: parseFloat(precioBase) 
+    }
+  });
+  res.json(actualizado);
+};
+
+export const eliminarMaterial = async (req, res) => {
+  const { id } = req.params;
   try {
-    const actualizado = await prisma.catalogoMaterial.update({
-      where: { id: parseInt(id) },
-      data: { precioBase: parseFloat(precioBase) }
-    });
-    res.json(actualizado);
+    await prisma.catalogoMaterial.delete({ where: { id: parseInt(id) } });
+    res.json({ message: 'Material eliminado' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: "No se puede eliminar porque ya está en una orden." });
   }
 };

@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { crearOrden, listarOrdenes } from '../controllers/ordenController.js';
+import { crearOrden } from '../controllers/ordenController.js';
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 
 const router = Router();
 
 // Listar todas las órdenes (Todos los usuarios autenticados)
-router.get('/', authenticateJWT, listarOrdenes);
+router.get('/', authenticateJWT );
 
 // Crear nueva orden (Admin y Responsable)
 router.post('/', 

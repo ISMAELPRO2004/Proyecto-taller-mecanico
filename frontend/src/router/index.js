@@ -31,9 +31,9 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/inventario',
-    name: 'inventario',
-    component: () => import('../modules/inventario/CatalogoView.vue'),
+    path: '/catalogos',
+    name: 'catalogos',
+    component: () => import('../modules/inventario/CatalogosView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
   },
   {
