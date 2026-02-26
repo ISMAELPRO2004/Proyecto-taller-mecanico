@@ -1,2 +1,25 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+/* Configuración de colores para Tailwind v4 */
+@theme {
+  --color-primary: #064e3b;   /* Verde Bosque LYER */
+  --color-secondary: #10b981; /* Verde Esmeralda */
+  --color-accent: #34d399;
+  --color-lyer-green: #064e3b;
+  --color-lyer-accent: #10b981;
+}
+
+/* Forzar colores del tema lyer */
+[data-theme="lyer"] {
+  --p: #064e3b;     /* Primary - Verde Bosque */
+  --pc: #ffffff;    /* Primary Content */
+  --s: #10b981;     /* Secondary - Verde Esmeralda */
+  --sc: #064e3b;    /* Secondary Content */
+  --a: #34d399;     /* Accent */
+  --ac: #064e3b;    /* Accent Content */
+  --n: #1f2937;     /* Neutral */
+  --nc: #ffffff;    /* Neutral Content */
+  --b1: #ffffff;    /* Base 100 */
+  --bc: #1f2937;    /* Base Content */
+}

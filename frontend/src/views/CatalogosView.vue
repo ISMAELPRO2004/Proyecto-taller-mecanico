@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import api from '../../api/axios.js';
+import api from '../api/axios.js';
+import { notify } from '../utils/alerts.js';
 
 const tabActiva = ref('materiales'); // materiales | servicios | terceros
 const lista = ref([]);
@@ -35,15 +36,15 @@ const guardar = async () => {
     }
     cerrarModal();
     cargarDatos();
-  } catch (e) { alert("Error al guardar"); }
+  } catch (e) { notify.error("Error al guardar"); }
 };
 
 const eliminar = async (id) => {
-  if (!confirm("¿Estás seguro de eliminar este ítem?")) return;
+  if (!await notify.confirm("¿Estás seguro de eliminar este ítem?")) return;
   try {
     await api.delete(`${endpoints[tabActiva.value]}/${id}`);
     cargarDatos();
-  } catch (e) { alert("No se puede eliminar: está en uso en una orden."); }
+  } catch (e) { notify.error("No se puede eliminar: está en uso en una orden."); }
 };
 
 const abrirModal = (item = null) => {

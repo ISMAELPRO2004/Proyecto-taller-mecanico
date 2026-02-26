@@ -10,36 +10,42 @@ const routes = [
     path: '/login',
     name: 'login',
     // Importación dinámica para mejorar la carga
-    component: () => import('../modules/auth/LoginView.vue')
+    component: () => import('../views/auth/LoginView.vue')
   },
   {
     path: '/logs',
     name: 'logs',
-    component: () => import('../modules/auth/AuditLogsView.vue'),
+    component: () => import('../views/auth/AuditLogsView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' } // Solo el jefe entra aquí
   },
   {
     path: '/usuarios/nuevo',
     name: 'nuevo-usuario',
-    component: () => import('../modules/auth/UserManagementView.vue'),
+    component: () => import('../views/auth/UserManagementView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
   },
   {
     path: '/home',
-    name: 'home',
-    component: () => import('../modules/home/HomeView.vue'),
+    name: 'dashboard',
+    component: () => import('../views/DashboardView.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/catalogos',
-    name: 'catalogos',
-    component: () => import('../modules/inventario/CatalogosView.vue'),
+    name: 'catalogos-maestros',
+    component: () => import('../views/CatalogosView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
+  },
+  {
+    path: '/ordenes',
+    name: 'ordenes-ot',
+    component: () => import('../views/ordenes/OrdenesListView.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/ordenes/nueva',
     name: 'nueva-orden',
-    component: () => import('../modules/ordenes/NuevaOrdenView.vue'),
+    component: () => import('../views/ordenes/NuevaOrdenView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
   }
 ];
