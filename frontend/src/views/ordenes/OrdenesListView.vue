@@ -117,9 +117,8 @@ onMounted(obtenerOrdenes);
 
     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4">
       <div class="relative flex-1">
-        <Search class="absolute left-4 top-3.5 w-4 h-4 text-slate-400" />
         <input v-model="busqueda" type="text" placeholder="Buscar placa, cliente o N° orden..." 
-          class="input input-bordered w-full pl-12 bg-slate-50 border-slate-100 focus:border-lyer-accent rounded-xl" />
+          class="input input-bordered w-full bg-slate-50 border-slate-100 focus:border-lyer-accent rounded-xl" />
       </div>
       <div class="flex gap-3">
         <select v-model="filtroEstado" class="select select-bordered w-full lg:w-48 bg-slate-50 border-slate-100 rounded-xl">

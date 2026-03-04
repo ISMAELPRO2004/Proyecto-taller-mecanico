@@ -1,13 +1,25 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '../api/axios.js';
 import { notify } from '../utils/alerts.js';
+import { 
+  Package, Wrench, Truck, Search, Plus, 
+  Edit3, Trash2, ListOrdered, ChevronLeft, 
+  ChevronRight, RefreshCcw, Layers 
+} from 'lucide-vue-next';
 
+// --- ESTADOS ---
 const tabActiva = ref('materiales'); // materiales | servicios | terceros
 const lista = ref([]);
 const loading = ref(false);
+const busqueda = ref('');
 
-// Estado para Modales
+// --- PAGINACIÓN ---
+const paginaActual = ref(1);
+const itemsPorPagina = ref(10);
+const opcionesItems = [5, 10, 20];
+
+// --- MODAL ---
 const modalOpen = ref(false);
 const editando = ref(false);
 const form = ref({ id: null, descripcion: '', precioBase: 0 });
@@ -19,20 +31,62 @@ const endpoints = {
 };
 
 const cargarDatos = async () => {
-  loading.ref = true;
+  loading.value = true;
   try {
     const { data } = await api.get(endpoints[tabActiva.value]);
-    lista.value = data;
-  } catch (e) { console.error("Error al cargar"); }
-  finally { loading.ref = false; }
+    lista.value = Array.isArray(data) ? data : [];
+  } catch (e) { 
+    notify.error("Error", "No se pudieron sincronizar los datos"); 
+  } finally { 
+    loading.value = false; 
+  }
 };
 
+// --- LÓGICA DE FILTRADO Y PAGINACIÓN ---
+const listaFiltrada = computed(() => {
+  return lista.value.filter(item => 
+    item.descripcion.toLowerCase().includes(busqueda.value.toLowerCase())
+  );
+});
+
+const totalPaginas = computed(() => Math.ceil(listaFiltrada.value.length / itemsPorPagina.value) || 1);
+
+const listaPaginada = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
+  return listaFiltrada.value.slice(inicio, inicio + itemsPorPagina.value);
+});
+
+const filasVacias = computed(() => {
+  const faltantes = itemsPorPagina.value - listaPaginada.value.length;
+  return faltantes > 0 ? faltantes : 0;
+});
+
+const nombreTabActiva = computed(() => {
+  const nombres = {
+    materiales: 'Material',
+    servicios: 'Servicio',
+    terceros: 'Tercero'
+  };
+  return nombres[tabActiva.value] || '';
+});
+
+// Watchers para resetear página
+watch([tabActiva, busqueda, itemsPorPagina], () => {
+  paginaActual.value = 1;
+});
+
+// --- ACCIONES CRUD ---
 const guardar = async () => {
+  if (!form.value.descripcion || form.value.precioBase <= 0) {
+    return notify.error("Campos incompletos", "Por favor revisa la descripción y el precio.");
+  }
   try {
     if (editando.value) {
       await api.put(`${endpoints[tabActiva.value]}/${form.value.id}`, form.value);
+      notify.success("Actualizado", "El ítem se actualizó correctamente.");
     } else {
       await api.post(endpoints[tabActiva.value], form.value);
+      notify.success("Registrado", "Nuevo ítem añadido al catálogo.");
     }
     cerrarModal();
     cargarDatos();
@@ -40,11 +94,13 @@ const guardar = async () => {
 };
 
 const eliminar = async (id) => {
-  if (!await notify.confirm("¿Estás seguro de eliminar este ítem?")) return;
+  const confirmado = await notify.confirm("¿Eliminar ítem?", "Si este ítem está en uso en órdenes antiguas, no podrá eliminarse.");
+  if (!confirmado) return;
   try {
     await api.delete(`${endpoints[tabActiva.value]}/${id}`);
+    notify.success("Eliminado", "Ítem removido del catálogo.");
     cargarDatos();
-  } catch (e) { notify.error("No se puede eliminar: está en uso en una orden."); }
+  } catch (e) { notify.error("Error", "No se puede eliminar: el ítem está vinculado a órdenes existentes."); }
 };
 
 const abrirModal = (item = null) => {
@@ -64,62 +120,139 @@ onMounted(cargarDatos);
 </script>
 
 <template>
-  <div class="p-8">
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-slate-800">Administración de Catálogos</h2>
-      <button @click="abrirModal()" class="btn bg-red-600 border-none text-white hover:bg-red-700">
-        + Nuevo {{ tabActiva.slice(0, -1) }}
+  <div class="space-y-6 animate-fade-in">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-lyer-green p-3 rounded-2xl text-white shadow-lg shadow-emerald-900/20">
+          <Layers class="w-6 h-6" />
+        </div>
+        <div>
+          <h2 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Catálogos Maestros</h2>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gestión de Precios y Suministros</p>
+        </div>
+      </div>
+      <button @click="abrirModal()" class="btn bg-lyer-green text-white hover:bg-emerald-900 border-none px-8 rounded-xl shadow-md transition-all hover:scale-105">
+        <Plus class="w-5 h-5 mr-1" /> Nuevo {{ nombreTabActiva }}
       </button>
     </div>
 
-    <div class="tabs tabs-lifted mb-6">
-      <button v-for="t in ['materiales', 'servicios', 'terceros']" :key="t"
-        @click="tabActiva = t; cargarDatos()"
-        :class="['tab tab-lg uppercase font-bold', tabActiva === t ? 'tab-active [--tab-bg:white] text-red-600' : 'text-slate-400']">
-        {{ t }}
-      </button>
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 space-y-6">
+      <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+        <div class="tabs tabs-boxed bg-slate-100 p-1 w-full lg:w-auto">
+          <button v-for="(label, key) in { materiales: 'Repuestos', servicios: 'Mano de Obra', terceros: 'Terceros' }" :key="key"
+            @click="tabActiva = key; cargarDatos()"
+            :class="['tab tab-lg px-8 font-bold transition-all', tabActiva === key ? 'bg-white text-lyer-green shadow-sm' : 'text-slate-400']">
+            {{ label }}
+          </button>
+        </div>
+        
+        <div class="relative w-full lg:w-96">
+          <input v-model="busqueda" type="text" :placeholder="`Buscar en ${tabActiva}...`" 
+            class="input input-bordered w-full bg-slate-50 border-slate-100 focus:border-lyer-accent rounded-xl"/>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-100 overflow-hidden">
+        <table class="table w-full border-separate border-spacing-0">
+          <thead class="bg-slate-50/50 text-slate-400 uppercase text-[9px] font-black tracking-[0.2em] border-b">
+            <tr>
+              <th class="py-5 pl-8">Descripción del Ítem</th>
+              <th class="w-48 text-right">Precio Base</th>
+              <th class="text-center w-40 pr-8">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="text-slate-600">
+            <tr v-for="item in listaPaginada" :key="item.id" class="hover:bg-emerald-50/30 transition-colors h-[70px]">
+              <td class="pl-8">
+                <div class="flex items-center gap-3">
+                  <div class="p-2 bg-slate-100 rounded-lg group-hover:bg-white transition-colors">
+                    <Package v-if="tabActiva === 'materiales'" class="w-4 h-4 text-slate-400" />
+                    <Wrench v-else-if="tabActiva === 'servicios'" class="w-4 h-4 text-slate-400" />
+                    <Truck v-else class="w-4 h-4 text-slate-400" />
+                  </div>
+                  <span class="font-bold text-slate-700 capitalize">{{ item.descripcion }}</span>
+                </div>
+              </td>
+              <td class="text-right font-black text-lyer-green text-lg">
+                <span class="text-[10px] font-medium text-slate-400 mr-1">S/</span>{{ parseFloat(item.precioBase).toFixed(2) }}
+              </td>
+              <td class="text-center pr-8">
+                <div class="flex justify-center gap-2">
+                  <button @click="abrirModal(item)" class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg transition-all">
+                    <Edit3 class="w-4 h-4" />
+                  </button>
+                  <button @click="eliminar(item.id)" class="btn btn-square btn-ghost btn-sm text-slate-300 hover:text-red-500 rounded-lg">
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-for="n in filasVacias" :key="'ghost-'+n" class="h-[70px] opacity-0 pointer-events-none">
+              <td colspan="3"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-50">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+            <ListOrdered class="w-4 h-4" /> Mostrar:
+            <select v-model="itemsPorPagina" class="select select-ghost select-xs font-black text-lyer-green focus:bg-transparent">
+              <option v-for="opt in opcionesItems" :key="opt" :value="opt">{{ opt }} filas</option>
+            </select>
+          </div>
+          <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Total: {{ listaFiltrada.length }} Registros
+          </span>
+        </div>
+
+        <div class="join shadow-sm border border-slate-200 bg-white rounded-xl overflow-hidden">
+          <button @click="paginaActual--" :disabled="paginaActual === 1" class="join-item btn btn-sm bg-white border-none disabled:text-slate-200">
+            <ChevronLeft class="w-4 h-4" />
+          </button>
+          <button v-for="p in totalPaginas" :key="p" @click="paginaActual = p"
+            :class="['join-item btn btn-sm border-none font-black px-4', paginaActual === p ? 'bg-lyer-green text-white' : 'bg-white text-slate-400']">
+            {{ p }}
+          </button>
+          <button @click="paginaActual++" :disabled="paginaActual === totalPaginas" class="join-item btn btn-sm bg-white border-none disabled:text-slate-200">
+            <ChevronRight class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="bg-white rounded-b-xl shadow-xl overflow-hidden border border-slate-200">
-      <table class="table w-full">
-        <thead class="bg-slate-50">
-          <tr>
-            <th class="text-slate-600">Descripción</th>
-            <th class="text-slate-600">Precio Base (S/)</th>
-            <th class="text-slate-600 text-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in lista" :key="item.id" class="hover:bg-slate-50">
-            <td class="font-medium text-slate-700">{{ item.descripcion }}</td>
-            <td class="text-green-700 font-bold">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</td>
-            <td class="flex justify-center gap-2">
-              <button @click="abrirModal(item)" class="btn btn-square btn-ghost btn-sm text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-              </button>
-              <button @click="eliminar(item.id)" class="btn btn-square btn-ghost btn-sm text-red-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <div :class="['modal modal-bottom sm:modal-middle', { 'modal-open': modalOpen }]">
+      <div class="modal-box p-0 overflow-hidden border-t-8 border-lyer-green rounded-3xl shadow-2xl">
+        <div class="p-6 bg-slate-50 border-b flex justify-between items-center">
+          <h3 class="font-black text-lg text-slate-800 uppercase italic">
+            {{ editando ? 'Editar' : 'Nuevo' }} {{ nombreTabActiva.toLowerCase() }}
+          </h3>
+          <button @click="cerrarModal" class="btn btn-circle btn-ghost btn-sm text-slate-400"><X class="w-5 h-5" /></button>
+        </div>
+        
+        <div class="p-8 space-y-6">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-black text-slate-400 uppercase text-[10px]">Descripción del Ítem</span></label>
+            <input v-model="form.descripcion" type="text" placeholder="Ej: Aceite de Motor 15W40" 
+              class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-lyer-accent rounded-xl font-bold" />
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-black text-slate-400 uppercase text-[10px]">Precio Sugerido (S/)</span></label>
+            <div class="relative">
+              <input v-model="form.precioBase" type="number" step="0.01" 
+                class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-lyer-accent rounded-xl font-black" />
+            </div>
+            <label class="label"><span class="label-text-alt opacity-50 italic">Este precio aparecerá por defecto en las nuevas órdenes.</span></label>
+          </div>
+        </div>
 
-    <div :class="['modal', { 'modal-open': modalOpen }]">
-      <div class="modal-box border-t-4 border-red-600">
-        <h3 class="font-bold text-lg mb-4">{{ editando ? 'Editar' : 'Nuevo' }} {{ tabActiva }}</h3>
-        <div class="form-control w-full">
-          <label class="label"><span class="label-text font-bold">Descripción</span></label>
-          <input v-model="form.descripcion" type="text" class="input input-bordered w-full" />
-        </div>
-        <div class="form-control w-full mt-4">
-          <label class="label"><span class="label-text font-bold">Precio Base (S/)</span></label>
-          <input v-model="form.precioBase" type="number" step="0.01" class="input input-bordered w-full" />
-        </div>
-        <div class="modal-action">
-          <button @click="guardar" class="btn bg-red-600 text-white border-none">Guardar</button>
-          <button @click="cerrarModal" class="btn btn-ghost">Cancelar</button>
+        <div class="p-6 bg-slate-50 border-t flex justify-end gap-3">
+          <button @click="cerrarModal" class="btn btn-ghost font-bold text-slate-400">Cancelar</button>
+          <button @click="guardar" class="btn bg-lyer-green text-white border-none px-8 rounded-xl shadow-lg hover:bg-emerald-900 transition-all">
+            {{ editando ? 'Guardar Cambios' : 'Registrar Ítem' }}
+          </button>
         </div>
       </div>
     </div>
