@@ -134,5 +134,6 @@ model LogActividad {
   ordenId   Int?
   orden     OrdenTrabajo? @relation(fields: [ordenId], references: [id])
   accion    String
+  detalles  String?       @db.Text
   fecha     DateTime @default(now())
 }

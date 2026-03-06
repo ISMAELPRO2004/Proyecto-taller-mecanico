@@ -4,8 +4,8 @@ import { ref, onMounted, computed, watch } from 'vue';
 import api from '../../api/axios.js';
 import { notify } from '../../utils/alerts.js';
 import { 
-  Search, Eye, Trash2, Plus, FileText, RefreshCcw,
-  ChevronLeft, ChevronRight, ListOrdered
+  Eye, Trash2, Plus, FileText, RefreshCcw,
+  ChevronLeft, ChevronRight, ListOrdered, Edit3
 } from 'lucide-vue-next';
 
 // --- ESTADOS REACTIVOS ---
@@ -24,6 +24,8 @@ const opcionesItems = [5, 10, 20, 50];
 // --- FUNCIONES DE UTILIDAD (Definidas antes para el template) ---
 const getStatusClass = (estado) => {
   const map = { 
+    'ESPERANDO_REPUESTO': 'badge-info text-info-content',
+    'CAMBIO_ACEITE': 'badge-info text-info-content',
     'EN_REPARACION': 'badge-warning text-warning-content', 
     'TERMINADO': 'badge-success text-success-content', 
     'CANCELADO': 'badge-error text-error-content' 
@@ -81,6 +83,12 @@ const verDetalle = (id) => {
   idSeleccionado.value = id;
   modalAbierto.value = true;
 };
+
+const irAEditar = (id) => {
+  router.push(`/ordenes/editar/${id}`);
+};
+
+const puedeEditar = (estado) => !['TERMINADO', 'CANCELADO'].includes(estado);
 
 const eliminarOrden = async (id) => {
   const confirmar = await notify.confirm('¿Eliminar orden?', 'Esta acción no se puede deshacer y afectará los reportes.');
@@ -169,6 +177,14 @@ onMounted(obtenerOrdenes);
                   <button @click="verDetalle(o.id)" class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg transition-all">
                     <Eye class="w-5 h-5" />
                   </button>
+                  <button 
+            @click="$router.push(`/ordenes/editar/${o.id}`)"
+            :disabled="!puedeEditar(o.estado)"
+            class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg transition-all disabled:opacity-30"
+            title="Editar Orden"
+          >
+            <Edit3 class="w-5 h-5" />
+          </button>
                   <button @click="eliminarOrden(o.id)" class="btn btn-square btn-ghost btn-sm text-slate-300 hover:text-red-500 rounded-lg">
                     <Trash2 class="w-5 h-5" />
                   </button>

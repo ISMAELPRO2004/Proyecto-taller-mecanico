@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import api from '../api/axios.js';
+import api from '../../api/axios.js';
 import { 
   ClipboardCheck, 
   Clock, 

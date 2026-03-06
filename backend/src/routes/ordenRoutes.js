@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { crearOrden, listarOrdenes, obtenerOrdenPorId, actualizarEstadoOrden, eliminarOrden } from '../controllers/ordenController.js';
+import { crearOrden, listarOrdenes, obtenerOrdenPorId, actualizarOrden, actualizarEstadoOrden, eliminarOrden } from '../controllers/ordenController.js';
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 
@@ -18,6 +18,12 @@ router.post('/',
   auditLog('REGISTRO DE NUEVA ORDEN DE TRABAJO'), 
   crearOrden
 );
+
+router.put('/:id',
+  authenticateJWT,
+  authorize(['ADMIN', 'RESPONSABLE']),
+  auditLog('ACTUALIZAR ORDEN DE TRABAJO'),
+  actualizarOrden);
 
 // 4. Actualizar el estado de la orden (EN_REPARACION -> TERMINADO, etc.)
 router.put('/:id/estado', 

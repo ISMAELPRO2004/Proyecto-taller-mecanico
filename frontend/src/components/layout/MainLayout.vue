@@ -18,8 +18,8 @@ const isCollapsed = ref(false);
 
 const menuItems = [
   { name: 'Dashboard', path: '/home', icon: LayoutDashboard },
-  { name: 'Órdenes OT', path: '/ordenes', icon: ClipboardList },
-  { name: 'Catálogos', path: '/catalogos', icon: Package },
+  { name: 'Listado de Órdenes', path: '/ordenes', icon: ClipboardList },
+  { name: 'Inventario', path: '/catalogos', icon: Package },
   { name: 'Usuarios & Logs', path: '/usuarios', icon: Users },
 ];
 

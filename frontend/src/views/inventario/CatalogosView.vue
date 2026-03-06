@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import api from '../api/axios.js';
-import { notify } from '../utils/alerts.js';
+import api from '../../api/axios.js';
+import { notify } from '../../utils/alerts.js';
 import { 
   Package, Wrench, Truck, Search, Plus, 
   Edit3, Trash2, ListOrdered, ChevronLeft, 

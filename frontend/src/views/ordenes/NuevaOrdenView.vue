@@ -1,224 +1,317 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import api from '../../api/axios.js';
-import { useRouter } from 'vue-router';
 import { notify } from '../../utils/alerts.js';
+import SelectorCatalogoModal from '../../components/ui/SelectorCatalogoModal.vue'; // Nuevo Componente
+import { 
+  ArrowLeft, Trash2, User, Car, 
+  Package, Wrench, ExternalLink, CheckCircle, ClipboardList
+} from 'lucide-vue-next';
 
+const route = useRoute();
 const router = useRouter();
+const esEdicion = computed(() => !!route.params.id);
+const cargando = ref(false);
+const catalogos = ref({ materiales: [], servicios: [], terceros: [], responsables: [] });
 
-// Listas de catálogos cargadas desde el backend
-const catMateriales = ref([]);
-const catServicios = ref([]);
-const catTerceros = ref([]);
-const usuarios = ref([]);
+// --- ESTADO DEL MODAL DE SELECCIÓN ---
+const modalSeleccion = ref({
+  abierto: false,
+  tipo: '', // materiales | servicios | terceros
+  titulo: '',
+  items: []
+});
 
 const form = ref({
-  clienteNombre: '',
-  clienteCelular: '',
-  trabajoSolicitado: '',
-  placa: '',
-  marca: '',
-  modelo: '',
-  horometro: 0,
-  kilometraje: 0,
-  responsableId: '',
-  materiales: [], // { materialId, descripcion, cantidad, precioAlMomento }
-  servicios: [],   // { servicioId, descripcion, monto }
-  terceros: []     // { terceroId, descripcion, monto }
+  clienteNombre: '', clienteCelular: '', trabajoSolicitado: '',
+  placa: '', marca: '', modelo: '', horometro: 0, kilometraje: 0,
+  responsableId: '', estado: 'EN_REPARACION',
+  materiales: [], servicios: [], terceros: []
 });
 
-onMounted(async () => {
+const inicializar = async () => {
+  cargando.value = true;
   try {
-    const [resMat, resUser, resServ, resTerc] = await Promise.all([
-      api.get('/inventario'),
-      api.get('/usuarios'),
-      api.get('/servicios'),
-      api.get('/terceros')
+    const [resMat, resServ, resTerc, resUser] = await Promise.all([
+      api.get('/inventario'), api.get('/servicios'), api.get('/terceros'), api.get('/usuarios')
     ]);
-    catMateriales.value = resMat.data;
-    usuarios.value = resUser.data.filter(u => ['ADMIN', 'RESPONSABLE'].includes(u.rol));
-    catServicios.value = resServ.data;
-    catTerceros.value = resTerc.data;
-  } catch (e) {
-    console.error("Error al sincronizar catálogos:", e);
-  }
-});
+    catalogos.value = { 
+      materiales: resMat.data, 
+      servicios: resServ.data, 
+      terceros: resTerc.data,
+      responsables: resUser.data 
+    };
 
-// --- Lógica de Búsqueda de Vehículo ---
+    if (esEdicion.value) {
+      const { data } = await api.get(`/ordenes/${route.params.id}`);
+      form.value = {
+        ...data,
+        materiales: data.materiales.map(m => ({
+          materialId: m.materialId,
+          descripcion: m.material.descripcion,
+          cantidad: m.cantidad,
+          precioAlMomento: m.precioAplicado
+        }))
+      };
+    }
+  } catch (e) { notify.error("Error", "Sincronización fallida"); }
+  finally { cargando.value = false; }
+};
+
+// --- LÓGICA DEL SELECTOR ---
+const abrirSelector = (tipo) => {
+  const titulos = {
+    materiales: 'Seleccionar Repuestos',
+    servicios: 'Seleccionar Mano de Obra',
+    terceros: 'Seleccionar Trabajos Terceros'
+  };
+
+  const idsActuales = form.value[tipo].map(i => i.materialId || i.servicioId || i.terceroId);
+
+  modalSeleccion.value = {
+    abierto: true,
+    tipo,
+    titulo: titulos[tipo],
+    items: catalogos.value[tipo],
+    idsActuales
+  };
+};
+
+const confirmarSeleccion = (itemsNuevos) => {
+  const tipo = modalSeleccion.value.tipo;
+  const idKey = tipo === 'materiales' ? 'materialId' : (tipo === 'servicios' ? 'servicioId' : 'terceroId');
+
+  // 1. Eliminar lo que se desmarcó en el modal
+  form.value[tipo] = form.value[tipo].filter(existente => 
+    itemsNuevos.some(nuevo => nuevo.id === existente[idKey])
+  );
+
+  // 2. Añadir solo lo que es realmente nuevo
+  itemsNuevos.forEach(itemCatalogo => {
+    const yaExiste = form.value[tipo].some(existente => existente[idKey] === itemCatalogo.id);
+    
+    if (!yaExiste) {
+      if (tipo === 'materiales') {
+        form.value.materiales.push({ 
+          materialId: itemCatalogo.id, 
+          descripcion: itemCatalogo.descripcion, 
+          cantidad: 1, 
+          precioAlMomento: itemCatalogo.precioBase 
+        });
+      } else {
+        form.value[tipo].push({ 
+          [idKey]: itemCatalogo.id, 
+          descripcion: itemCatalogo.descripcion, 
+          monto: itemCatalogo.precioBase 
+        });
+      }
+    }
+  });
+
+  modalSeleccion.value.abierto = false;
+};
+
 const buscarVehiculo = async () => {
-  if (form.value.placa.length < 3) return;
+  if (esEdicion.value || form.value.placa.length < 3) return;
   try {
     const { data } = await api.get(`/vehiculos/${form.value.placa}`);
-    form.value.marca = data.marca;
-    form.value.modelo = data.modelo;
-    form.value.horometro = data.horometro;
-    form.value.kilometraje = data.kilometraje;
-  } catch (e) { console.log("Vehículo nuevo"); }
+    form.value.marca = data.marca; form.value.modelo = data.modelo;
+    form.value.horometro = data.horometro; form.value.kilometraje = data.kilometraje;
+  } catch (e) {}
 };
 
-// --- Funciones para Agregar desde Catálogos Maestros ---
-const agregarMaterial = (m) => {
-  form.value.materiales.push({ 
-    materialId: m.id, 
-    descripcion: m.descripcion, 
-    cantidad: 1, 
-    precioAlMomento: m.precioBase 
-  });
-};
-
-const agregarServicio = (s) => {
-  form.value.servicios.push({ 
-    servicioId: s.id, 
-    descripcion: s.descripcion, 
-    monto: s.precioBase 
-  });
-};
-
-const agregarTercero = (t) => {
-  form.value.terceros.push({ 
-    terceroId: t.id, 
-    descripcion: t.descripcion, 
-    monto: t.precioBase 
-  });
-};
-
-const eliminarFila = (lista, index) => form.value[lista].splice(index, 1);
-
-// --- Cálculos en Tiempo Real ---
-const total = computed(() => {
+const totalFinal = computed(() => {
   const m = form.value.materiales.reduce((acc, i) => acc + (i.cantidad * i.precioAlMomento), 0);
-  const s = form.value.servicios.reduce((acc, i) => acc + parseFloat(i.monto), 0);
-  const t = form.value.terceros.reduce((acc, i) => acc + parseFloat(i.monto), 0);
+  const s = form.value.servicios.reduce((acc, i) => acc + parseFloat(i.monto || 0), 0);
+  const t = form.value.terceros.reduce((acc, i) => acc + parseFloat(i.monto || 0), 0);
   return m + s + t;
 });
 
-const registrarOrden = async () => {
+const guardar = async () => {
   try {
-    await api.post('/ordenes', form.value);
-    await notify.success('¡Orden Creada!', `La OT para ${form.value.clienteNombre} se guardó con éxito.`);;
-    router.push('/home');
-  } catch (e) {
-    notify.error('Error al guardar', e.response?.data?.message || 'Hubo un problema técnico.');
-  }
+    const action = esEdicion.value ? api.put(`/ordenes/${route.params.id}`, form.value) : api.post('/ordenes', form.value);
+    await action;
+    notify.success("Éxito", esEdicion.value ? "Orden actualizada" : "Orden creada");
+    router.push('/ordenes');
+  } catch (e) { notify.error("Error", "No se pudo procesar"); }
 };
+
+onMounted(inicializar);
 </script>
 
 <template>
-  <div class="p-4 md:p-8 bg-slate-100 min-h-screen text-slate-800">
-    <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl border-t-8 border-red-600 p-6">
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-black italic"><span class="text-red-600">LYER</span> - NUEVA ORDEN</h1>
-        <div class="text-right">
-          <p class="text-xs font-bold text-slate-400">FECHA DE REGISTRO</p>
-          <p class="font-mono">{{ new Date().toLocaleDateString() }}</p>
+  <div class="max-w-[1440px] mx-auto space-y-6 animate-fade-in pb-24 px-4">
+    <header class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <button @click="router.back()" class="btn btn-circle btn-ghost"><ArrowLeft class="w-5 h-5" /></button>
+        <div>
+          <h2 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter">
+            {{ esEdicion ? 'Actualizar' : 'Nueva' }} <span class="text-lyer-green">Orden de Trabajo</span>
+          </h2>
+          <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mecánica LYER Motors</p>
         </div>
       </div>
+      <div v-if="esEdicion" class="flex items-center gap-3 bg-slate-50 px-5 py-2 rounded-2xl border border-slate-200">
+        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fase del Servicio:</span>
+        <select v-model="form.estado" class="select select-xs select-ghost font-black text-lyer-green focus:bg-transparent">
+          <option value="EN_REPARACION">EN REPARACION</option>
+          <option value="CAMBIO_ACEITE">CAMBIO DE ACEITE</option>
+          <option value="ESPERANDO_REPUESTO">ESPERANDO REPUESTO</option>
+          <option value="TERMINADO">TERMINADO (CIERRE)</option>
+          <option value="CANCELADO">CANCELADO</option>
+        </select>
+      </div>
+    </header>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        <div class="space-y-4">
-          <h3 class="font-bold border-b-2 border-red-600 inline-block pr-4">DATOS DEL CLIENTE</h3>
-          <input v-model="form.clienteNombre" placeholder="Nombre completo del cliente" class="input input-bordered w-full" />
-          <input v-model="form.clienteCelular" placeholder="Celular" class="input input-bordered w-full" />
-          <textarea v-model="form.trabajoSolicitado" placeholder="Diagnóstico inicial / Trabajo solicitado" class="textarea textarea-bordered w-full h-24"></textarea>
+    <section class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+      <div class="flex items-center gap-2 px-2 text-lyer-green">
+        <User class="w-4 h-4" />
+        <span class="text-[10px] font-black uppercase tracking-widest">Información del Propietario</span>
+      </div>
+      <div class="flex flex-col lg:flex-row gap-4">
+        <div class="lg:w-1/4">
+          <input v-model="form.clienteNombre" placeholder="Nombre completo" class="input input-bordered w-full rounded-xl font-bold bg-slate-50 border-none" />
         </div>
-        <div class="bg-red-50 p-6 rounded-xl border border-red-100 space-y-4">
-          <h3 class="font-bold text-red-700">DATOS DEL VEHÍCULO</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <input v-model="form.placa" @blur="buscarVehiculo" placeholder="PLACA" class="input input-sm input-bordered font-bold uppercase" />
-            <input v-model="form.marca" placeholder="MARCA" class="input input-sm input-bordered" />
-            <input v-model="form.modelo" placeholder="MODELO" class="input input-sm input-bordered" />
-            <input v-model="form.horometro" type="number" placeholder="HORÓMETRO" class="input input-sm input-bordered" />
-            <input v-model="form.kilometraje" type="number" placeholder="KILOMETRAJE" class="input input-sm input-bordered col-span-2" />
-          </div>
+        <div class="lg:w-48">
+          <input v-model="form.clienteCelular" placeholder="Celular" class="input input-bordered w-full rounded-xl font-bold bg-slate-50 border-none" />
+        </div>
+        <div class="flex-1">
+          <textarea v-model="form.trabajoSolicitado" placeholder="Detalle del pedido o falla reportada..." 
+            class="textarea textarea-bordered w-full rounded-xl text-sm font-medium bg-slate-50 border-none min-h-[48px] h-[48px] focus:h-24 transition-all"></textarea>
         </div>
       </div>
+    </section>
 
-      <div class="space-y-8">
-        <div class="overflow-x-auto">
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-bold text-sm uppercase">1. Repuestos y Materiales</h4>
-            <div class="dropdown dropdown-end">
-              <label tabindex="0" class="btn btn-xs bg-red-600 text-white border-none">+ Catálogo</label>
-              <ul tabindex="0" class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-64 z-50 border">
-                <li v-for="m in catMateriales" :key="m.id"><a @click="agregarMaterial(m)">{{ m.descripcion }} (S/{{ m.precioBase }})</a></li>
-              </ul>
-            </div>
-          </div>
-          <table class="table table-compact w-full border">
-            <thead class="bg-slate-800 text-white"><tr><th>Cant.</th><th>Descripción</th><th>Unit.</th><th>Subtotal</th><th></th></tr></thead>
-            <tbody>
-              <tr v-for="(m, i) in form.materiales" :key="i">
-                <td class="w-20"><input v-model="m.cantidad" type="number" class="input input-xs w-full border" /></td>
-                <td class="text-xs">{{ m.descripcion }}</td>
-                <td>S/ {{ m.precioAlMomento }}</td>
-                <td class="font-bold">S/ {{ (m.cantidad * m.precioAlMomento).toFixed(2) }}</td>
-                <td><button @click="eliminarFila('materiales', i)" class="text-red-600 font-bold">✕</button></td>
-              </tr>
-            </tbody>
-          </table>
+    <section class="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100/50 space-y-4">
+      <div class="flex items-center gap-2 px-2 text-emerald-700">
+        <Car class="w-4 h-4" />
+        <span class="text-[10px] font-black uppercase tracking-widest">Ficha Técnica de la Unidad</span>
+      </div>
+      <div class="flex flex-wrap lg:flex-nowrap gap-4 items-end">
+        <div class="w-full lg:w-32">
+          <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Placa</label>
+          <input v-model="form.placa" @blur="buscarVehiculo" class="input input-bordered w-full rounded-xl font-black text-center uppercase border-none shadow-sm" />
         </div>
+        <div class="flex-1 w-full lg:w-auto">
+          <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Marca de Vehículo</label>
+          <input v-model="form.marca" placeholder="Ej: Volvo, Scania..." class="input input-bordered w-full rounded-xl text-sm font-bold border-none shadow-sm" />
+        </div>
+        <div class="flex-1 w-full lg:w-auto">
+          <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Modelo / Versión</label>
+          <input v-model="form.modelo" placeholder="Ej: FMX 460" class="input input-bordered w-full rounded-xl text-sm font-bold border-none shadow-sm" />
+        </div>
+        <div class="w-28">
+          <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase text-center">Kilometraje</label>
+          <input v-model="form.kilometraje" type="number" class="input input-bordered w-full rounded-xl text-sm font-bold border-none shadow-sm text-center" />
+        </div>
+        <div class="w-28">
+          <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase text-center">Horómetro</label>
+          <input v-model="form.horometro" type="number" class="input input-bordered w-full rounded-xl text-sm font-bold border-none shadow-sm text-center" />
+        </div>
+      </div>
+    </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <h4 class="font-bold text-sm uppercase">2. Mano de Obra</h4>
-              <div class="dropdown dropdown-end">
-                <label tabindex="0" class="btn btn-xs btn-outline">+ Catálogo</label>
-                <ul tabindex="0" class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-64 z-50 border">
-                  <li v-for="s in catServicios" :key="s.id"><a @click="agregarServicio(s)">{{ s.descripcion }} (S/{{ s.precioBase }})</a></li>
-                </ul>
-              </div>
-            </div>
-            <table class="table table-compact w-full border">
-              <tbody>
-                <tr v-for="(s, i) in form.servicios" :key="i">
-                  <td class="text-xs">{{ s.descripcion }}</td>
-                  <td class="w-24 font-bold text-right">S/ {{ s.monto }}</td>
-                  <td class="w-10"><button @click="eliminarFila('servicios', i)" class="text-red-500">✕</button></td>
-                </tr>
-              </tbody>
-            </table>
+    <section class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden p-8 space-y-12">
+      <div class="space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-50 pb-2">
+          <div class="flex items-center gap-2 text-slate-400">
+            <Package class="w-4 h-4" />
+            <span class="text-[10px] font-black uppercase tracking-widest">Insumos y Repuestos</span>
           </div>
-
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <h4 class="font-bold text-sm uppercase">3. Trabajos Terceros</h4>
-              <div class="dropdown dropdown-end">
-                <label tabindex="0" class="btn btn-xs btn-outline">+ Catálogo</label>
-                <ul tabindex="0" class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-64 z-50 border">
-                  <li v-for="t in catTerceros" :key="t.id"><a @click="agregarTercero(t)">{{ t.descripcion }} (S/{{ t.precioBase }})</a></li>
-                </ul>
-              </div>
+          <button type="button" @click="abrirSelector('materiales')" class="btn btn-xs bg-lyer-green text-white border-none rounded-lg px-4 shadow-sm hover:scale-105 transition-all">+ Añadir</button>
+        </div>
+        <div class="space-y-2">
+          <div v-for="(m, i) in form.materiales" :key="i" class="flex items-center gap-4 bg-slate-50/50 p-2 pr-4 rounded-2xl border border-transparent hover:border-slate-100 group">
+            <div class="w-16"><input v-model="m.cantidad" type="number" class="input input-xs w-full text-center font-black bg-white rounded-lg shadow-inner" /></div>
+            <div class="flex-1 text-xs font-bold text-slate-700 uppercase">{{ m.descripcion }}</div>
+            <div class="w-36 flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[9px] font-bold text-slate-300">P.U. S/</span>
+              <input v-model="m.precioAlMomento" type="number" step="0.01" class="w-full bg-transparent font-black text-xs text-lyer-green outline-none" />
             </div>
-            <table class="table table-compact w-full border">
-              <tbody>
-                <tr v-for="(t, i) in form.terceros" :key="i">
-                  <td class="text-xs">{{ t.descripcion }}</td>
-                  <td class="w-24 font-bold text-right">S/ {{ t.monto }}</td>
-                  <td class="w-10"><button @click="eliminarFila('terceros', i)" class="text-red-500">✕</button></td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="w-32 text-right font-black text-slate-800 tabular-nums">S/ {{ (m.cantidad * m.precioAlMomento).toFixed(2) }}</div>
+            <button @click="form.materiales.splice(i, 1)" class="text-red-200 hover:text-red-500 transition-colors"><Trash2 class="w-4 h-4" /></button>
           </div>
         </div>
       </div>
 
-      <div class="mt-12 p-8 bg-slate-900 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="form-control w-full md:w-64">
-          <label class="label"><span class="label-text text-white opacity-60">RESPONSABLE DE ORDEN</span></label>
-          <select v-model="form.responsableId" class="select select-bordered bg-slate-800 text-white border-none">
-            <option value="">Seleccione...</option>
-            <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombreCompleto || u.username }}</option>
+      <div class="space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-50 pb-2">
+          <div class="flex items-center gap-2 text-slate-400">
+            <Wrench class="w-4 h-4" />
+            <span class="text-[10px] font-black uppercase tracking-widest">Servicios Mecánicos</span>
+          </div>
+          <button type="button" @click="abrirSelector('servicios')" class="btn btn-xs btn-outline border-slate-200 text-slate-400 rounded-lg px-4 hover:text-lyer-green hover:border-lyer-green">+ Catálogo</button>
+        </div>
+        <div v-for="(s, i) in form.servicios" :key="i" class="flex items-center gap-4 bg-slate-50/30 p-2 pr-4 rounded-2xl">
+          <div class="flex-1 text-xs font-bold text-slate-600 pl-4 uppercase tracking-tight">{{ s.descripcion }}</div>
+          <div class="w-36 flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+            <span class="text-[9px] font-bold text-slate-300">TOTAL S/</span>
+            <input v-model="s.monto" type="number" step="0.01" class="w-full bg-transparent font-black text-xs text-slate-800 outline-none" />
+          </div>
+          <button @click="form.servicios.splice(i, 1)" class="text-red-200 hover:text-red-500"><Trash2 class="w-4 h-4" /></button>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-50 pb-2">
+          <div class="flex items-center gap-2 text-blue-400">
+            <ExternalLink class="w-4 h-4" />
+            <span class="text-[10px] font-black uppercase tracking-widest">Trabajos Externos (Terceros)</span>
+          </div>
+          <button type="button" @click="abrirSelector('terceros')" class="btn btn-xs btn-outline border-blue-100 text-blue-400 rounded-lg px-4 hover:bg-blue-50">+ Terceros</button>
+        </div>
+        <div v-for="(t, i) in form.terceros" :key="i" class="flex items-center gap-4 bg-blue-50/20 p-2 pr-4 rounded-2xl">
+          <div class="flex-1 text-xs font-bold text-blue-900 pl-4 italic">{{ t.descripcion }}</div>
+          <div class="w-36 flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-blue-100 shadow-sm">
+            <span class="text-[9px] font-bold text-blue-200">TOTAL S/</span>
+            <input v-model="t.monto" type="number" step="0.01" class="w-full bg-transparent font-black text-xs text-blue-700 outline-none" />
+          </div>
+          <button @click="form.terceros.splice(i, 1)" class="text-red-200 hover:text-red-500"><Trash2 class="w-4 h-4" /></button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bg-slate-900 p-8 rounded-[3rem] flex flex-col lg:flex-row justify-between items-center gap-8 shadow-2xl relative overflow-hidden">
+      <div class="z-10 flex flex-col md:flex-row gap-8 items-center w-full lg:w-auto">
+        <div class="flex flex-col gap-1 w-full lg:w-72">
+          <label class="text-[8px] font-black text-emerald-400/50 uppercase tracking-[0.3em] ml-2">Asignar Operario Responsable</label>
+          <select v-model="form.responsableId" class="select select-bordered bg-slate-800 text-white border-none rounded-2xl font-bold text-xs h-11">
+            <option value="">Seleccione técnico...</option>
+            <option v-for="u in catalogos.responsables" :key="u.id" :value="u.id">{{ u.nombreCompleto }}</option>
           </select>
         </div>
-        <div class="text-center md:text-right">
-          <p class="text-white opacity-60 text-sm uppercase tracking-widest">Inversión Total</p>
-          <h2 class="text-6xl font-black text-red-500">S/ {{ total.toFixed(2) }}</h2>
+      </div>
+
+      <div class="z-10 flex items-center gap-10 w-full lg:w-auto justify-between lg:justify-end">
+        <div class="text-right">
+          <p class="text-[8px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-1 opacity-60">Liquidación OT</p>
+          <h2 class="text-4xl lg:text-5xl font-black text-white tracking-tighter tabular-nums">S/ {{ totalFinal.toFixed(2) }}</h2>
         </div>
-        <button @click="registrarOrden" class="btn btn-lg bg-red-600 hover:bg-red-700 border-none px-12 text-white shadow-2xl animate-pulse">
-          GUARDAR ORDEN
+        <button @click="guardar" class="btn btn-lg bg-lyer-accent text-emerald-950 border-none px-12 rounded-2xl shadow-xl hover:bg-white transition-all hover:scale-105">
+          <CheckCircle class="w-6 h-6 mr-2" /> 
+          <span class="font-black italic uppercase tracking-tighter">{{ esEdicion ? 'Actualizar' : 'Finalizar' }}</span>
         </button>
       </div>
-    </div>
+
+      <div class="absolute -right-6 -bottom-6 opacity-5 rotate-12"><ClipboardList class="w-48 h-48 text-white" /></div>
+    </footer>
+
+    <SelectorCatalogoModal 
+      :isOpen="modalSeleccion.abierto"
+      :titulo="modalSeleccion.titulo"
+      :items="modalSeleccion.items"
+      :yaSeleccionadosIds="modalSeleccion.idsActuales"
+      @close="modalSeleccion.abierto = false"
+      @confirmar="confirmarSeleccion"
+    />
   </div>
 </template>
+
+<style scoped>
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Limpiar flechas de inputs numéricos */
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+</style>
