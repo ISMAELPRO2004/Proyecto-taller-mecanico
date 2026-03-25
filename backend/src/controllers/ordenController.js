@@ -23,12 +23,12 @@ export const crearOrden = async (req, res) => {
       const vehiculo = await tx.vehiculo.upsert({
         where: { placa: placa.trim().toUpperCase() },
         update: { horometro: parseFloat(horometro || 0), kilometraje: parseFloat(kilometraje || 0) },
-        create: { 
-          placa: placa.trim().toUpperCase(), 
-          marca: marca || 'Genérica', 
-          modelo: modelo || 'Genérico', 
-          horometro: parseFloat(horometro || 0), 
-          kilometraje: parseFloat(kilometraje || 0) 
+        create: {
+          placa: placa.trim().toUpperCase(),
+          marca: marca || 'Genérica',
+          modelo: modelo || 'Genérico',
+          horometro: parseFloat(horometro || 0),
+          kilometraje: parseFloat(kilometraje || 0)
         }
       });
 
@@ -86,6 +86,8 @@ export const crearOrden = async (req, res) => {
       return nuevaOrden;
     });
 
+    await registrarLog(req, "REGISTRO DE NUEVA ORDEN DE TRABAJO", resultado, null, resultado.id);
+
     res.status(201).json(resultado);
   } catch (error) {
     res.status(400).json({ message: "Error al procesar", error: error.message });
@@ -137,7 +139,7 @@ export const actualizarOrden = async (req, res) => {
   } = req.body;
 
   try {
-    const ordenPrevia = await prisma.ordenTrabajo.findUnique({ 
+    const ordenPrevia = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
         materiales: { include: { material: true } }, // Incluimos para tener la descripción
@@ -170,9 +172,9 @@ export const actualizarOrden = async (req, res) => {
       // 4. Actualizar datos del Vehículo (por si cambiaron km u horómetro durante el servicio)
       await tx.vehiculo.update({
         where: { placa: placa.trim().toUpperCase() },
-        data: { 
-          horometro: parseFloat(horometro || 0), 
-          kilometraje: parseFloat(kilometraje || 0) 
+        data: {
+          horometro: parseFloat(horometro || 0),
+          kilometraje: parseFloat(kilometraje || 0)
         }
       });
 
@@ -263,13 +265,20 @@ export const actualizarEstadoOrden = async (req, res) => {
 export const eliminarOrden = async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.$transaction([
-      prisma.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } }),
-      prisma.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } }),
-      prisma.oTTercero.deleteMany({ where: { ordenId: parseInt(id) } }),
-      prisma.ordenTrabajo.delete({ where: { id: parseInt(id) } })
-    ]);
-    res.json({ message: "Orden eliminada exitosamente" });
+    // 1. Obtener snapshot completo antes de borrarlo todo
+    const ordenPrevia = await prisma.ordenTrabajo.findUnique({
+      where: { id: parseInt(id) },
+      include: { materiales: true, servicios: true, terceros: true }
+    });
+    
+      await prisma.$transaction([
+        prisma.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } }),
+        prisma.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } }),
+        prisma.oTTercero.deleteMany({ where: { ordenId: parseInt(id) } }),
+        prisma.ordenTrabajo.delete({ where: { id: parseInt(id) } })
+      ]);
+      await registrarLog(req, "ELIMINAR ORDEN DE TRABAJO", null, ordenPrevia, id);
+      res.json({ message: "Orden eliminada exitosamente" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

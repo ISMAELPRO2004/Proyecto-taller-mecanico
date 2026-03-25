@@ -1,24 +1,21 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
+import { registrarLog } from '../utils/logger.js';
 
 export const crearUsuario = async (req, res) => {
   const { username, password, nombreCompleto, rol } = req.body;
-
   try {
     const hashedParams = await bcrypt.hash(password, 10);
     const nuevoUsuario = await prisma.usuario.create({
-      data: {
-        username,
-        password: hashedParams,
-        nombreCompleto,
-        rol: rol.toUpperCase()
-      }
+      data: { username, password: hashedParams, nombreCompleto, rol: rol.toUpperCase() }
     });
 
+    // LOG: Snapshot de creación (Sin incluir el password)
+    const logData = { username, nombreCompleto, rol };
+    await registrarLog(req, 'NUEVO USUARIO CREADO', logData);
+
     res.status(201).json({ message: "Usuario creado", id: nuevoUsuario.id });
-  } catch (error) {
-    res.status(400).json({ message: "Error al crear usuario", error: error.message });
-  }
+  } catch (error) { res.status(400).json({ error: error.message }); }
 };
 
 export const listarLogs = async (req, res) => {
