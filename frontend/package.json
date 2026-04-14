@@ -8,11 +8,20 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "pnpm": {
+    "overrides": {
+      "follow-redirects": ">=1.16.0",
+      "dompurify": ">=3.3.2",
+      "picomatch": ">=4.0.4",
+      "rollup": ">=4.59.0",
+      "yaml": ">=2.8.3"
+    }
+  },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
-    "axios": "^1.13.4",
+    "axios": "1.15.0",
     "cally": "^0.9.1",
-    "jspdf": "^4.2.0",
+    "jspdf": "4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-vue-next": "^0.575.0",
     "pinia": "^3.0.4",
@@ -26,7 +35,7 @@
     "daisyui": "^5.5.17",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "vite": "^7.2.4"
+    "vite": "^7.3.2"
   },
   "packageManager": "pnpm@10.18.3+sha512.bbd16e6d7286fd7e01f6b3c0b3c932cda2965c06a908328f74663f10a9aea51f1129eea615134bf992831b009eabe167ecb7008b597f40ff9bc75946aadfb08d"
 }
