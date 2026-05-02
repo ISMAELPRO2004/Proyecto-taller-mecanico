@@ -1,7 +1,7 @@
 import prisma from '../config/prisma.js';
 import { registrarLog } from '../utils/logger.js';
 
-// --- CREAR ORDEN (Tu lógica optimizada) ---
+// ─── CREAR ORDEN ──────────────────────────────────────────────────────────────
 export const crearOrden = async (req, res) => {
   const {
     clienteNombre, clienteCelular, trabajoSolicitado,
@@ -28,7 +28,7 @@ export const crearOrden = async (req, res) => {
           marca: marca || 'Genérica',
           modelo: modelo || 'Genérico',
           horometro: parseFloat(horometro || 0),
-          kilometraje: parseFloat(kilometraje || 0)
+          kilometraje: parseFloat(kilometraje || 0),
         }
       });
 
@@ -46,7 +46,7 @@ export const crearOrden = async (req, res) => {
           creadorId: req.user.id,
           responsableId: parseInt(responsableId),
           totalFinal: totalCalculado,
-          estado: 'EN_REPARACION'
+          estado: 'EN_REPARACION',
         }
       });
 
@@ -56,7 +56,7 @@ export const crearOrden = async (req, res) => {
             ordenId: nuevaOrden.id,
             materialId: m.materialId,
             cantidad: parseFloat(m.cantidad),
-            precioAplicado: parseFloat(m.precioAlMomento)
+            precioAplicado: parseFloat(m.precioAlMomento),
           }))
         });
       }
@@ -67,7 +67,7 @@ export const crearOrden = async (req, res) => {
             ordenId: nuevaOrden.id,
             servicioId: s.servicioId,
             descripcion: s.descripcion,
-            monto: parseFloat(s.monto || 0)
+            monto: parseFloat(s.monto || 0),
           }))
         });
       }
@@ -78,7 +78,7 @@ export const crearOrden = async (req, res) => {
             ordenId: nuevaOrden.id,
             terceroId: t.terceroId,
             descripcion: t.descripcion,
-            monto: parseFloat(t.monto || 0)
+            monto: parseFloat(t.monto || 0),
           }))
         });
       }
@@ -86,21 +86,21 @@ export const crearOrden = async (req, res) => {
       return nuevaOrden;
     });
 
-    await registrarLog(req, "REGISTRO DE NUEVA ORDEN DE TRABAJO", resultado, null, resultado.id);
+    // ── LOG CREACIÓN ──
+    // Pasamos req.body como "nuevos" — el logger lo trata como snapshot de creación
+    await registrarLog(req, 'CREAR ORDEN', req.body, null, resultado.id);
 
     res.status(201).json(resultado);
   } catch (error) {
-    res.status(400).json({ message: "Error al procesar", error: error.message });
+    res.status(400).json({ message: 'Error al procesar', error: error.message });
   }
 };
 
-// --- LISTAR TODAS LAS ÓRDENES ---
+// ─── LISTAR TODAS LAS ÓRDENES ─────────────────────────────────────────────────
 export const listarOrdenes = async (req, res) => {
   try {
     const ordenes = await prisma.ordenTrabajo.findMany({
-      include: {
-        responsable: { select: { nombreCompleto: true } }
-      },
+      include: { responsable: { select: { nombreCompleto: true } } },
       orderBy: { fechaCreacion: 'desc' }
     });
     res.json(ordenes);
@@ -109,7 +109,7 @@ export const listarOrdenes = async (req, res) => {
   }
 };
 
-// --- OBTENER DETALLE COMPLETO (Para el Modal) ---
+// ─── OBTENER DETALLE COMPLETO ─────────────────────────────────────────────────
 export const obtenerOrdenPorId = async (req, res) => {
   const { id } = req.params;
   try {
@@ -120,16 +120,17 @@ export const obtenerOrdenPorId = async (req, res) => {
         creador: true,
         materiales: { include: { material: true } },
         servicios: { include: { servicio: true } },
-        terceros: { include: { tercero: true } }
+        terceros: { include: { tercero: true } },
       }
     });
-    if (!orden) return res.status(404).json({ message: "Orden no encontrada" });
+    if (!orden) return res.status(404).json({ message: 'Orden no encontrada' });
     res.json(orden);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+// ─── ACTUALIZAR ORDEN ─────────────────────────────────────────────────────────
 export const actualizarOrden = async (req, res) => {
   const { id } = req.params;
   const {
@@ -139,51 +140,43 @@ export const actualizarOrden = async (req, res) => {
   } = req.body;
 
   try {
+    // ── SNAPSHOT PREVIO ──
+    // Crítico: incluir material/servicio/tercero para tener la descripción
+    // y usar los mismos campos que normalizarItems espera de la DB
     const ordenPrevia = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
-        materiales: { include: { material: true } }, // Incluimos para tener la descripción
-        servicios: true,
-        terceros: true
+        responsable: { select: { nombreCompleto: true } },
+        materiales: { include: { material: true } },
+        servicios: { include: { servicio: true } },
+        terceros: { include: { tercero: true } },
       }
     });
 
-    if (!ordenPrevia) throw new Error("Orden no encontrada");
+    if (!ordenPrevia) return res.status(404).json({ message: 'Orden no encontrada' });
+
+    if (['TERMINADO', 'CANCELADO'].includes(ordenPrevia.estado)) {
+      return res.status(400).json({ message: 'No se puede modificar una orden cerrada o cancelada.' });
+    }
 
     const resultado = await prisma.$transaction(async (tx) => {
-      // 1. Verificar si la orden existe y su estado actual
-      const ordenExistente = await tx.ordenTrabajo.findUnique({
-        where: { id: parseInt(id) }
-      });
-
-      if (!ordenExistente) throw new Error("La orden no existe.");
-
-      // 2. Bloqueo de seguridad: Si ya está terminada o cancelada, no se toca
-      if (['TERMINADO', 'CANCELADO'].includes(ordenExistente.estado)) {
-        throw new Error("No se puede modificar una orden que ya ha sido cerrada o cancelada.");
-      }
-
-      // 3. Recalcular Totales con los nuevos datos recibidos
       const totalMat = materiales?.reduce((acc, m) => acc + (parseFloat(m.cantidad || 0) * parseFloat(m.precioAlMomento || 0)), 0) || 0;
       const totalServ = servicios?.reduce((acc, s) => acc + parseFloat(s.monto || 0), 0) || 0;
       const totalTerc = terceros?.reduce((acc, t) => acc + parseFloat(t.monto || 0), 0) || 0;
       const totalCalculado = totalMat + totalServ + totalTerc;
 
-      // 4. Actualizar datos del Vehículo (por si cambiaron km u horómetro durante el servicio)
       await tx.vehiculo.update({
         where: { placa: placa.trim().toUpperCase() },
         data: {
           horometro: parseFloat(horometro || 0),
-          kilometraje: parseFloat(kilometraje || 0)
+          kilometraje: parseFloat(kilometraje || 0),
         }
       });
 
-      // 5. Limpiar detalles antiguos para evitar duplicados o IDs huérfanos
       await tx.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } });
       await tx.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } });
       await tx.oTTercero.deleteMany({ where: { ordenId: parseInt(id) } });
 
-      // 6. Actualizar Cabecera de la Orden
       const ordenActualizada = await tx.ordenTrabajo.update({
         where: { id: parseInt(id) },
         data: {
@@ -196,18 +189,17 @@ export const actualizarOrden = async (req, res) => {
           kilometraje: parseFloat(kilometraje || 0),
           responsableId: parseInt(responsableId),
           totalFinal: totalCalculado,
-          estado: estado || ordenExistente.estado // Permite cambiar el estado en la misma edición
+          estado: estado || ordenPrevia.estado,
         }
       });
 
-      // 7. Reinsertar los nuevos Detalles
       if (materiales?.length > 0) {
         await tx.oTMaterial.createMany({
           data: materiales.map(m => ({
             ordenId: ordenActualizada.id,
             materialId: m.materialId,
             cantidad: parseFloat(m.cantidad),
-            precioAplicado: parseFloat(m.precioAlMomento)
+            precioAplicado: parseFloat(m.precioAlMomento),
           }))
         });
       }
@@ -218,7 +210,7 @@ export const actualizarOrden = async (req, res) => {
             ordenId: ordenActualizada.id,
             servicioId: s.servicioId,
             descripcion: s.descripcion,
-            monto: parseFloat(s.monto || 0)
+            monto: parseFloat(s.monto || 0),
           }))
         });
       }
@@ -229,7 +221,7 @@ export const actualizarOrden = async (req, res) => {
             ordenId: ordenActualizada.id,
             terceroId: t.terceroId,
             descripcion: t.descripcion,
-            monto: parseFloat(t.monto || 0)
+            monto: parseFloat(t.monto || 0),
           }))
         });
       }
@@ -237,48 +229,122 @@ export const actualizarOrden = async (req, res) => {
       return ordenActualizada;
     });
 
-    await registrarLog(req, "ACTUALIZAR ORDEN DE TRABAJO", req.body, ordenPrevia, id);
+    const nuevoResponsable = await prisma.usuario.findUnique({
+      where: { id: parseInt(responsableId) },
+      select: { nombreCompleto: true }
+    });
+
+    // Normalizar anterior: reemplazar objeto responsable por nombre legible
+    const anteriorNormalizado = {
+      clienteNombre: ordenPrevia.clienteNombre,
+      clienteCelular: ordenPrevia.clienteCelular,
+      trabajoSolicitado: ordenPrevia.trabajoSolicitado,
+      placa: ordenPrevia.placa,
+      marca: ordenPrevia.marca,
+      modelo: ordenPrevia.modelo,
+      horometro: ordenPrevia.horometro,
+      kilometraje: ordenPrevia.kilometraje,
+      estado: ordenPrevia.estado,
+      totalFinal: ordenPrevia.totalFinal,
+      responsable: ordenPrevia.responsable?.nombreCompleto ?? '—', // ← nombre legible
+      materiales: ordenPrevia.materiales,
+      servicios: ordenPrevia.servicios,
+      terceros: ordenPrevia.terceros,
+    };
+
+    // Normalizar nuevo: reemplazar responsableId número por nombre legible
+    const nuevoNormalizado = {
+      clienteNombre,
+      clienteCelular,
+      trabajoSolicitado,
+      placa,
+      marca,
+      modelo,
+      horometro,
+      kilometraje,
+      estado: estado || ordenPrevia.estado,
+      totalFinal: resultado.totalFinal,
+      responsable: nuevoResponsable?.nombreCompleto ?? responsableId, // ← mismo campo
+      materiales,
+      servicios,
+      terceros,
+    };
+
+    // ── LOG EDICIÓN ──
+    // anteriores = snapshot de DB con includes (tiene material.descripcion)
+    // nuevos     = req.body del frontend (tiene precioAlMomento)
+    // normalizarItems en el logger unifica ambos formatos correctamente
+    await registrarLog(req, 'ACTUALIZAR ORDEN', nuevoNormalizado, anteriorNormalizado, id);
 
     res.json(resultado);
   } catch (error) {
-    console.error("❌ Error al actualizar la orden:", error.message);
+    console.error('❌ Error al actualizar la orden:', error.message);
     res.status(400).json({ message: error.message });
   }
 };
 
-// --- ACTUALIZAR ESTADO ---
+// ─── ACTUALIZAR ESTADO ────────────────────────────────────────────────────────
+// Este endpoint estaba sin log — ahora registra el cambio de estado
 export const actualizarEstadoOrden = async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
+
   try {
+    // Snapshot previo para registrar de qué estado a cuál cambió
+    const ordenPrevia = await prisma.ordenTrabajo.findUnique({
+      where: { id: parseInt(id) },
+      select: { estado: true, clienteNombre: true, numeroOrden: true }
+    });
+
+    if (!ordenPrevia) return res.status(404).json({ message: 'Orden no encontrada' });
+
     const actualizada = await prisma.ordenTrabajo.update({
       where: { id: parseInt(id) },
       data: { estado }
     });
+
+    // LOG: compara { estado } nuevo vs snapshot previo
+    await registrarLog(
+      req,
+      'CAMBIO DE ESTADO',
+      { estado },
+      { estado: ordenPrevia.estado },
+      id
+    );
+
     res.json(actualizada);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-// --- ELIMINAR ORDEN (Con limpieza de detalles) ---
+// ─── ELIMINAR ORDEN ───────────────────────────────────────────────────────────
 export const eliminarOrden = async (req, res) => {
   const { id } = req.params;
   try {
-    // 1. Obtener snapshot completo antes de borrarlo todo
     const ordenPrevia = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
-      include: { materiales: true, servicios: true, terceros: true }
+      include: {
+        materiales: { include: { material: true } },
+        servicios: { include: { servicio: true } },
+        terceros: { include: { tercero: true } },
+      }
     });
-    
-      await prisma.$transaction([
-        prisma.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } }),
-        prisma.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } }),
-        prisma.oTTercero.deleteMany({ where: { ordenId: parseInt(id) } }),
-        prisma.ordenTrabajo.delete({ where: { id: parseInt(id) } })
-      ]);
-      await registrarLog(req, "ELIMINAR ORDEN DE TRABAJO", null, ordenPrevia, id);
-      res.json({ message: "Orden eliminada exitosamente" });
+
+    if (!ordenPrevia) return res.status(404).json({ message: 'Orden no encontrada' });
+
+    await prisma.$transaction([
+      prisma.logActividad.deleteMany({ where: { ordenId: parseInt(id) } }),
+      prisma.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } }),
+      prisma.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } }),
+      prisma.oTTercero.deleteMany({ where: { ordenId: parseInt(id) } }),
+      prisma.ordenTrabajo.delete({ where: { id: parseInt(id) } }),
+    ]);
+
+    // LOG: sin ordenId porque la orden ya no existe en DB
+    await registrarLog(req, 'ELIMINAR ORDEN', null, ordenPrevia, null);
+
+    res.json({ message: 'Orden eliminada exitosamente' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

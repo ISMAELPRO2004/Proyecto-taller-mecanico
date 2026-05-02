@@ -1,23 +1,13 @@
-import prisma from '../config/prisma.js';
-
 export const auditLog = (accionDescripcion) => {
   return async (req, res, next) => {
     res.on('finish', async () => {
-      // CONDICIÓN: Solo registra si la respuesta fue exitosa Y NO se hizo un log manual
       if (res.statusCode >= 200 && res.statusCode < 300 && req.user && !req.logManualRealizado) {
-        try {
-          const esRutaDeOrden = req.originalUrl.includes('ordenes');
-          
-          await prisma.logActividad.create({
-            data: {
-              usuarioId: req.user.id,
-              accion: accionDescripcion, // Usamos la descripción limpia sin la URL
-              ordenId: esRutaDeOrden && req.params.id ? parseInt(req.params.id) : null
-            }
-          });
-        } catch (error) {
-          console.error("⚠️ Error en auditoría global:", error.message);
-        }
+        // Si llegamos aquí, un controller mutó datos sin llamar a registrarLog.
+        // Solo loguear en consola para detectarlo durante desarrollo.
+        console.warn(
+          `⚠️  [AUDIT] Acción sin log manual detectada: ${accionDescripcion} | ` +
+          `Usuario: ${req.user?.id} | Ruta: ${req.method} ${req.originalUrl}`
+        );
       }
     });
     next();

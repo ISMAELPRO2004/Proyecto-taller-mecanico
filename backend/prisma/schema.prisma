@@ -128,12 +128,18 @@ model OTTercero {
 }
 
 model LogActividad {
-  id        Int      @id @default(autoincrement())
-  usuarioId Int
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
-  ordenId   Int?
-  orden     OrdenTrabajo? @relation(fields: [ordenId], references: [id])
-  accion    String
-  detalles  String?       @db.Text
-  fecha     DateTime @default(now())
+  id          Int           @id @default(autoincrement())
+  usuarioId   Int
+  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
+  ordenId     Int?
+  orden       OrdenTrabajo? @relation(fields: [ordenId], references: [id])
+  accion      String
+  detalles    Json?                    // ← antes era String? @db.Text
+  ipCliente   String?                  // ← nuevo
+  userAgent   String?                  // ← nuevo (opcional pero útil)
+  fecha       DateTime      @default(now())
+
+  @@index([usuarioId])                 // ← nuevo
+  @@index([ordenId])                   // ← nuevo
+  @@index([fecha])                     // ← nuevo
 }

@@ -1,105 +1,226 @@
 import prisma from '../config/prisma.js';
 
 /**
- * Registra actividad en la base de datos de forma inteligente.
- * @param {Object} req - Request de Express para usuario e IP.
- * @param {String} accion - Título de la acción (Ej: 'CREAR USUARIO').
- * @param {Object} nuevos - Datos que se están guardando (opcional).
- * @param {Object} anteriores - Datos previos de la DB para comparar (opcional).
- * @param {Number} ordenId - ID de la orden si aplica (opcional).
+ * Extrae la IP real del cliente considerando proxies.
  */
-export const registrarLog = async (req, accion, nuevos = null, anteriores = null, ordenId = null) => {
+const obtenerIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return req.ip ?? req.socket?.remoteAddress ?? null;
+};
+
+/**
+ * Normaliza los items de una lista de la OT a un formato
+ * uniforme para poder comparar correctamente anterior vs nuevo.
+ * Resuelve el problema de precioAlMomento (frontend) vs precioAplicado (DB).
+ */
+const normalizarItems = (lista = [], tipo) => {
+  return lista.map(item => {
+    if (tipo === 'materiales') {
+      return {
+        id: item.materialId ?? item.id,
+        descripcion: item.material?.descripcion ?? item.descripcion ?? 'Material',
+        cantidad: Number(item.cantidad ?? 0),
+        precio: Number(item.precioAplicado ?? item.precioAlMomento ?? 0),
+      };
+    }
+    if (tipo === 'servicios') {
+      return {
+        id: item.servicioId ?? item.id,
+        descripcion: item.descripcion ?? item.servicio?.descripcion ?? 'Servicio',
+        monto: Number(item.monto ?? 0),
+      };
+    }
+    if (tipo === 'terceros') {
+      return {
+        id: item.terceroId ?? item.id,
+        descripcion: item.descripcion ?? item.tercero?.descripcion ?? 'Tercero',
+        monto: Number(item.monto ?? 0),
+      };
+    }
+    return item;
+  });
+};
+
+
+/**
+ * Compara dos listas normalizadas y devuelve solo las diferencias.
+ * Retorna null si no hubo ningún cambio.
+ */
+const compararListas = (anteriores = [], nuevos = [], tipo) => {
+  const normAntes = normalizarItems(anteriores, tipo);
+  const normNuevos = normalizarItems(nuevos, tipo);
+  const diffs = [];
+
+  // Items añadidos o modificados
+  normNuevos.forEach(nuevo => {
+    const anterior = normAntes.find(a => a.id === nuevo.id);
+
+    if (!anterior) {
+      diffs.push({ accion: 'AÑADIDO', descripcion: nuevo.descripcion, datos: nuevo });
+      return;
+    }
+
+    // Comparar campos según tipo
+    const camposDistintos = Object.keys(nuevo).filter(key => {
+      if (key === 'id' || key === 'descripcion') return false;
+      return String(anterior[key] ?? '') !== String(nuevo[key] ?? '');
+    });
+
+    if (camposDistintos.length > 0) {
+      const cambio = { accion: 'MODIFICADO', descripcion: nuevo.descripcion };
+      camposDistintos.forEach(key => {
+        cambio[key] = { de: anterior[key], a: nuevo[key] };
+      });
+      diffs.push(cambio);
+    }
+  });
+
+  // Items eliminados
+  normAntes.forEach(anterior => {
+    if (!normNuevos.some(n => n.id === anterior.id)) {
+      diffs.push({ accion: 'ELIMINADO', descripcion: anterior.descripcion });
+    }
+  });
+
+  return diffs.length > 0 ? diffs : null;
+};
+
+/**
+ * Limpia un snapshot de OrdenTrabajo eliminando los campos relacionales
+ * que Prisma incluye con los `include` — solo dejamos los escalares
+ * comparables contra el body del frontend.
+ */
+const limpiarSnapshotOrden = (orden) => {
+  if (!orden) return orden;
+  const {
+    // Extraemos las relaciones para descartarlas
+    creador, responsable, vehiculo,
+    // Guardamos todo lo demás
+    ...campos
+  } = orden;
+  // Devolvemos solo los escalares más los arrays de listas
+  return {
+    ...campos,
+    responsable: responsable?.nombreCompleto ?? null,
+    materiales: orden.materiales,
+    servicios: orden.servicios,
+    terceros: orden.terceros,
+  };
+};
+
+/**
+ * Compara campos simples de cabecera entre dos objetos.
+ * Retorna solo los campos que cambiaron, o null si no cambió nada.
+ */
+const compararCampos = (anteriores, nuevos, camposIgnorados = []) => {
+  const IGNORAR_SIEMPRE = ['password', 'actualizadoAt', 'creadoAt', 'fechaCreacion', 'creadorId', 'responsableId', 'estaCerrada', 'numeroOrden', 'id'];
+  const ignorar = new Set([...IGNORAR_SIEMPRE, ...camposIgnorados]);
+  const cambios = {};
+
+  Object.keys(nuevos).forEach(key => {
+    if (ignorar.has(key)) return;
+
+    const valAnterior = anteriores[key] ?? null;
+    const valNuevo = nuevos[key] ?? null;
+
+    // Normalizar a string para comparar de forma segura (evita null vs "null")
+    const strAnterior = valAnterior !== null ? String(valAnterior) : null;
+    const strNuevo = valNuevo !== null ? String(valNuevo) : null;
+
+    if (strAnterior !== strNuevo) {
+      cambios[key] = { de: valAnterior, a: valNuevo };
+    }
+  });
+
+  return Object.keys(cambios).length > 0 ? cambios : null;
+};
+
+/**
+ * Registra actividad en la base de datos.
+ *
+ * @param {Object}  req        - Request de Express (para usuario, IP y userAgent).
+ * @param {String}  accion     - Título de la acción. Ej: 'CREAR ORDEN'.
+ * @param {Object}  nuevos     - Datos nuevos (snapshot en creación, body en edición).
+ * @param {Object}  anteriores - Datos previos de la DB (solo en edición/eliminación).
+ * @param {Number}  ordenId    - ID de la orden si aplica.
+ */
+export const registrarLog = async (
+  req,
+  accion,
+  nuevos = null,
+  anteriores = null,
+  ordenId = null
+) => {
   try {
     const userId = req.user?.id;
     if (!userId) return;
 
-    req.logManualRealizado = true; // Evita duplicados del middleware global
+    // Marca para que audit.js no duplique este log
+    req.logManualRealizado = true;
+
     let detallesFinales = null;
 
-    // --- CASO 1: CREACIÓN (Hay nuevos, pero no anteriores) ---
+    // ── CASO 1: CREACIÓN ──────────────────────────────────────────────────────
     if (nuevos && !anteriores) {
-      // Guardamos un snapshot completo de lo que se creó
-      detallesFinales = { tipo: 'CREACION', datos: nuevos };
+      detallesFinales = {
+        tipo: 'CREACION',
+        datos: nuevos,
+      };
     }
 
-    // --- CASO 2: ELIMINACIÓN (Hay anteriores, pero no nuevos) ---
+    // ── CASO 2: ELIMINACIÓN ───────────────────────────────────────────────────
     else if (anteriores && !nuevos) {
-      // Guardamos lo que se borró para tener un respaldo (Snapshot de seguridad)
-      detallesFinales = { tipo: 'ELIMINACION', datos_borrados: anteriores };
+      detallesFinales = {
+        tipo: 'ELIMINACION',
+        datos_borrados: anteriores,
+      };
     }
 
-    // --- CASO 3: EDICIÓN (Existen ambos) ---
+    // ── CASO 3: EDICIÓN ───────────────────────────────────────────────────────
     else if (anteriores && nuevos) {
       const cambios = {};
 
-      // A. Lógica para Órdenes (Comparación Profunda)
       if (accion.includes('ORDEN')) {
-        // Mantenemos tu lógica de cabecera
-        ['estado', 'totalFinal', 'clienteNombre', 'placa'].forEach(key => {
-          if (nuevos[key] !== undefined && anteriores[key]?.toString() !== nuevos[key]?.toString()) {
-            cambios[key] = { de: anteriores[key], a: nuevos[key] };
-          }
-        });
+        // ← Ya no llamamos a limpiarSnapshotOrden porque el controller
+        //   manda anteriorNormalizado y nuevoNormalizado ya limpios
+        const camposCabecera = compararCampos(
+          anteriores,  // ← directo, sin limpiar
+          nuevos,
+          ['materiales', 'servicios', 'terceros']
+        );
+        if (camposCabecera) cambios.cabecera = camposCabecera;
 
-        // Tu lógica de analizar listas (materiales, servicios, terceros)
-        const analizarLista = (nombreArr, idKey, valN, valV) => {
-          const vjs = anteriores[nombreArr] || [];
-          const nvs = nuevos[nombreArr] || [];
-          const diffs = [];
+        const diffMateriales = compararListas(anteriores.materiales, nuevos.materiales, 'materiales');
+        const diffServicios = compararListas(anteriores.servicios, nuevos.servicios, 'servicios');
+        const diffTerceros = compararListas(anteriores.terceros, nuevos.terceros, 'terceros');
 
-          nvs.forEach(n => {
-            const v = vjs.find(item => item[idKey] === n[idKey]);
-            const desc = n.descripcion || v?.material?.descripcion || v?.descripcion || "Item";
-            if (!v) diffs.push({ accion: 'AÑADIDO', item: desc, valor: n[valN] });
-            else {
-              const pV = Number(v[valV]); const pN = Number(n[valN]);
-              const cV = Number(v.cantidad || 1); const cN = Number(n.cantidad || 1);
-              if (cV !== cN || pV !== pN) {
-                diffs.push({ accion: 'MODIFICADO', item: desc, de: `Cant: ${cV} - S/ ${pV}`, a: `Cant: ${cN} - S/ ${pN}` });
-              }
-            }
-          });
-
-          vjs.forEach(v => {
-            if (!nvs.some(n => n[idKey] === v[idKey])) {
-              const desc = v.material?.descripcion || v.descripcion || "Item";
-              diffs.push({ accion: 'ELIMINADO', item: desc });
-            }
-          });
-          if (diffs.length > 0) cambios[nombreArr] = diffs;
-        };
-
-        analizarLista('materiales', 'materialId', 'precioAlMomento', 'precioAplicado');
-        analizarLista('servicios', 'servicioId', 'monto', 'monto');
-        analizarLista('terceros', 'terceroId', 'monto', 'monto');
-      } 
-      
-      // B. Lógica para Usuarios / Inventario / Otros (Comparación Simple)
-      else {
-        // Comparamos todas las llaves que vengan en el objeto nuevo
-        Object.keys(nuevos).forEach(key => {
-          // Ignoramos campos técnicos o sensibles como el password
-          if (['password', 'ActualizadoEn', 'CreadoEn'].includes(key)) return;
-          
-          if (anteriores[key] !== undefined && anteriores[key]?.toString() !== nuevos[key]?.toString()) {
-            cambios[key] = { de: anteriores[key], a: nuevos[key] };
-          }
-        });
+        if (diffMateriales) cambios.materiales = diffMateriales;
+        if (diffServicios) cambios.servicios = diffServicios;
+        if (diffTerceros) cambios.terceros = diffTerceros;
+      } else {
+        const camposSimples = compararCampos(anteriores, nuevos);
+        if (camposSimples) Object.assign(cambios, camposSimples);
       }
 
-      detallesFinales = Object.keys(cambios).length > 0 ? { tipo: 'EDICION', cambios } : null;
+      if (Object.keys(cambios).length === 0) return;
+      detallesFinales = { tipo: 'EDICION', cambios };
     }
 
-    // Insertar en la tabla LogActividad
+    // ── INSERTAR EN BD ────────────────────────────────────────────────────────
     await prisma.logActividad.create({
       data: {
         usuarioId: userId,
-        accion: accion,
-        detalles: detallesFinales ? JSON.stringify(detallesFinales) : null,
+        accion,
+        detalles: detallesFinales ?? undefined,  // Json? acepta objeto directo
         ordenId: ordenId ? parseInt(ordenId) : null,
-      }
+        ipCliente: obtenerIp(req),
+        userAgent: req.headers['user-agent'] ?? null,
+      },
     });
+
   } catch (error) {
-    console.error("❌ Error Auditoría Universal:", error.message);
+    // El log nunca debe romper el flujo principal
+    console.error('❌ Error en auditoría:', error.message);
   }
 };

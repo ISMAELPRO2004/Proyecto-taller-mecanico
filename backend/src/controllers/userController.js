@@ -2,47 +2,165 @@ import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 import { registrarLog } from '../utils/logger.js';
 
+// ─── CREAR USUARIO ────────────────────────────────────────────────────────────
 export const crearUsuario = async (req, res) => {
   const { username, password, nombreCompleto, rol } = req.body;
   try {
-    const hashedParams = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const nuevoUsuario = await prisma.usuario.create({
-      data: { username, password: hashedParams, nombreCompleto, rol: rol.toUpperCase() }
+      data: { username, password: hashedPassword, nombreCompleto, rol: rol.toUpperCase() }
     });
 
-    // LOG: Snapshot de creación (Sin incluir el password)
-    const logData = { username, nombreCompleto, rol };
-    await registrarLog(req, 'NUEVO USUARIO CREADO', logData);
+    await registrarLog(req, 'CREAR USUARIO', { username, nombreCompleto, rol });
 
-    res.status(201).json({ message: "Usuario creado", id: nuevoUsuario.id });
-  } catch (error) { res.status(400).json({ error: error.message }); }
+    res.status(201).json({ message: 'Usuario creado', id: nuevoUsuario.id });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 };
 
-export const listarLogs = async (req, res) => {
+// ─── EDITAR USUARIO ───────────────────────────────────────────────────────────
+// Faltaba completamente en tu versión anterior
+export const editarUsuario = async (req, res) => {
+  const { id } = req.params;
+  const { username, nombreCompleto, rol, password } = req.body;
+
   try {
-    const logs = await prisma.logActividad.findMany({
-      include: { usuario: { select: { username: true, rol: true } } },
-      orderBy: { fecha: 'desc' }
+    const anterior = await prisma.usuario.findUnique({
+      where:  { id: parseInt(id) },
+      select: { username: true, nombreCompleto: true, rol: true }
     });
-    res.json(logs);
+
+    if (!anterior) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    const dataActualizar = { username, nombreCompleto, rol: rol.toUpperCase() };
+
+    // Solo re-hashear si viene una contraseña nueva
+    if (password && password.trim() !== '') {
+      dataActualizar.password = await bcrypt.hash(password, 10);
+    }
+
+    const actualizado = await prisma.usuario.update({
+      where: { id: parseInt(id) },
+      data:  dataActualizar,
+    });
+
+    // LOG: compara solo campos visibles, password queda excluido
+    // por la lista IGNORAR_SIEMPRE del logger
+    await registrarLog(
+      req,
+      'EDITAR USUARIO',
+      { username, nombreCompleto, rol },
+      anterior
+    );
+
+    res.json({ message: 'Usuario actualizado', id: actualizado.id });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// ─── ACTIVAR / DESACTIVAR USUARIO ─────────────────────────────────────────────
+// También faltaba en tu versión anterior
+export const toggleActivarUsuario = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const anterior = await prisma.usuario.findUnique({
+      where:  { id: parseInt(id) },
+      select: { activo: true, username: true, nombreCompleto: true }
+    });
+
+    if (!anterior) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    const actualizado = await prisma.usuario.update({
+      where: { id: parseInt(id) },
+      data:  { activo: !anterior.activo }
+    });
+
+    const accion = actualizado.activo ? 'ACTIVAR USUARIO' : 'DESACTIVAR USUARIO';
+
+    await registrarLog(
+      req,
+      accion,
+      { activo: actualizado.activo },
+      { activo: anterior.activo }
+    );
+
+    res.json({ message: `Usuario ${actualizado.activo ? 'activado' : 'desactivado'}`, id: actualizado.id });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// ─── LISTAR USUARIOS ──────────────────────────────────────────────────────────
+export const listarUsuarios = async (req, res) => {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      select: {
+        id:            true,
+        username:      true,
+        nombreCompleto: true,
+        rol:           true,
+        activo:        true,
+      },
+      orderBy: { nombreCompleto: 'asc' }
+    });
+    res.json(usuarios);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const listarUsuarios = async (req, res) => {
+// ─── LISTAR LOGS ──────────────────────────────────────────────────────────────
+// Mejorado con filtros y paginación básica
+export const listarLogs = async (req, res) => {
   try {
-    const usuarios = await prisma.usuario.findMany({
-      where: { activo: true },
-      select: {
-        id: true,
-        username: true,
-        nombreCompleto: true,
-        rol: true
-      },
-      orderBy: { nombreCompleto: 'asc' }
+    const {
+      usuarioId,
+      ordenId,
+      accion,
+      fechaDesde,
+      fechaHasta,
+      page  = 1,
+      limit = 50,
+    } = req.query;
+
+    // Construir filtros dinámicamente solo con los que vengan
+    const where = {};
+    if (usuarioId) where.usuarioId = parseInt(usuarioId);
+    if (ordenId)   where.ordenId   = parseInt(ordenId);
+    if (accion)    where.accion    = { contains: accion, mode: 'insensitive' };
+    if (fechaDesde || fechaHasta) {
+      where.fecha = {};
+      if (fechaDesde) where.fecha.gte = new Date(fechaDesde);
+      if (fechaHasta) where.fecha.lte = new Date(fechaHasta);
+    }
+
+    const skip  = (parseInt(page) - 1) * parseInt(limit);
+    const take  = parseInt(limit);
+
+    // Ejecutar conteo y datos en paralelo para no hacer dos queries secuenciales
+    const [total, logs] = await Promise.all([
+      prisma.logActividad.count({ where }),
+      prisma.logActividad.findMany({
+        where,
+        include: {
+          usuario: { select: { username: true, nombreCompleto: true, rol: true } },
+          orden:   { select: { numeroOrden: true, clienteNombre: true, responsable:   { select: { nombreCompleto: true } }, } },
+        },
+        orderBy: { fecha: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    res.json({
+      data:       logs,
+      total,
+      page:       parseInt(page),
+      totalPages: Math.ceil(total / take),
     });
-    res.json(usuarios);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
