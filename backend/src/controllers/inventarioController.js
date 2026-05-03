@@ -35,7 +35,10 @@ export const actualizarMaterial = async (req, res) => {
     });
 
     // LOG: Caso Edición (Nuevos vs Anteriores)
-    await registrarLog(req, 'ACTUALIZAR MATERIAL', req.body, anterior);
+    await registrarLog(req, 'ACTUALIZAR MATERIAL', {
+      ...req.body,
+      _nombreItem: anterior.descripcion  // ← campo especial con prefijo _
+    }, anterior);
 
     res.json(actualizado);
   } catch (error) { res.status(400).json({ error: error.message }); }

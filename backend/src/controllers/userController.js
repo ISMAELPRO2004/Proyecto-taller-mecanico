@@ -50,7 +50,7 @@ export const editarUsuario = async (req, res) => {
     await registrarLog(
       req,
       'EDITAR USUARIO',
-      { username, nombreCompleto, rol },
+      { username, nombreCompleto, rol, _nombreItem: anterior.nombreCompleto },
       anterior
     );
 
@@ -83,7 +83,7 @@ export const toggleActivarUsuario = async (req, res) => {
     await registrarLog(
       req,
       accion,
-      { activo: actualizado.activo },
+      { activo: actualizado.activo, _nombreItem: anterior.nombreCompleto },
       { activo: anterior.activo }
     );
 

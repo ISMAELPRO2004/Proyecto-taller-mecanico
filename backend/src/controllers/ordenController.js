@@ -86,9 +86,15 @@ export const crearOrden = async (req, res) => {
       return nuevaOrden;
     });
 
-    // ── LOG CREACIÓN ──
-    // Pasamos req.body como "nuevos" — el logger lo trata como snapshot de creación
-    await registrarLog(req, 'CREAR ORDEN', req.body, null, resultado.id);
+    const responsableCreacion = await prisma.usuario.findUnique({
+      where: { id: parseInt(responsableId) },
+      select: { nombreCompleto: true }
+    });
+
+    await registrarLog(req, 'CREAR ORDEN', {
+      ...req.body,
+      responsable: responsableCreacion?.nombreCompleto ?? responsableId,
+    }, null, resultado.id);
 
     res.status(201).json(resultado);
   } catch (error) {
@@ -325,6 +331,7 @@ export const eliminarOrden = async (req, res) => {
     const ordenPrevia = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
+        responsable: { select: { nombreCompleto: true } },
         materiales: { include: { material: true } },
         servicios: { include: { servicio: true } },
         terceros: { include: { tercero: true } },
@@ -334,7 +341,6 @@ export const eliminarOrden = async (req, res) => {
     if (!ordenPrevia) return res.status(404).json({ message: 'Orden no encontrada' });
 
     await prisma.$transaction([
-      prisma.logActividad.deleteMany({ where: { ordenId: parseInt(id) } }),
       prisma.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } }),
       prisma.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } }),
       prisma.oTTercero.deleteMany({ where: { ordenId: parseInt(id) } }),
@@ -342,7 +348,10 @@ export const eliminarOrden = async (req, res) => {
     ]);
 
     // LOG: sin ordenId porque la orden ya no existe en DB
-    await registrarLog(req, 'ELIMINAR ORDEN', null, ordenPrevia, null);
+    await registrarLog(req, 'ELIMINAR ORDEN', null, {
+      ...ordenPrevia,
+      responsable: ordenPrevia.responsable?.nombreCompleto ?? '—',
+    }, null);
 
     res.json({ message: 'Orden eliminada exitosamente' });
   } catch (error) {

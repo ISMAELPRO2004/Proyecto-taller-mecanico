@@ -35,7 +35,11 @@ export const actualizarServicio = async (req, res) => {
     });
 
     // LOG: Caso Edición (Nuevos vs Anteriores)
-    await registrarLog(req, 'ACTUALIZAR SERVICIO', req.body, anterior);
+    await registrarLog(req, 'ACTUALIZAR SERVICIO',
+      {
+        ...req.body,
+        _nombreItem: anterior.descripcion  // ← campo especial con prefijo _
+      }, anterior);
 
     res.json(actualizado);
   } catch (error) { res.status(400).json({ error: error.message }); }
