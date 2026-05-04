@@ -161,6 +161,10 @@ export const actualizarOrden = async (req, res) => {
 
     if (!ordenPrevia) return res.status(404).json({ message: 'Orden no encontrada' });
 
+    if (ordenPrevia.estaCerrada) {
+      return res.status(400).json({ message: 'Esta orden está cerrada permanentemente y no puede modificarse.' });
+    }
+
     if (['TERMINADO', 'CANCELADO'].includes(ordenPrevia.estado)) {
       return res.status(400).json({ message: 'No se puede modificar una orden cerrada o cancelada.' });
     }
@@ -324,6 +328,39 @@ export const actualizarEstadoOrden = async (req, res) => {
   }
 };
 
+// ─── CERRAR ORDEN PERMANENTEMENTE ────────────────────────────────────────────
+// Una vez cerrada no se puede editar ni eliminar bajo ninguna circunstancia.
+// Requiere que el estado sea TERMINADO o CANCELADO antes de cerrar.
+export const cerrarOrden = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const orden = await prisma.ordenTrabajo.findUnique({
+      where:  { id: parseInt(id) },
+      select: { estado: true, estaCerrada: true, fechaCreacion: true, numeroOrden: true }
+    });
+
+    if (!orden) return res.status(404).json({ message: 'Orden no encontrada' });
+    if (orden.estaCerrada) return res.status(400).json({ message: 'La orden ya está cerrada.' });
+
+    if (!['TERMINADO', 'CANCELADO'].includes(orden.estado)) {
+      return res.status(400).json({
+        message: 'Solo se pueden cerrar órdenes con estado TERMINADO o CANCELADO.'
+      });
+    }
+
+    const actualizada = await prisma.ordenTrabajo.update({
+      where: { id: parseInt(id) },
+      data:  { estaCerrada: true }
+    });
+
+    await registrarLog(req, 'CIERRE DEFINITIVO DE ORDEN', { estaCerrada: true }, { estaCerrada: false }, id);
+
+    res.json(actualizada);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 // ─── ELIMINAR ORDEN ───────────────────────────────────────────────────────────
 export const eliminarOrden = async (req, res) => {
   const { id } = req.params;
@@ -339,6 +376,16 @@ export const eliminarOrden = async (req, res) => {
     });
 
     if (!ordenPrevia) return res.status(404).json({ message: 'Orden no encontrada' });
+
+    if (ordenPrevia.estaCerrada) {
+      return res.status(400).json({ message: 'No se puede eliminar una orden cerrada permanentemente.' });
+    }
+
+    if (ordenPrevia.estado === 'TERMINADO') {
+      return res.status(400).json({ 
+        message: 'No se puede eliminar una orden terminada.' 
+      });
+    }
 
     await prisma.$transaction([
       prisma.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } }),

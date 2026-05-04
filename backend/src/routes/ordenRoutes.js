@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { crearOrden, listarOrdenes, obtenerOrdenPorId, actualizarOrden, actualizarEstadoOrden, eliminarOrden } from '../controllers/ordenController.js';
+import { crearOrden, listarOrdenes, obtenerOrdenPorId, actualizarOrden, actualizarEstadoOrden, eliminarOrden, cerrarOrden } from '../controllers/ordenController.js';
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 
@@ -33,7 +33,15 @@ router.put('/:id/estado',
   actualizarEstadoOrden
 );
 
-// 5. Eliminar orden (Acción restringida solo para el ADMIN)
+// 5. Cerrar orden permanentemente (Acción restringida solo para el ADMIN)
+router.patch('/:id/cerrar',
+  authenticateJWT,
+  authorize(['ADMIN']),
+  auditLog('CIERRE DEFINITIVO OT'),
+  cerrarOrden
+);
+
+// 6. Eliminar orden (Acción restringida solo para el ADMIN)
 router.delete('/:id', 
   authenticateJWT, 
   authorize(['ADMIN']), 

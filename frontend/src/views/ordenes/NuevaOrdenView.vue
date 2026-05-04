@@ -128,13 +128,55 @@ const totalFinal = computed(() => {
   return m + s + t;
 });
 
+// ── VALIDACIONES ──────────────────────────────────────────────────────────────
+const errores = ref({});
+
+const validar = () => {
+  const e = {};
+
+  if (!form.value.clienteNombre?.trim())
+    e.clienteNombre = 'El nombre del cliente es obligatorio.';
+
+  if (form.value.clienteCelular) {
+    const cel = form.value.clienteCelular.replace(/\s/g, '');
+    if (!/^[0-9]{9}$/.test(cel))
+      e.clienteCelular = 'El celular debe tener exactamente 9 dígitos.';
+  }
+
+  if (!form.value.placa?.trim())
+    e.placa = 'La placa es obligatoria.';
+
+  if (!form.value.marca?.trim())
+    e.marca = 'La marca es obligatoria.';
+
+  if (!form.value.modelo?.trim())
+    e.modelo = 'El modelo es obligatorio.';
+
+  if (!form.value.responsableId)
+    e.responsableId = 'Debe asignar un responsable.';
+
+  if (form.value.horometro < 0 || form.value.kilometraje < 0)
+    e.medidas = 'Horómetro y kilometraje no pueden ser negativos.';
+
+  errores.value = e;
+  return Object.keys(e).length === 0;
+};
+
 const guardar = async () => {
+  if (!validar()) {
+    notify.error('Formulario incompleto', 'Revisa los campos marcados en rojo.');
+    return;
+  }
   try {
-    const action = esEdicion.value ? api.put(`/ordenes/${route.params.id}`, form.value) : api.post('/ordenes', form.value);
+    const action = esEdicion.value
+      ? api.put(`/ordenes/${route.params.id}`, form.value)
+      : api.post('/ordenes', form.value);
     await action;
-    notify.success("Éxito", esEdicion.value ? "Orden actualizada" : "Orden creada");
+    notify.success('Éxito', esEdicion.value ? 'Orden actualizada' : 'Orden creada');
     router.push('/ordenes');
-  } catch (e) { notify.error("Error", "No se pudo procesar"); }
+  } catch (e) {
+    notify.error('Error', e.response?.data?.message || 'No se pudo procesar');
+  }
 };
 
 onMounted(inicializar);
@@ -171,10 +213,21 @@ onMounted(inicializar);
       </div>
       <div class="flex flex-col lg:flex-row gap-4">
         <div class="lg:w-1/4">
-          <input v-model="form.clienteNombre" placeholder="Nombre completo" class="input input-bordered w-full rounded-xl font-bold bg-slate-50 border-none" />
+          <input v-model="form.clienteNombre" placeholder="Nombre completo"
+            :class="['input input-bordered w-full rounded-xl font-bold bg-slate-50 border-none',
+              errores.clienteNombre ? 'border border-red-300 bg-red-50' : '']" />
+          <p v-if="errores.clienteNombre" class="text-[10px] text-red-400 font-bold mt-1 ml-2">
+            {{ errores.clienteNombre }}
+          </p>
         </div>
         <div class="lg:w-48">
-          <input v-model="form.clienteCelular" placeholder="Celular" class="input input-bordered w-full rounded-xl font-bold bg-slate-50 border-none" />
+          <input v-model="form.clienteCelular" placeholder="Celular" maxlength="9"
+          @input="form.clienteCelular = form.clienteCelular.replace(/\D/g, '').slice(0, 9)"
+          :class="['input input-bordered w-full rounded-xl font-bold bg-slate-50 border-none',
+            errores.clienteCelular ? 'border border-red-300 bg-red-50' : '']" />
+          <p v-if="errores.clienteCelular" class="text-[10px] text-red-400 font-bold mt-1 ml-2">
+            {{ errores.clienteCelular }}
+          </p>
         </div>
         <div class="flex-1">
           <textarea v-model="form.trabajoSolicitado" placeholder="Detalle del pedido o falla reportada..." 
@@ -191,7 +244,12 @@ onMounted(inicializar);
       <div class="flex flex-wrap lg:flex-nowrap gap-4 items-end">
         <div class="w-full lg:w-32">
           <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Placa</label>
-          <input v-model="form.placa" @blur="buscarVehiculo" class="input input-bordered w-full rounded-xl font-black text-center uppercase border-none shadow-sm" />
+          <input v-model="form.placa" @blur="buscarVehiculo"
+            :class="['input input-bordered w-full rounded-xl font-black text-center uppercase border-none shadow-sm',
+              errores.placa ? 'border border-red-300 bg-red-50' : '']" />
+          <p v-if="errores.placa" class="text-[10px] text-red-400 font-bold mt-1 text-center">
+            {{ errores.placa }}
+          </p>
         </div>
         <div class="flex-1 w-full lg:w-auto">
           <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Marca de Vehículo</label>
@@ -279,6 +337,9 @@ onMounted(inicializar);
           <select v-model="form.responsableId" class="select select-bordered bg-slate-800 text-white border-none rounded-2xl font-bold text-xs h-11">
             <option value="">Seleccione técnico...</option>
             <option v-for="u in catalogos.responsables" :key="u.id" :value="u.id">{{ u.nombreCompleto }}</option>
+            <p v-if="errores.responsableId" class="text-[10px] text-red-400 font-bold mt-1 ml-2">
+              {{ errores.responsableId }}
+            </p>
           </select>
         </div>
       </div>

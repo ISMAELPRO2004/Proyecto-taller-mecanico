@@ -3,6 +3,7 @@ import {
   crearUsuario,
   editarUsuario,
   toggleActivarUsuario,
+  eliminarUsuario,
   listarUsuarios,
   listarLogs,
 } from '../controllers/userController.js';
@@ -46,6 +47,15 @@ router.patch(
   authorize(['ADMIN']),
   auditLog('TOGGLE USUARIO'),
   toggleActivarUsuario
+);
+
+// Eliminar usuario — solo Admin
+router.delete(
+  '/:id',
+  authenticateJWT,
+  authorize(['ADMIN']),
+  auditLog('ELIMINAR USUARIO'),
+  eliminarUsuario
 );
 
 // ─── LOGS ─────────────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import LogDetalleModal from '../../components/ui/LogDetalleModal.vue';
 import { 
   Users, History, ShieldCheck, UserPlus, Search,
   Edit3, Clock, ChevronLeft, ChevronRight, Eye,
-  X, Key, ListOrdered, ToggleLeft, ToggleRight
+  X, Key, ListOrdered, ToggleLeft, ToggleRight, Trash2
 } from 'lucide-vue-next';
 
 // ── ESTADO GENERAL ────────────────────────────────────────────────────────────
@@ -161,6 +161,21 @@ const paginasVisibles = computed(() => {
   if (actual >= total - 2) return [total-4, total-3, total-2, total-1, total];
   return [actual-2, actual-1, actual, actual+1, actual+2];
 });
+
+const eliminarUsuario = async (u) => {
+  const ok = await notify.confirm(
+    '¿Eliminar usuario permanentemente?',
+    `${u.nombreCompleto} será borrado del sistema. Esta acción no se puede deshacer.`
+  );
+  if (!ok) return;
+  try {
+    await api.delete(`/usuarios/${u.id}`);
+    notify.success('Eliminado', 'Usuario borrado del sistema.');
+    cargarUsuarios();
+  } catch (e) {
+    notify.error('Error', e.response?.data?.error || 'No se pudo eliminar. Puede tener registros asociados.');
+  }
+};
 </script>
 
 <template>
@@ -237,6 +252,12 @@ const paginasVisibles = computed(() => {
                 :class="['btn btn-square btn-ghost btn-sm transition-colors', u.activo ? 'text-red-400 hover:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50']">
                 <ToggleLeft  v-if="u.activo"  class="w-4 h-4" />
                 <ToggleRight v-else           class="w-4 h-4" />
+              </button>
+
+              <button @click="eliminarUsuario(u)"
+                class="btn btn-square btn-ghost btn-sm text-red-300 hover:bg-red-50 hover:text-red-500 transition-colors"
+                title="Eliminar permanentemente">
+                <Trash2 class="w-4 h-4" />
               </button>
             </div>
           </div>

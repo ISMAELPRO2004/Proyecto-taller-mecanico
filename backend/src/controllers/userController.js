@@ -60,6 +60,37 @@ export const editarUsuario = async (req, res) => {
   }
 };
 
+// ─── ELIMINAR USUARIO ─────────────────────────────────────────────────────────
+export const eliminarUsuario = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where:  { id: parseInt(id) },
+      select: { nombreCompleto: true, username: true, rol: true }
+    });
+
+    if (!usuario) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    // Protección: no se puede eliminar el propio usuario logueado
+    if (parseInt(id) === req.user.id) {
+      return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta.' });
+    }
+
+    await prisma.usuario.delete({ where: { id: parseInt(id) } });
+
+    await registrarLog(req, 'ELIMINAR USUARIO', null, {
+      nombreCompleto: usuario.nombreCompleto,
+      username:       usuario.username,
+      rol:            usuario.rol,
+    });
+
+    res.json({ message: 'Usuario eliminado' });
+  } catch (error) {
+    // Si tiene órdenes relacionadas Prisma lanzará un error de FK
+    res.status(400).json({ error: 'No se puede eliminar: el usuario tiene registros asociados.' });
+  }
+};
+
 // ─── ACTIVAR / DESACTIVAR USUARIO ─────────────────────────────────────────────
 // También faltaba en tu versión anterior
 export const toggleActivarUsuario = async (req, res) => {
