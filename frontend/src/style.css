@@ -23,3 +23,16 @@
   --b1: #ffffff;    /* Base 100 */
   --bc: #1f2937;    /* Base Content */
 }
+
+.custom-scroll-sm::-webkit-scrollbar {
+  display: none; /* Oculta scroll en móviles para estética limpia */
+}
+.custom-scroll-sm {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Evita que DaisyUI rompa las líneas de los tabs */
+.tabs-boxed {
+  flex-wrap: nowrap !important;
+}

@@ -5,7 +5,7 @@ import { notify } from '../../utils/alerts.js';
 import { 
   Package, Wrench, Truck, Search, Plus, 
   Edit3, Trash2, ListOrdered, ChevronLeft, 
-  ChevronRight, RefreshCcw, Layers 
+  ChevronRight, RefreshCcw, Layers, X
 } from 'lucide-vue-next';
 
 // --- ESTADOS ---
@@ -121,34 +121,38 @@ onMounted(cargarDatos);
 
 <template>
   <div class="space-y-6 animate-fade-in">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <!-- Encabezado con botones full-width en móvil -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
       <div class="flex items-center gap-3">
-        <div class="bg-lyer-green p-3 rounded-2xl text-white shadow-lg shadow-emerald-900/20">
+        <div class="bg-lyer-green p-3 rounded-2xl text-white shadow-lg">
           <Layers class="w-6 h-6" />
         </div>
         <div>
-          <h2 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Catálogos Maestros</h2>
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gestión de Precios y Suministros</p>
+          <h2 class="text-xl md:text-2xl font-black text-slate-800 uppercase">Catálogos</h2>
+          <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Precios Maestros</p>
         </div>
       </div>
-      <button @click="abrirModal()" class="btn bg-lyer-green text-white hover:bg-emerald-900 border-none px-8 rounded-xl shadow-md transition-all hover:scale-105">
-        <Plus class="w-5 h-5 mr-1" /> Nuevo {{ nombreTabActiva }}
+      <button @click="abrirModal()" class="btn btn-sm md:btn-md bg-lyer-green text-white border-none rounded-xl w-full md:w-auto">
+        <Plus class="w-4 h-4 mr-1" /> Nuevo {{ nombreTabActiva }}
       </button>
     </div>
 
-    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 space-y-6">
+    <div class="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
       <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
-        <div class="tabs tabs-boxed bg-slate-100 p-1 w-full lg:w-auto">
-          <button v-for="(label, key) in { materiales: 'Repuestos', servicios: 'Mano de Obra', terceros: 'Terceros' }" :key="key"
-            @click="tabActiva = key; cargarDatos()"
-            :class="['tab tab-lg px-8 font-bold transition-all', tabActiva === key ? 'bg-white text-lyer-green shadow-sm' : 'text-slate-400']">
-            {{ label }}
-          </button>
+        <div class="w-full lg:w-auto overflow-x-auto custom-scroll-sm pb-1">
+          <div class="tabs tabs-boxed bg-slate-100 p-1 flex flex-nowrap min-w-max">
+            <button v-for="(label, key) in { materiales: 'Repuestos', servicios: 'Servicios', terceros: 'Terceros' }" 
+              :key="key" @click="tabActiva = key; cargarDatos()"
+              :class="['tab tab-md md:tab-lg px-6 font-bold transition-all whitespace-nowrap', 
+              tabActiva === key ? 'bg-white text-lyer-green shadow-sm' : 'text-slate-400']">
+              {{ label }}
+            </button>
+          </div>
         </div>
-        
+        <!-- Buscador -->
         <div class="relative w-full lg:w-96">
-          <input v-model="busqueda" type="text" :placeholder="`Buscar en ${tabActiva}...`" 
-            class="input input-bordered w-full bg-slate-50 border-slate-100 focus:border-lyer-accent rounded-xl"/>
+          <input v-model="busqueda" type="text" placeholder="Buscar..." 
+            class="input input-bordered w-full bg-slate-50 border-slate-100 rounded-xl text-sm"/>
         </div>
       </div>
 

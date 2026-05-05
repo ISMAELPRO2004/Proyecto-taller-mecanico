@@ -139,31 +139,85 @@ onMounted(obtenerOrdenes);
       </router-link>
     </div>
 
-    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4">
-      <div class="relative flex-1">
-        <input v-model="busqueda" type="text" placeholder="Buscar placa, cliente o N° orden..."
-          class="input input-bordered w-full bg-slate-50 border-slate-100 focus:border-lyer-accent rounded-xl" />
-      </div>
-      <div class="flex gap-3">
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-3">
+      <input v-model="busqueda" type="text" placeholder="Buscar placa, cliente o N° orden..."
+        class="input input-bordered w-full bg-slate-50 border-slate-100 focus:border-lyer-accent rounded-xl text-sm" />
+      <div class="flex gap-2">
         <select v-model="filtroEstado"
-          class="select select-bordered w-full lg:w-48 bg-slate-50 border-slate-100 rounded-xl">
+          class="select select-bordered flex-1 bg-slate-50 border-slate-100 rounded-xl text-sm">
           <option value="">Todos los estados</option>
           <option value="EN_REPARACION">En Reparación</option>
           <option value="CAMBIO_ACEITE">Cambio de Aceite</option>
-          <option value="ESPERANDO_REPUESTO">Esperando Repuesto</option>
+          <option value="ESPERANDO_REPUESTO">Esp. Repuesto</option>
           <option value="TERMINADO">Terminado</option>
           <option value="CANCELADO">Cancelado</option>
         </select>
         <button @click="obtenerOrdenes"
-          class="btn btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl">
+          class="btn btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl shrink-0">
           <RefreshCcw :class="{ 'animate-spin': cargando }" class="w-5 h-5" />
         </button>
       </div>
     </div>
 
     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="overflow-x-auto min-h-[500px]">
+      <!-- ── VISTA MÓVIL: tarjetas ── (visible solo en < md) -->
+      <div class="md:hidden divide-y divide-slate-50">
+        <div v-if="cargando" class="py-16 text-center">
+          <span class="loading loading-ring loading-md text-lyer-green" />
+        </div>
+        <div v-for="o in ordenesPaginadas" :key="'m-' + o.id"
+          :class="['p-4 hover:bg-emerald-50/20 transition-colors', o.estaCerrada ? 'bg-slate-50/50' : '']">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 mb-1">
+                <Lock v-if="o.estaCerrada" class="w-3 h-3 text-slate-400 shrink-0" />
+                <span class="font-black text-lyer-green italic text-sm">{{ o.numeroOrden }}</span>
+                <span class="text-[9px] text-slate-400">· {{ new Date(o.fechaCreacion).toLocaleDateString('es-PE')
+                  }}</span>
+              </div>
+              <p class="font-black text-slate-800 uppercase text-sm">{{ o.placa }}
+                <span class="text-[10px] font-medium text-slate-400 normal-case"> · {{ o.marca }} {{ o.modelo }}</span>
+              </p>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">{{ o.clienteNombre }}</p>
+              <div class="flex items-center gap-2 mt-2">
+                <span
+                  :class="['badge badge-sm font-black border-none text-[9px] p-2', getStatusClass(o.estado, o.estaCerrada)]">
+                  {{ estadoLabel(o.estado, o.estaCerrada) }}
+                </span>
+                <span class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
+              </div>
+            </div>
+            <!-- Acciones compactas en móvil -->
+            <div class="flex flex-col gap-1 shrink-0">
+              <button @click="verDetalle(o.id)"
+                class="btn btn-square btn-ghost btn-xs text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg">
+                <Eye class="w-4 h-4" />
+              </button>
+              <button @click="$router.push(`/ordenes/editar/${o.id}`)" :disabled="!puedeEditar(o)"
+                class="btn btn-square btn-ghost btn-xs text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg disabled:opacity-20">
+                <Edit3 class="w-4 h-4" />
+              </button>
+              <button v-if="puedeCerrar(o)" @click="cerrarOrden(o)"
+                class="btn btn-square btn-ghost btn-xs text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg">
+                <Lock class="w-3.5 h-3.5" />
+              </button>
+              <button @click="eliminarOrden(o)" :disabled="!puedeEliminar(o)" :class="['btn btn-square btn-ghost btn-xs rounded-lg',
+                puedeEliminar(o) ? 'text-red-400 hover:bg-red-50' : 'text-slate-200 opacity-20']">
+                <Trash2 class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-if="!cargando && ordenesPaginadas.length === 0"
+          class="py-16 text-center text-slate-300 text-sm font-bold">
+          No hay órdenes.
+        </div>
+      </div>
+
+      <!-- ── VISTA DESKTOP: tabla ── (visible solo en >= md) -->
+      <div class="hidden md:block overflow-x-auto min-h-[400px]">
         <table class="table w-full border-separate border-spacing-0">
+          <!-- thead y tbody igual que antes, sin cambios -->
           <thead class="bg-slate-50/50 text-slate-400 uppercase text-[9px] font-black tracking-[0.2em] border-b">
             <tr>
               <th class="py-5 pl-8">Fecha</th>
@@ -202,33 +256,21 @@ onMounted(obtenerOrdenes);
               </td>
               <td class="text-center pr-8">
                 <div class="flex justify-center gap-1">
-                  <!-- Ver detalle — siempre disponible -->
                   <button @click="verDetalle(o.id)"
-                    class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg transition-all"
-                    title="Ver detalle">
+                    class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg transition-all">
                     <Eye class="w-5 h-5" />
                   </button>
-
-                  <!-- Editar — solo si no está cerrada ni en estado terminal -->
                   <button @click="$router.push(`/ordenes/editar/${o.id}`)" :disabled="!puedeEditar(o)"
-                    class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-                    :title="puedeEditar(o) ? 'Editar orden' : 'Orden no editable'">
+                    class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg disabled:opacity-20">
                     <Edit3 class="w-5 h-5" />
                   </button>
-
-                  <!-- Cerrar permanentemente — solo si está en TERMINADO o CANCELADO y no cerrada -->
                   <button v-if="puedeCerrar(o)" @click="cerrarOrden(o)"
-                    class="btn btn-square btn-ghost btn-sm text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg transition-all"
-                    title="Cerrar orden permanentemente">
+                    class="btn btn-square btn-ghost btn-sm text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg">
                     <Lock class="w-4 h-4" />
                   </button>
-
-                  <!-- Eliminar — solo si no está cerrada -->
-                  <button @click="eliminarOrden(o)" :disabled="!puedeEliminar(o)" :class="['btn btn-square btn-ghost btn-sm rounded-lg transition-all',
-                    puedeEliminar(o)
-                      ? 'text-red-400 hover:text-red-500 hover:bg-red-50'
-                      : 'text-slate-200 opacity-20 cursor-not-allowed']"
-                    :title="puedeEliminar(o) ? 'Eliminar orden' : 'No se puede eliminar'">
+                  <button @click="eliminarOrden(o)" :disabled="!puedeEliminar(o)"
+                    :class="['btn btn-square btn-ghost btn-sm rounded-lg transition-all',
+                      puedeEliminar(o) ? 'text-red-400 hover:text-red-500 hover:bg-red-50' : 'text-slate-200 opacity-20 cursor-not-allowed']">
                     <Trash2 class="w-5 h-5" />
                   </button>
                 </div>
@@ -241,18 +283,16 @@ onMounted(obtenerOrdenes);
         </table>
       </div>
 
+      <!-- Paginación — igual que antes -->
       <div
-        class="p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
-            <ListOrdered class="w-4 h-4" /> Mostrar:
-            <select v-model="itemsPorPagina"
-              class="select select-ghost select-xs font-black text-lyer-green focus:bg-transparent">
-              <option v-for="opt in opcionesItems" :key="opt" :value="opt">{{ opt }} filas</option>
-            </select>
-          </div>
+        class="p-4 md:p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+          <select v-model="itemsPorPagina"
+            class="select select-ghost select-xs font-black text-lyer-green focus:bg-transparent">
+            <option v-for="opt in opcionesItems" :key="opt" :value="opt">{{ opt }} filas</option>
+          </select>
           <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Total: {{ ordenesFiltradas.length }} Registros
+            Total: {{ ordenesFiltradas.length }}
           </span>
         </div>
         <div class="join shadow-sm border border-slate-200 bg-white rounded-xl overflow-hidden">
@@ -261,7 +301,7 @@ onMounted(obtenerOrdenes);
             <ChevronLeft class="w-4 h-4" />
           </button>
           <button v-for="p in totalPaginas" :key="p" @click="paginaActual = p"
-            :class="['join-item btn btn-sm border-none font-black px-4', paginaActual === p ? 'bg-lyer-green text-white' : 'bg-white text-slate-400']">
+            :class="['join-item btn btn-sm border-none font-black px-3', paginaActual === p ? 'bg-lyer-green text-white' : 'bg-white text-slate-400']">
             {{ p }}
           </button>
           <button @click="paginaActual++" :disabled="paginaActual === totalPaginas"
