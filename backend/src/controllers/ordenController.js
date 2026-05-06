@@ -1,6 +1,10 @@
 import prisma from '../config/prisma.js';
 import { registrarLog } from '../utils/logger.js';
 
+// ─── HELPERS DE PRECISIÓN ─────────────────────────────────────────────────────
+// Convierte Decimal/cadena a centavos enteros para evitar errores de punto flotante
+const aCentimos = (val) => Math.round(parseFloat(val || 0) * 100);
+
 // ─── CREAR ORDEN ──────────────────────────────────────────────────────────────
 export const crearOrden = async (req, res) => {
   const {
@@ -12,13 +16,19 @@ export const crearOrden = async (req, res) => {
   try {
     const resultado = await prisma.$transaction(async (tx) => {
       const year = new Date().getFullYear();
-      const count = await tx.ordenTrabajo.count();
-      const numeroOrden = `OT-${year}-${(count + 1).toString().padStart(4, '0')}`;
 
-      const totalMat = materiales?.reduce((acc, m) => acc + (parseFloat(m.cantidad || 0) * parseFloat(m.precioAlMomento || 0)), 0) || 0;
-      const totalServ = servicios?.reduce((acc, s) => acc + parseFloat(s.monto || 0), 0) || 0;
-      const totalTerc = terceros?.reduce((acc, t) => acc + parseFloat(t.monto || 0), 0) || 0;
-      const totalCalculado = totalMat + totalServ + totalTerc;
+      // Contador atómico: upsert + update increment para evitar race conditions
+      const contador = await tx.contadorOrden.upsert({
+        where: { anio: year },
+        create: { anio: year, contador: 1 },
+        update: { contador: { increment: 1 } },
+      });
+      const numeroOrden = `OT-${year}-${contador.contador.toString().padStart(4, '0')}`;
+
+      const totalMat = materiales?.reduce((acc, m) => acc + (aCentimos(m.cantidad) * aCentimos(m.precioAlMomento)), 0) || 0;
+      const totalServ = servicios?.reduce((acc, s) => acc + aCentimos(s.monto), 0) || 0;
+      const totalTerc = terceros?.reduce((acc, t) => acc + aCentimos(t.monto), 0) || 0;
+      const totalCalculado = (totalMat + totalServ + totalTerc) / 100;
 
       const vehiculo = await tx.vehiculo.upsert({
         where: { placa: placa.trim().toUpperCase() },
@@ -55,8 +65,8 @@ export const crearOrden = async (req, res) => {
           data: materiales.map(m => ({
             ordenId: nuevaOrden.id,
             materialId: m.materialId,
-            cantidad: parseFloat(m.cantidad),
-            precioAplicado: parseFloat(m.precioAlMomento),
+            cantidad: m.cantidad,
+            precioAplicado: m.precioAlMomento,
           }))
         });
       }
@@ -67,7 +77,7 @@ export const crearOrden = async (req, res) => {
             ordenId: nuevaOrden.id,
             servicioId: s.servicioId,
             descripcion: s.descripcion,
-            monto: parseFloat(s.monto || 0),
+            monto: s.monto,
           }))
         });
       }
@@ -78,25 +88,26 @@ export const crearOrden = async (req, res) => {
             ordenId: nuevaOrden.id,
             terceroId: t.terceroId,
             descripcion: t.descripcion,
-            monto: parseFloat(t.monto || 0),
+            monto: t.monto,
           }))
         });
       }
 
-      return nuevaOrden;
-    });
+      // Búsqueda del responsable DENTRO de la transacción para consistencia
+      const responsableCreacion = await tx.usuario.findUnique({
+        where: { id: parseInt(responsableId) },
+        select: { nombreCompleto: true }
+      });
 
-    const responsableCreacion = await prisma.usuario.findUnique({
-      where: { id: parseInt(responsableId) },
-      select: { nombreCompleto: true }
+      return { nuevaOrden, responsableCreacion };
     });
 
     await registrarLog(req, 'CREAR ORDEN', {
       ...req.body,
-      responsable: responsableCreacion?.nombreCompleto ?? responsableId,
-    }, null, resultado.id);
+      responsable: resultado.responsableCreacion?.nombreCompleto ?? responsableId,
+    }, null, resultado.nuevaOrden.id);
 
-    res.status(201).json(resultado);
+    res.status(201).json(resultado.nuevaOrden);
   } catch (error) {
     res.status(400).json({ message: 'Error al procesar', error: error.message });
   }
@@ -170,10 +181,10 @@ export const actualizarOrden = async (req, res) => {
     }
 
     const resultado = await prisma.$transaction(async (tx) => {
-      const totalMat = materiales?.reduce((acc, m) => acc + (parseFloat(m.cantidad || 0) * parseFloat(m.precioAlMomento || 0)), 0) || 0;
-      const totalServ = servicios?.reduce((acc, s) => acc + parseFloat(s.monto || 0), 0) || 0;
-      const totalTerc = terceros?.reduce((acc, t) => acc + parseFloat(t.monto || 0), 0) || 0;
-      const totalCalculado = totalMat + totalServ + totalTerc;
+      const totalMat = materiales?.reduce((acc, m) => acc + (aCentimos(m.cantidad) * aCentimos(m.precioAlMomento)), 0) || 0;
+      const totalServ = servicios?.reduce((acc, s) => acc + aCentimos(s.monto), 0) || 0;
+      const totalTerc = terceros?.reduce((acc, t) => acc + aCentimos(t.monto), 0) || 0;
+      const totalCalculado = (totalMat + totalServ + totalTerc) / 100;
 
       await tx.vehiculo.update({
         where: { placa: placa.trim().toUpperCase() },

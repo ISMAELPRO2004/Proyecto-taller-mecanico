@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_por_defecto';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET es requerido en las variables de entorno');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const authenticateJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;

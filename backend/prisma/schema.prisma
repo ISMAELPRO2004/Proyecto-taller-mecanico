@@ -24,6 +24,13 @@ enum Rol {
   USUARIO_GENERAL
 }
 
+model ContadorOrden {
+  id        Int      @id @default(autoincrement())
+  anio      Int      @unique
+  contador  Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
 model CatalogoMaterial {
   id          Int      @id @default(autoincrement())
   descripcion String

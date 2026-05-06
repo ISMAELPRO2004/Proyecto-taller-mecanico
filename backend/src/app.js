@@ -8,13 +8,37 @@ import vehiculoRoutes from './routes/vehiculoRoutes.js';
 
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// ── CORS restrictivo ─────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : 'http://localhost:5173',
+  credentials: true,
+}));
+
 app.use(express.json());
+
+// ── Rate limiting: login ────────────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 3 * 60 * 1000, // 3 minutos
+  max: 10,                  // máximo 10 intentos por IP
+  message: {
+    message: 'Demasiados intentos de inicio de sesión. Intenta nuevamente en 3 minutos.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/login', loginLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', userRoutes);
