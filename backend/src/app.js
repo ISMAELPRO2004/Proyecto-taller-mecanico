@@ -16,13 +16,13 @@ dotenv.config();
 const app = express();
 
 // ── CORS restrictivo ─────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.FRONTEND_URL || '')
+const allowedOrigins = (process.env.FRONTEND_URL)
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 
 app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : 'http://localhost:5173',
+  origin: allowedOrigins.length > 0 ? allowedOrigins : process.env.FRONTEND_URL,
   credentials: true,
 }));
 

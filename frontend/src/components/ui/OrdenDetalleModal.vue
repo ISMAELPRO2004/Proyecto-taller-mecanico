@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
-import api from '../../api/axios.js';
+import { ordenService } from '../../services/ordenService.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -20,8 +20,7 @@ const cargarDetalle = async () => {
   if (!props.ordenId) return;
   loading.value = true;
   try {
-    const { data } = await api.get(`/ordenes/${props.ordenId}`);
-    orden.value = data;
+    orden.value = await ordenService.obtener(props.ordenId);
   } catch (error) {
     console.error('Error al cargar detalle:', error);
   } finally {

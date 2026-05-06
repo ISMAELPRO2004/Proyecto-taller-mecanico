@@ -1,7 +1,9 @@
 <script setup>
 import OrdenDetalleModal from '../../components/ui/OrdenDetalleModal.vue';
-import { ref, onMounted, computed, watch } from 'vue';
-import api from '../../api/axios.js';
+import StatusBadge from '../../components/ui/StatusBadge.vue';
+import { ref, onMounted, computed } from 'vue';
+import { ordenService } from '../../services/ordenService.js';
+import { usePaginacion } from '../../composables/usePaginacion.js';
 import { notify } from '../../utils/alerts.js';
 import {
   Eye, Trash2, Plus, FileText, RefreshCcw,
@@ -15,39 +17,10 @@ const cargando = ref(true);
 const idSeleccionado = ref(null);
 const modalAbierto = ref(false);
 
-const paginaActual = ref(1);
-const itemsPorPagina = ref(10);
-const opcionesItems = [5, 10, 20, 50];
-
-const getStatusClass = (estado, cerrada) => {
-  if (cerrada) return 'badge-neutral text-neutral-content';
-  const map = {
-    'ESPERANDO_REPUESTO': 'badge-info text-info-content',
-    'CAMBIO_ACEITE': 'badge-info text-info-content',
-    'EN_REPARACION': 'badge-warning text-warning-content',
-    'TERMINADO': 'badge-success text-success-content',
-    'CANCELADO': 'badge-error text-error-content',
-  };
-  return map[estado] || 'badge-ghost';
-};
-
-const estadoLabel = (estado, cerrada) => {
-  if (cerrada) return '🔒 CERRADA';
-  const map = {
-    EN_REPARACION: 'En Reparación',
-    CAMBIO_ACEITE: 'Cambio de Aceite',
-    ESPERANDO_REPUESTO: 'Esperando Repuesto',
-    TERMINADO: 'Terminado',
-    CANCELADO: 'Cancelado',
-  };
-  return map[estado] || estado;
-};
-
 const obtenerOrdenes = async () => {
   cargando.value = true;
   try {
-    const { data } = await api.get('/ordenes');
-    ordenes.value = Array.isArray(data) ? data : [];
+    ordenes.value = await ordenService.listar();
   } catch {
     notify.error('Error de Conexión', 'No se pudieron sincronizar las órdenes.');
   } finally {
@@ -67,22 +40,11 @@ const ordenesFiltradas = computed(() => {
   });
 });
 
-watch([busqueda, filtroEstado, itemsPorPagina], () => { paginaActual.value = 1; });
-
-const totalPaginas = computed(() =>
-  Math.max(1, Math.ceil(ordenesFiltradas.value.length / itemsPorPagina.value))
-);
-const ordenesPaginadas = computed(() => {
-  const inicio = (paginaActual.value - 1) * itemsPorPagina.value;
-  return ordenesFiltradas.value.slice(inicio, inicio + itemsPorPagina.value);
-});
-const filasVacias = computed(() =>
-  Math.max(0, itemsPorPagina.value - ordenesPaginadas.value.length)
-);
+const { paginaActual, itemsPorPagina, opcionesItems, totalPaginas, itemsPaginados: ordenesPaginadas, filasVacias } =
+  usePaginacion(ordenesFiltradas);
 
 const verDetalle = (id) => { idSeleccionado.value = id; modalAbierto.value = true; };
 
-// Una orden es editable si NO está cerrada Y su estado no es terminal
 const puedeEditar = (o) => !o.estaCerrada && !['TERMINADO', 'CANCELADO'].includes(o.estado);
 const puedeEliminar = (o) => !o.estaCerrada && o.estado !== 'TERMINADO';
 const puedeCerrar = (o) => !o.estaCerrada && ['TERMINADO', 'CANCELADO'].includes(o.estado);
@@ -94,7 +56,7 @@ const cerrarOrden = async (o) => {
   );
   if (!ok) return;
   try {
-    await api.patch(`/ordenes/${o.id}/cerrar`);
+    await ordenService.cerrar(o.id);
     notify.success('Orden Cerrada', 'El registro ha sido sellado correctamente.');
     obtenerOrdenes();
   } catch (e) {
@@ -110,7 +72,7 @@ const eliminarOrden = async (o) => {
   const ok = await notify.confirm('¿Eliminar orden?', 'Esta acción no se puede deshacer.');
   if (!ok) return;
   try {
-    await api.delete(`/ordenes/${o.id}`);
+    await ordenService.eliminar(o.id);
     notify.success('Orden Eliminada', 'El registro ha sido borrado.');
     obtenerOrdenes();
   } catch {
@@ -180,10 +142,7 @@ onMounted(obtenerOrdenes);
               </p>
               <p class="text-xs text-slate-500 font-medium mt-0.5">{{ o.clienteNombre }}</p>
               <div class="flex items-center gap-2 mt-2">
-                <span
-                  :class="['badge badge-sm font-black border-none text-[9px] p-2', getStatusClass(o.estado, o.estaCerrada)]">
-                  {{ estadoLabel(o.estado, o.estaCerrada) }}
-                </span>
+                <StatusBadge :estado="o.estado" :cerrada="o.estaCerrada" />
                 <span class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
               </div>
             </div>
@@ -247,9 +206,7 @@ onMounted(obtenerOrdenes);
               </td>
               <td class="text-sm font-bold">{{ o.clienteNombre }}</td>
               <td>
-                <span :class="['badge badge-sm font-black p-3 border-none', getStatusClass(o.estado, o.estaCerrada)]">
-                  {{ estadoLabel(o.estado, o.estaCerrada) }}
-                </span>
+                <StatusBadge :estado="o.estado" :cerrada="o.estaCerrada" size="md" />
               </td>
               <td class="text-right font-black text-slate-800">
                 S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}

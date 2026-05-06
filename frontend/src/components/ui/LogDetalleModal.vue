@@ -229,10 +229,10 @@ const listas = computed(() => {
 
 <template>
   <div :class="['modal modal-bottom sm:modal-middle', { 'modal-open': isOpen }]">
-    <div class="modal-box max-w-2xl p-0 border-t-8 border-lyer-green rounded-[2.5rem] shadow-2xl overflow-hidden">
+    <div class="modal-box max-w-3xl p-0 border-t-8 border-lyer-green rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden">
 
       <!-- Header -->
-      <div class="p-6 bg-slate-50 border-b flex justify-between items-center gap-4">
+      <div class="p-4 md:p-6 bg-slate-50 border-b flex justify-between items-center">
         <div class="flex items-center gap-3 min-w-0">
           <div class="bg-lyer-green/10 p-2 rounded-xl text-lyer-green shrink-0">
             <Activity class="w-5 h-5" />

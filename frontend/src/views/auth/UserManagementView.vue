@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import api from '../../api/axios.js';
+import { usuarioService } from '../../services/usuarioService.js';
 import { notify } from '../../utils/alerts.js';
 import LogDetalleModal from '../../components/ui/LogDetalleModal.vue';
 import {
@@ -41,8 +41,7 @@ const opcionesItems = [10, 20, 50];
 const cargarUsuarios = async () => {
   loading.value = true;
   try {
-    const { data } = await api.get('/usuarios');
-    usuarios.value = data;
+    usuarios.value = await usuarioService.listar();
   } catch {
     notify.error('Error', 'No se pudo cargar la lista de usuarios.');
   } finally {
@@ -61,8 +60,7 @@ const cargarLogs = async () => {
     if (busqueda.value.trim()) params.accion = busqueda.value.trim();
     if (filtroUsuarioId.value) params.usuarioId = filtroUsuarioId.value;
 
-    const { data } = await api.get('/usuarios/logs', { params });
-
+    const data = await usuarioService.listarLogs(params);
     logs.value = data.data;
     totalLogs.value = data.total;
     totalPaginas.value = data.totalPages;
@@ -115,11 +113,11 @@ const guardarUsuario = async () => {
   try {
     if (editando.value) {
       // ← Corregido: era /auth/register, ahora usa el endpoint correcto
-      await api.put(`/usuarios/${form.value.id}`, form.value);
+      await usuarioService.editar(form.value.id, form.value);
       notify.success('¡Actualizado!', 'Perfil modificado correctamente.');
     } else {
       // ← Corregido: era /auth/register, ahora usa POST /usuarios
-      await api.post('/usuarios', form.value);
+      await usuarioService.crear(form.value);
       notify.success('¡Creado!', 'Nuevo usuario registrado.');
     }
     modalOpen.value = false;
@@ -138,7 +136,7 @@ const toggleUsuario = async (u) => {
   if (!ok) return;
   try {
     // ← Corregido: era DELETE, ahora usa PATCH /usuarios/:id/toggle-activo
-    await api.patch(`/usuarios/${u.id}/toggle-activo`);
+    await usuarioService.toggleActivo(u.id);
     notify.success('¡Listo!', `Usuario ${accion === 'desactivar' ? 'desactivado' : 'activado'}.`);
     cargarUsuarios();
   } catch {
@@ -169,7 +167,7 @@ const eliminarUsuario = async (u) => {
   );
   if (!ok) return;
   try {
-    await api.delete(`/usuarios/${u.id}`);
+    await usuarioService.eliminar(u.id);
     notify.success('Eliminado', 'Usuario borrado del sistema.');
     cargarUsuarios();
   } catch (e) {
@@ -238,9 +236,12 @@ const eliminarUsuario = async (u) => {
           <span class="text-[10px] font-black text-slate-700 uppercase tracking-tighter">{{ u.username }}</span>
           <div class="flex gap-1">
             <button @click="abrirEditar(u)" class="btn btn-square btn-ghost btn-xs text-lyer-green"><Edit3 class="w-4 h-4"/></button>
-            <button @click="toggleUsuario(u)" class="btn btn-square btn-ghost btn-xs text-slate-400">
+            <button @click="toggleUsuario(u)" class="btn btn-square btn-ghost btn-xs text-slate-400">  
               <ToggleLeft v-if="u.activo" class="w-4 h-4 text-red-400"/>
               <ToggleRight v-else class="w-4 h-4 text-emerald-500"/>
+            </button>
+            <button @click="eliminarUsuario(u)" class="btn btn-square btn-ghost btn-xs text-slate-400">
+              <Trash2 class="w-4 h-4 text-red-400"/>
             </button>
           </div>
         </div>

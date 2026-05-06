@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import api from '../../api/axios.js';
+import StatusBadge from '../../components/ui/StatusBadge.vue';
+import { ordenService } from '../../services/ordenService.js';
 import { 
   ClipboardList, Wrench, Clock, CheckCircle2,
   XCircle, ArrowUpRight, Car, RefreshCcw
@@ -23,7 +24,7 @@ const ordenesRecientes = ref([]);
 const cargar = async () => {
   cargando.value = true;
   try {
-    const { data } = await api.get('/ordenes');
+    const data = await ordenService.listar();
     ordenes.value = data;
 
     stats.value = {
@@ -43,15 +44,6 @@ const cargar = async () => {
   }
 };
 
-const ESTADO_CONFIG = {
-  EN_REPARACION:      { label: 'En Reparación',      badge: 'badge-warning text-warning-content' },
-  CAMBIO_ACEITE:      { label: 'Cambio de Aceite',    badge: 'badge-info text-info-content'    },
-  ESPERANDO_REPUESTO: { label: 'Esperando Repuesto',  badge: 'badge-info text-info-content'    },
-  TERMINADO:          { label: 'Terminado',           badge: 'badge-success text-success-content' },
-  CANCELADO:          { label: 'Cancelado',           badge: 'badge-error text-error-content'  },
-};
-const estadoBadge = (estado) => ESTADO_CONFIG[estado]?.badge || 'badge-ghost';
-const estadoLabel = (estado) => ESTADO_CONFIG[estado]?.label || estado;
 
 onMounted(cargar);
 </script>
@@ -160,9 +152,7 @@ onMounted(cargar);
                 </td>
                 <td class="hidden sm:table-cell py-3 text-sm font-medium">{{ o.clienteNombre }}</td>
                 <td class="py-3">
-                  <span :class="['badge badge-sm font-bold p-2 border-none text-[9px]', estadoBadge(o.estado)]">
-                    {{ estadoLabel(o.estado) }}
-                  </span>
+                  <StatusBadge :estado="o.estado" />
                 </td>
                 <td class="text-right pr-4 py-3 font-black text-slate-700 text-sm tabular-nums">
                   S/ {{ parseFloat(o.totalFinal).toFixed(2) }}
@@ -232,7 +222,3 @@ onMounted(cargar);
   </div>
 </template>
 
-<style scoped>
-.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-</style>
