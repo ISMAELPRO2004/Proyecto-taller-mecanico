@@ -1,19 +1,32 @@
 import Swal from 'sweetalert2';
 
+const toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 2800,
+  timerProgressBar: true,
+  customClass: {
+    popup: 'lyer-toast'
+  },
+  didOpen: (el) => {
+    el.style.zIndex = '99999';
+  }
+});
+
 export const notify = {
-  success: (title, text) => Swal.fire({
+  success: (title, text) => toast.fire({
     icon: 'success',
-    title,
-    text,
-    confirmButtonColor: '#064e3b',
-    timer: 3000
+    title: text ? `${title}: ${text}` : title
   }),
-  error: (title, text) => Swal.fire({
+
+  error: (title, text) => toast.fire({
     icon: 'error',
-    title,
-    text,
-    confirmButtonColor: '#064e3b'
+    title: text ? `${title}: ${text}` : title,
+    timer: 4000
   }),
+
+  /** Confirmaciones sí se mantienen como modal (acciones destructivas) */
   confirm: async (title, text) => {
     const result = await Swal.fire({
       title,

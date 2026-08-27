@@ -92,6 +92,13 @@ const confirmarSeleccion = (itemsNuevos) => {
   modalSeleccion.value.abierto = false;
 };
 
+/** Actualiza catálogo local cuando se crea un ítem desde el modal */
+const onItemCreado = ({ tipo, item }) => {
+  const lista = catalogos.value[tipo] || [];
+  catalogos.value[tipo] = [item, ...lista.filter(i => i.id !== item.id)];
+  modalSeleccion.value.items = catalogos.value[tipo];
+};
+
 const buscarVehiculo = async () => {
   if (esEdicion.value || form.value.placa.length < 3) return;
   try {
@@ -287,7 +294,16 @@ onMounted(inicializar);
       <div class="absolute -right-6 -bottom-6 opacity-[0.03] rotate-12 pointer-events-none"><ClipboardList class="w-48 h-48 text-white" /></div>
     </footer>
 
-    <SelectorCatalogoModal :isOpen="modalSeleccion.abierto" :titulo="modalSeleccion.titulo" :items="modalSeleccion.items" :yaSeleccionadosIds="modalSeleccion.idsActuales" @close="modalSeleccion.abierto = false" @confirmar="confirmarSeleccion" />
+    <SelectorCatalogoModal
+      :isOpen="modalSeleccion.abierto"
+      :titulo="modalSeleccion.titulo"
+      :tipo="modalSeleccion.tipo"
+      :items="modalSeleccion.items"
+      :yaSeleccionadosIds="modalSeleccion.idsActuales"
+      @close="modalSeleccion.abierto = false"
+      @confirmar="confirmarSeleccion"
+      @creado="onItemCreado"
+    />
   </div>
 </template>
 

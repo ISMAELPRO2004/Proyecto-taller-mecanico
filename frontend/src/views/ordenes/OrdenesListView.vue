@@ -5,9 +5,10 @@ import { ref, onMounted, computed } from 'vue';
 import { ordenService } from '../../services/ordenService.js';
 import { usePaginacion } from '../../composables/usePaginacion.js';
 import { notify } from '../../utils/alerts.js';
+import { generarOrdenPDF } from '../../utils/ordenPdf.js';
 import {
   Eye, Trash2, Plus, FileText, RefreshCcw,
-  ChevronLeft, ChevronRight, ListOrdered, Edit3, Lock
+  ChevronLeft, ChevronRight, ListOrdered, Edit3, Lock, Printer
 } from 'lucide-vue-next';
 
 const ordenes = ref([]);
@@ -80,6 +81,20 @@ const eliminarOrden = async (o) => {
   }
 };
 
+const imprimiendoId = ref(null);
+const imprimirOrden = async (o) => {
+  if (imprimiendoId.value) return;
+  imprimiendoId.value = o.id;
+  try {
+    const detalle = await ordenService.obtener(o.id);
+    generarOrdenPDF(detalle);
+  } catch {
+    notify.error('Error', 'No se pudo generar el PDF de la orden.');
+  } finally {
+    imprimiendoId.value = null;
+  }
+};
+
 onMounted(obtenerOrdenes);
 </script>
 
@@ -128,43 +143,50 @@ onMounted(obtenerOrdenes);
           <span class="loading loading-ring loading-md text-lyer-green" />
         </div>
         <div v-for="o in ordenesPaginadas" :key="'m-' + o.id"
-          :class="['p-4 hover:bg-emerald-50/20 transition-colors', o.estaCerrada ? 'bg-slate-50/50' : '']">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5 mb-1">
-                <Lock v-if="o.estaCerrada" class="w-3 h-3 text-slate-400 shrink-0" />
-                <span class="font-black text-lyer-green italic text-sm">{{ o.numeroOrden }}</span>
-                <span class="text-[9px] text-slate-400">· {{ new Date(o.fechaCreacion).toLocaleDateString('es-PE')
-                  }}</span>
-              </div>
-              <p class="font-black text-slate-800 uppercase text-sm">{{ o.placa }}
-                <span class="text-[10px] font-medium text-slate-400 normal-case"> · {{ o.marca }} {{ o.modelo }}</span>
-              </p>
-              <p class="text-xs text-slate-500 font-medium mt-0.5">{{ o.clienteNombre }}</p>
-              <div class="flex items-center gap-2 mt-2">
-                <StatusBadge :estado="o.estado" :cerrada="o.estaCerrada" />
-                <span class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
-              </div>
+          :class="['p-4 space-y-3 hover:bg-emerald-50/20 transition-colors', o.estaCerrada ? 'bg-slate-50/50' : '']">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 mb-1">
+              <Lock v-if="o.estaCerrada" class="w-3 h-3 text-slate-400 shrink-0" />
+              <span class="font-black text-lyer-green italic text-sm">{{ o.numeroOrden }}</span>
+              <span class="text-[9px] text-slate-400">· {{ new Date(o.fechaCreacion).toLocaleDateString('es-PE') }}</span>
             </div>
-            <!-- Acciones compactas en móvil -->
-            <div class="flex flex-col gap-1 shrink-0">
-              <button @click="verDetalle(o.id)"
-                class="btn btn-square btn-ghost btn-xs text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg">
-                <Eye class="w-4 h-4" />
-              </button>
-              <button @click="$router.push(`/ordenes/editar/${o.id}`)" :disabled="!puedeEditar(o)"
-                class="btn btn-square btn-ghost btn-xs text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg disabled:opacity-20">
-                <Edit3 class="w-4 h-4" />
-              </button>
-              <button v-if="puedeCerrar(o)" @click="cerrarOrden(o)"
-                class="btn btn-square btn-ghost btn-xs text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg">
-                <Lock class="w-3.5 h-3.5" />
-              </button>
-              <button @click="eliminarOrden(o)" :disabled="!puedeEliminar(o)" :class="['btn btn-square btn-ghost btn-xs rounded-lg',
-                puedeEliminar(o) ? 'text-red-400 hover:bg-red-50' : 'text-slate-200 opacity-20']">
-                <Trash2 class="w-4 h-4" />
-              </button>
+            <p class="font-black text-slate-800 uppercase text-sm">{{ o.placa }}
+              <span class="text-[10px] font-medium text-slate-400 normal-case"> · {{ o.marca }} {{ o.modelo }}</span>
+            </p>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">{{ o.clienteNombre }}</p>
+            <div class="flex items-center gap-2 mt-2 flex-wrap">
+              <StatusBadge :estado="o.estado" :cerrada="o.estaCerrada" />
+              <span class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
             </div>
+          </div>
+          <!-- Acciones — grid 2 cols para que no se aprieten en móvil -->
+          <div class="grid grid-cols-2 gap-2">
+            <button @click="verDetalle(o.id)"
+              class="btn btn-sm h-11 min-h-11 bg-emerald-50 text-lyer-green border border-emerald-100 hover:bg-lyer-green hover:text-white rounded-xl font-bold gap-1.5 px-2">
+              <Eye class="w-4 h-4 shrink-0" />
+              <span class="text-xs">Ver</span>
+            </button>
+            <button @click="imprimirOrden(o)" :disabled="imprimiendoId === o.id"
+              class="btn btn-sm h-11 min-h-11 bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-700 hover:text-white rounded-xl font-bold gap-1.5 px-2 disabled:opacity-50">
+              <span v-if="imprimiendoId === o.id" class="loading loading-spinner loading-xs" />
+              <Printer v-else class="w-4 h-4 shrink-0" />
+              <span class="text-xs">Imprimir</span>
+            </button>
+            <button v-if="puedeEditar(o)" @click="$router.push(`/ordenes/editar/${o.id}`)"
+              class="btn btn-sm h-11 min-h-11 bg-emerald-50 text-lyer-green border border-emerald-100 hover:bg-lyer-green hover:text-white rounded-xl font-bold gap-1.5 px-2">
+              <Edit3 class="w-4 h-4 shrink-0" />
+              <span class="text-xs">Editar</span>
+            </button>
+            <button v-if="puedeCerrar(o)" @click="cerrarOrden(o)"
+              class="btn btn-sm h-11 min-h-11 bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
+              <Lock class="w-4 h-4 shrink-0" />
+              <span class="text-xs">Cerrar</span>
+            </button>
+            <button v-if="puedeEliminar(o)" @click="eliminarOrden(o)"
+              class="btn btn-sm h-11 min-h-11 bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
+              <Trash2 class="w-4 h-4 shrink-0" />
+              <span class="text-xs">Borrar</span>
+            </button>
           </div>
         </div>
         <div v-if="!cargando && ordenesPaginadas.length === 0"
@@ -213,19 +235,24 @@ onMounted(obtenerOrdenes);
               </td>
               <td class="text-center pr-8">
                 <div class="flex justify-center gap-1">
-                  <button @click="verDetalle(o.id)"
+                  <button @click="verDetalle(o.id)" title="Ver detalle"
                     class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg transition-all">
                     <Eye class="w-5 h-5" />
                   </button>
-                  <button @click="$router.push(`/ordenes/editar/${o.id}`)" :disabled="!puedeEditar(o)"
+                  <button @click="imprimirOrden(o)" :disabled="imprimiendoId === o.id" title="Imprimir PDF"
+                    class="btn btn-square btn-ghost btn-sm text-slate-500 hover:bg-slate-700 hover:text-white rounded-lg transition-all disabled:opacity-40">
+                    <span v-if="imprimiendoId === o.id" class="loading loading-spinner loading-xs" />
+                    <Printer v-else class="w-5 h-5" />
+                  </button>
+                  <button @click="$router.push(`/ordenes/editar/${o.id}`)" :disabled="!puedeEditar(o)" title="Editar"
                     class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg disabled:opacity-20">
                     <Edit3 class="w-5 h-5" />
                   </button>
-                  <button v-if="puedeCerrar(o)" @click="cerrarOrden(o)"
+                  <button v-if="puedeCerrar(o)" @click="cerrarOrden(o)" title="Cerrar orden"
                     class="btn btn-square btn-ghost btn-sm text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg">
                     <Lock class="w-4 h-4" />
                   </button>
-                  <button @click="eliminarOrden(o)" :disabled="!puedeEliminar(o)"
+                  <button @click="eliminarOrden(o)" :disabled="!puedeEliminar(o)" title="Eliminar"
                     :class="['btn btn-square btn-ghost btn-sm rounded-lg transition-all',
                       puedeEliminar(o) ? 'text-red-400 hover:text-red-500 hover:bg-red-50' : 'text-slate-200 opacity-20 cursor-not-allowed']">
                     <Trash2 class="w-5 h-5" />

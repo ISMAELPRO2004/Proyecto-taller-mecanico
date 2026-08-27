@@ -1,8 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { ordenService } from '../../services/ordenService.js';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { generarOrdenPDF } from '../../utils/ordenPdf.js';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download
 } from 'lucide-vue-next';
@@ -36,76 +35,7 @@ watch(() => props.isOpen, (newVal) => {
 const generarPDF = () => {
   if (!orden.value) return;
   try {
-    const doc         = new jsPDF();
-    const verdeLyer   = [6, 78, 59];
-    const verdeAccent = [16, 185, 129];
-
-    doc.setFillColor(...verdeLyer);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont(undefined, 'bold');
-    doc.text('LYER MOTORS', 15, 20);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`ORDEN DE TRABAJO: ${orden.value.numeroOrden}`, 15, 30);
-    doc.text(`Fecha: ${new Date(orden.value.fechaCreacion).toLocaleDateString()}`, 155, 25);
-
-    doc.setTextColor(40, 40, 40);
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('INFORMACIÓN DEL CLIENTE', 15, 50);
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    doc.text(`Nombre: ${orden.value.clienteNombre}`, 15, 57);
-    doc.text(`Celular: ${orden.value.clienteCelular || 'N/A'}`, 15, 63);
-
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(11);
-    doc.text('ESPECIFICACIONES DEL VEHÍCULO', 15, 75);
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    doc.text(`Placa: ${orden.value.placa}`, 15, 82);
-    doc.text(`Unidad: ${orden.value.marca} ${orden.value.modelo}`, 15, 88);
-    doc.text(`Recorrido: ${orden.value.kilometraje} KM / ${orden.value.horometro} H`, 15, 94);
-
-    let currentY = 105;
-    if (orden.value.materiales?.length > 0) {
-      autoTable(doc, {
-        startY: currentY,
-        head: [['Cant.', 'Descripción de Repuestos', 'Unitario', 'Total']],
-        body: orden.value.materiales.map(m => [
-          m.cantidad,
-          m.material.descripcion,
-          `S/ ${Number(m.precioAplicado).toFixed(2)}`,
-          `S/ ${(Number(m.cantidad) * Number(m.precioAplicado)).toFixed(2)}`
-        ]),
-        headStyles: { fillColor: verdeLyer, fontSize: 10 },
-        theme: 'striped'
-      });
-      currentY = doc.lastAutoTable.finalY + 10;
-    }
-
-    const servicios = [
-      ...orden.value.servicios.map(s => [s.descripcion, `S/ ${Number(s.monto).toFixed(2)}`]),
-      ...orden.value.terceros.map(t => [`(Tercero) ${t.descripcion}`, `S/ ${Number(t.monto).toFixed(2)}`])
-    ];
-
-    if (servicios.length > 0) {
-      autoTable(doc, {
-        startY: currentY,
-        head: [['Descripción de Servicios', 'Monto']],
-        body: servicios,
-        headStyles: { fillColor: verdeAccent, fontSize: 10 },
-        theme: 'grid'
-      });
-      currentY = doc.lastAutoTable.finalY + 15;
-    }
-
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(`INVERSIÓN TOTAL: S/ ${Number(orden.value.totalFinal).toFixed(2)}`, 130, currentY);
-    doc.save(`OT_${orden.value.numeroOrden}.pdf`);
+    generarOrdenPDF(orden.value);
   } catch (e) {
     console.error('PDF Error:', e);
   }

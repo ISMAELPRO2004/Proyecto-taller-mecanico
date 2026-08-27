@@ -64,6 +64,21 @@ onMounted(cargar);
       </button>
     </div>
 
+    <!-- CTA nueva orden — primero para acceso rápido en móvil -->
+    <div class="bg-lyer-green text-white p-4 sm:p-5 rounded-2xl shadow-lg relative overflow-hidden group flex items-center gap-4">
+      <div class="relative z-10 min-w-0 flex-1">
+        <h4 class="text-base sm:text-lg font-black leading-tight">¿Nueva Entrada?</h4>
+        <p class="text-emerald-100 text-xs mt-0.5 leading-relaxed hidden sm:block">
+          Registra un nuevo vehículo y genera su orden de trabajo.
+        </p>
+      </div>
+      <button @click="$router.push('/ordenes/nueva')"
+        class="relative z-10 btn btn-sm sm:btn-md bg-white text-lyer-green border-none hover:bg-emerald-50 shrink-0 font-bold text-xs sm:text-sm">
+        + Crear Orden
+      </button>
+      <Car class="absolute -bottom-4 -right-4 w-24 h-24 sm:w-28 sm:h-28 opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none" />
+    </div>
+
     <!-- Stats grid — 2 cols en móvil, 3 en tablet, 5 en desktop -->
     <div v-if="cargando" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <div v-for="n in 5" :key="n"
@@ -170,21 +185,6 @@ onMounted(cargar);
 
       <!-- Panel lateral de acciones rápidas -->
       <div class="space-y-4">
-
-        <!-- CTA nueva orden -->
-        <div class="bg-lyer-green text-white p-6 rounded-2xl shadow-lg relative overflow-hidden group">
-          <div class="relative z-10">
-            <h4 class="text-lg font-black mb-1">¿Nueva Entrada?</h4>
-            <p class="text-emerald-100 text-xs mb-5 leading-relaxed">
-              Registra un nuevo vehículo y genera su orden de trabajo.
-            </p>
-            <button @click="$router.push('/ordenes/nueva')"
-              class="btn bg-white text-lyer-green border-none hover:bg-emerald-50 w-full font-bold text-sm">
-              + Crear Orden de Trabajo
-            </button>
-          </div>
-          <Car class="absolute -bottom-4 -right-4 w-28 h-28 opacity-10 group-hover:scale-110 transition-transform duration-500" />
-        </div>
 
         <!-- Accesos rápidos -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
