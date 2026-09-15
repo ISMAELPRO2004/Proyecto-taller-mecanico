@@ -1,19 +1,7 @@
-import prisma from '../config/prisma.js';
+import * as vehiculoService from '../services/vehiculoService.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
-export const buscarPorPlaca = async (req, res) => {
-  const { placa } = req.params;
-
-  try {
-    const vehiculo = await prisma.vehiculo.findUnique({
-      where: { placa: placa.toUpperCase() }
-    });
-
-    if (!vehiculo) {
-      return res.status(404).json({ message: 'Vehículo no encontrado' });
-    }
-
-    res.json(vehiculo);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+export const buscarPorPlaca = asyncHandler(async (req, res) => {
+  const vehiculo = await vehiculoService.buscarPorPlaca(req.params.placa);
+  res.json(vehiculo);
+}, { defaultStatus: 500, useMessageKey: false });

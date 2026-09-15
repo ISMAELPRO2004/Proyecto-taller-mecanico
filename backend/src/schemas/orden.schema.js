@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-export const loginSchema = z.object({
-  username: z.string().min(3, 'Usuario requerido (mínimo 3 caracteres)').max(50),
-  password: z.string().min(4, 'Contraseña requerida (mínimo 4 caracteres)').max(100),
-});
-
 const materialItemSchema = z.object({
   materialId: z.number().int().positive('materialId debe ser positivo'),
   cantidad: z.union([z.string(), z.number()]).transform((v) => parseFloat(v)),
@@ -51,8 +46,4 @@ export const actualizarOrdenSchema = crearOrdenSchema.extend({
 
 export const actualizarEstadoSchema = z.object({
   estado: z.enum(['EN_REPARACION', 'CAMBIO_ACEITE', 'ESPERANDO_REPUESTO', 'TERMINADO', 'CANCELADO']),
-});
-
-export const idParamSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'ID debe ser numérico').transform((v) => parseInt(v, 10)),
 });

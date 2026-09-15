@@ -5,16 +5,13 @@ import {
   toggleActivarUsuario,
   eliminarUsuario,
   listarUsuarios,
-  listarLogs,
 } from '../controllers/userController.js';
+import { listarLogs } from '../controllers/auditoriaController.js';
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 
 const router = Router();
 
-// ─── USUARIOS ─────────────────────────────────────────────────────────────────
-
-// Listar usuarios — todos los roles autenticados
 router.get(
   '/',
   authenticateJWT,
@@ -22,7 +19,6 @@ router.get(
   listarUsuarios
 );
 
-// Crear usuario — solo Admin
 router.post(
   '/',
   authenticateJWT,
@@ -31,7 +27,6 @@ router.post(
   crearUsuario
 );
 
-// Editar usuario — solo Admin
 router.put(
   '/:id',
   authenticateJWT,
@@ -40,7 +35,6 @@ router.put(
   editarUsuario
 );
 
-// Activar / Desactivar usuario — solo Admin
 router.patch(
   '/:id/toggle-activo',
   authenticateJWT,
@@ -49,7 +43,6 @@ router.patch(
   toggleActivarUsuario
 );
 
-// Eliminar usuario — solo Admin
 router.delete(
   '/:id',
   authenticateJWT,
@@ -58,9 +51,8 @@ router.delete(
   eliminarUsuario
 );
 
-// ─── LOGS ─────────────────────────────────────────────────────────────────────
-
-// Listar logs con filtros — solo Admin
+// Compatibilidad: el frontend aún consume /api/usuarios/logs.
+// La ruta canónica nueva es /api/auditoria/logs.
 router.get(
   '/logs',
   authenticateJWT,

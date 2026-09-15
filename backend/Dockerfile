@@ -20,4 +20,4 @@ EXPOSE 3000
 # SEED=true solo si quieres poblar la DB en este despliegue
 CMD ["sh", "-c", "pnpm exec prisma migrate deploy && \
   if [ \"$RUN_SEED\" = 'true' ]; then node prisma/seed.js; fi && \
-  node src/app.js"]
+  node src/server.js"]
