@@ -27,6 +27,7 @@ defineEmits(['editar', 'eliminar']);
         </div>
         <div class="min-w-0 flex-1">
           <p class="font-bold text-slate-700 capitalize text-sm leading-snug">{{ item.descripcion }}</p>
+          <p v-if="tabActiva === 'terceros' && item.responsable" class="text-[11px] text-slate-400 font-bold">{{ item.responsable }}</p>
           <p class="font-black text-lyer-green text-base mt-1">
             <span class="text-[10px] font-medium text-slate-400 mr-0.5">S/</span>{{ parseFloat(item.precioBase).toFixed(2) }}
           </p>
@@ -68,7 +69,10 @@ defineEmits(['editar', 'eliminar']);
                 <Wrench v-else-if="tabActiva === 'servicios'" class="w-4 h-4 text-slate-400" />
                 <Truck v-else class="w-4 h-4 text-slate-400" />
               </div>
-              <span class="font-bold text-slate-700 capitalize">{{ item.descripcion }}</span>
+              <div class="min-w-0">
+                <span class="font-bold text-slate-700 capitalize">{{ item.descripcion }}</span>
+                <p v-if="tabActiva === 'terceros' && item.responsable" class="text-[11px] text-slate-400 font-bold">{{ item.responsable }}</p>
+              </div>
             </div>
           </td>
           <td class="text-right font-black text-lyer-green text-lg">

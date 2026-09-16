@@ -21,8 +21,10 @@ export const createCatalogoService = ({
       descripcion,
       precioBase: parseFloat(precioBase),
     };
-    if (model === 'catalogoTercero' && responsable !== undefined) {
-      data.responsable = responsable?.trim() || null;
+    if (model === 'catalogoTercero') {
+      const nombre = responsable?.trim();
+      if (!nombre) throw new AppError('El responsable del tercero es obligatorio.');
+      data.responsable = nombre;
     }
 
     const nuevo = await repo().create({ data });
@@ -39,8 +41,10 @@ export const createCatalogoService = ({
       descripcion,
       precioBase: parseFloat(precioBase),
     };
-    if (model === 'catalogoTercero' && responsable !== undefined) {
-      data.responsable = responsable?.trim() || null;
+    if (model === 'catalogoTercero') {
+      const nombre = responsable?.trim();
+      if (!nombre) throw new AppError('El responsable del tercero es obligatorio.');
+      data.responsable = nombre;
     }
 
     const actualizado = await repo().update({

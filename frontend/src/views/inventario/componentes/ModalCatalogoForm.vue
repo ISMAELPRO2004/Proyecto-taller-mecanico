@@ -6,6 +6,7 @@ const props = defineProps({
   editando: { type: Boolean, default: false },
   form: { type: Object, required: true },
   nombreTabActiva: { type: String, default: '' },
+  mostrarResponsable: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close', 'guardar', 'update:form']);
@@ -33,6 +34,13 @@ const actualizar = (campo, valor) => {
               del Ítem</span></label>
           <input :value="form.descripcion" @input="actualizar('descripcion', $event.target.value)" type="text"
             placeholder="Ej: Aceite de Motor 15W40"
+            class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-lyer-accent rounded-xl font-bold" />
+        </div>
+        <div v-if="mostrarResponsable" class="form-control">
+          <label class="label"><span class="label-text font-black text-slate-400 uppercase text-[10px]">Responsable
+              del tercero</span></label>
+          <input :value="form.responsable" @input="actualizar('responsable', $event.target.value)" type="text"
+            placeholder="Empresa o persona que realiza el servicio"
             class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-lyer-accent rounded-xl font-bold" />
         </div>
         <div class="form-control">

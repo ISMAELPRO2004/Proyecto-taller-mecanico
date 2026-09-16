@@ -16,7 +16,7 @@ const busqueda = ref('');
 
 const modalOpen = ref(false);
 const editando = ref(false);
-const form = ref({ id: null, descripcion: '', precioBase: 0 });
+const form = ref({ id: null, descripcion: '', precioBase: 0, responsable: '' });
 
 const cargarDatos = async () => {
   loading.value = true;
@@ -34,8 +34,10 @@ const cargarDatos = async () => {
 };
 
 const listaFiltrada = computed(() => {
+  const q = busqueda.value.toLowerCase();
   return lista.value.filter(item =>
-    item.descripcion.toLowerCase().includes(busqueda.value.toLowerCase())
+    item.descripcion.toLowerCase().includes(q)
+    || (item.responsable || '').toLowerCase().includes(q)
   );
 });
 
@@ -54,6 +56,9 @@ const nombreTabActiva = computed(() => {
 const guardar = async () => {
   if (!form.value.descripcion || form.value.precioBase <= 0) {
     return notify.error("Campos incompletos", "Por favor revisa la descripción y el precio.");
+  }
+  if (tabActiva.value === 'terceros' && !form.value.responsable?.trim()) {
+    return notify.error("Campos incompletos", "Indica el responsable del tercero.");
   }
   try {
     if (editando.value) {
@@ -84,7 +89,7 @@ const abrirModal = (item = null) => {
     form.value = { ...item };
   } else {
     editando.value = false;
-    form.value = { id: null, descripcion: '', precioBase: 0 };
+    form.value = { id: null, descripcion: '', precioBase: 0, responsable: '' };
   }
   modalOpen.value = true;
 };
@@ -142,6 +147,7 @@ onMounted(cargarDatos);
       :editando="editando"
       :form="form"
       :nombre-tab-activa="nombreTabActiva"
+      :mostrar-responsable="tabActiva === 'terceros'"
       @close="cerrarModal"
       @guardar="guardar"
       @update:form="form = $event"

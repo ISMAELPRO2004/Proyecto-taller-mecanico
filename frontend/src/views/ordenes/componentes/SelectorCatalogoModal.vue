@@ -23,9 +23,11 @@ const mostrarSugerencias = ref(false);
 
 const vista = ref('seleccionar'); // seleccionar | crear
 const guardando = ref(false);
-const formNuevo = ref({ descripcion: '', precioBase: '' });
+const formNuevo = ref({ descripcion: '', precioBase: '', responsable: '' });
 const descInputRef = ref(null);
 const precioRef = ref(null);
+const responsableRef = ref(null);
+const esTercero = computed(() => props.tipo === 'terceros');
 
 const nombreTipo = computed(() => {
   const map = { materiales: 'repuesto', servicios: 'servicio', terceros: 'trabajo externo' };
@@ -45,7 +47,7 @@ watch(() => props.isOpen, async (abierto) => {
     filtro.value = '';
     mostrarSugerencias.value = false;
     vista.value = 'seleccionar';
-    formNuevo.value = { descripcion: '', precioBase: '' };
+    formNuevo.value = { descripcion: '', precioBase: '', responsable: '' };
     await nextTick();
     inputRef.value?.focus();
   }
@@ -103,7 +105,7 @@ const cerrar = () => {
 const abrirCrear = async (prefijo = '') => {
   vista.value = 'crear';
   mostrarSugerencias.value = false;
-  formNuevo.value = { descripcion: prefijo || filtro.value.trim(), precioBase: '' };
+  formNuevo.value = { descripcion: prefijo || filtro.value.trim(), precioBase: '', responsable: '' };
   await nextTick();
   descInputRef.value?.focus();
 };
@@ -116,16 +118,19 @@ const volverSeleccion = async () => {
 
 const guardarNuevo = async () => {
   const descripcion = formNuevo.value.descripcion?.trim();
+  const responsable = formNuevo.value.responsable?.trim();
   const precio = parseFloat(formNuevo.value.precioBase);
 
   if (!descripcion) return notify.error('Ingresa una descripción');
+  if (esTercero.value && !responsable) return notify.error('Ingresa el responsable del tercero');
   if (!precio || precio <= 0) return notify.error('Ingresa un precio válido');
 
   guardando.value = true;
   try {
     const creado = await catalogoService.crear(endpoints[props.tipo], {
       descripcion,
-      precioBase: precio
+      precioBase: precio,
+      ...(esTercero.value ? { responsable } : {}),
     });
 
     itemsLocal.value = [creado, ...itemsLocal.value.filter(i => i.id !== creado.id)];
@@ -135,7 +140,7 @@ const guardarNuevo = async () => {
     notify.success('Registrado', `Nuevo ${nombreTipo.value} en catálogo`);
 
     filtro.value = '';
-    formNuevo.value = { descripcion: '', precioBase: '' };
+    formNuevo.value = { descripcion: '', precioBase: '', responsable: '' };
     vista.value = 'seleccionar';
     await nextTick();
     inputRef.value?.focus();
@@ -257,6 +262,7 @@ const guardarNuevo = async () => {
             </div>
             <div class="min-w-0 flex-1">
               <p class="font-bold text-slate-700 text-xs uppercase truncate">{{ item.descripcion }}</p>
+              <p v-if="item.responsable" class="text-[10px] font-bold text-slate-400 truncate">{{ item.responsable }}</p>
               <p v-if="verPrecios" class="text-[10px] font-black text-lyer-green">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</p>
             </div>
           </button>
@@ -320,7 +326,20 @@ const guardarNuevo = async () => {
               ref="descInputRef"
               v-model="formNuevo.descripcion"
               type="text"
-              placeholder="Ej: Aceite 15W40"
+              :placeholder="esTercero ? 'Ej: Rectificado de motor' : 'Ej: Aceite 15W40'"
+              class="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl font-bold text-sm"
+              @keydown.enter.prevent="esTercero ? responsableRef?.focus() : precioRef?.focus()"
+            />
+          </div>
+          <div v-if="esTercero" class="form-control">
+            <label class="label py-1">
+              <span class="label-text font-black text-slate-400 uppercase text-[10px]">Responsable del tercero</span>
+            </label>
+            <input
+              ref="responsableRef"
+              v-model="formNuevo.responsable"
+              type="text"
+              placeholder="Empresa o persona"
               class="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl font-bold text-sm"
               @keydown.enter.prevent="precioRef?.focus()"
             />
