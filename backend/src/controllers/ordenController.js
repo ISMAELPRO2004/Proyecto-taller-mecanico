@@ -2,7 +2,7 @@ import * as ordenService from '../services/ordenService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const crearOrden = asyncHandler(async (req, res) => {
-  const orden = await ordenService.crearOrden(req.body, req);
+  const orden = await ordenService.crearBorradorOrden(req.body, req);
   res.status(201).json(orden);
 });
 
@@ -21,8 +21,13 @@ export const actualizarOrden = asyncHandler(async (req, res) => {
   res.json(orden);
 });
 
+export const aceptarOrden = asyncHandler(async (req, res) => {
+  const orden = await ordenService.aceptarOrden(req.params.id, req.body, req);
+  res.json(orden);
+});
+
 export const actualizarEstadoOrden = asyncHandler(async (req, res) => {
-  const orden = await ordenService.actualizarEstadoOrden(req.params.id, req.body.estado, req);
+  const orden = await ordenService.actualizarEstadoOrden(req.params.id, req.body, req);
   res.json(orden);
 }, { useMessageKey: false });
 

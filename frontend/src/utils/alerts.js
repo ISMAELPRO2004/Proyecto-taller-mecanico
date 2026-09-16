@@ -20,6 +20,11 @@ export const notify = {
     title: text ? `${title}: ${text}` : title
   }),
 
+  info: (title, text) => toast.fire({
+    icon: 'info',
+    title: text ? `${title}: ${text}` : title
+  }),
+
   error: (title, text) => toast.fire({
     icon: 'error',
     title: text ? `${title}: ${text}` : title,

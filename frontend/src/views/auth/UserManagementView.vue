@@ -2,12 +2,14 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { usuarioService } from '../../services/usuarioService.js';
 import { notify } from '../../utils/alerts.js';
-import LogDetalleModal from '../../components/ui/LogDetalleModal.vue';
-import {
-  Users, History, ShieldCheck, UserPlus, Search,
-  Edit3, Clock, ChevronLeft, ChevronRight, Eye,
-  X, Key, ListOrdered, ToggleLeft, ToggleRight, Trash2
-} from 'lucide-vue-next';
+import LogDetalleModal from './componentes/LogDetalleModal.vue';
+import TabsSeguridad from './componentes/TabsSeguridad.vue';
+import GridUsuarios from './componentes/GridUsuarios.vue';
+import FiltrosAuditoria from './componentes/FiltrosAuditoria.vue';
+import TablaAuditoria from './componentes/TablaAuditoria.vue';
+import ModalUsuarioForm from './componentes/ModalUsuarioForm.vue';
+import Paginador from '../../components/ui/Paginador.vue';
+import { ShieldCheck, UserPlus } from 'lucide-vue-next';
 
 // ── ESTADO GENERAL ────────────────────────────────────────────────────────────
 const tabActiva = ref('usuarios');
@@ -18,7 +20,7 @@ const usuarios = ref([]);
 const modalOpen = ref(false);
 const editando = ref(false);
 const form = ref({
-  id: null, nombreCompleto: '', username: '', password: '', rol: 'RESPONSABLE'
+  id: null, nombreCompleto: '', username: '', password: '', rol: 'RECEPCIONISTA'
 });
 
 // ── LOGS ──────────────────────────────────────────────────────────────────────
@@ -52,7 +54,6 @@ const cargarUsuarios = async () => {
 const cargarLogs = async () => {
   loading.value = true;
   try {
-    // Construir params solo con los que tengan valor
     const params = {
       page: paginaActual.value,
       limit: itemsPorPagina.value,
@@ -76,7 +77,6 @@ const cargarDatos = () => {
   else cargarLogs();
 };
 
-// Resetear página al cambiar filtros
 watch([busqueda, filtroUsuarioId, itemsPorPagina], () => {
   paginaActual.value = 1;
   if (tabActiva.value === 'logs') cargarLogs();
@@ -88,7 +88,6 @@ watch(tabActiva, () => {
   cargarDatos();
 });
 
-// Al cambiar de página recargar
 watch(paginaActual, () => {
   if (tabActiva.value === 'logs') cargarLogs();
 });
@@ -98,13 +97,12 @@ onMounted(cargarDatos);
 // ── USUARIOS: ACCIONES ────────────────────────────────────────────────────────
 const abrirCrear = () => {
   editando.value = false;
-  form.value = { id: null, nombreCompleto: '', username: '', password: '', rol: 'RESPONSABLE' };
+  form.value = { id: null, nombreCompleto: '', username: '', password: '', rol: 'RECEPCIONISTA' };
   modalOpen.value = true;
 };
 
 const abrirEditar = (u) => {
   editando.value = true;
-  // No traemos password al form — el backend lo ignora si viene vacío
   form.value = { id: u.id, nombreCompleto: u.nombreCompleto, username: u.username, password: '', rol: u.rol };
   modalOpen.value = true;
 };
@@ -112,11 +110,9 @@ const abrirEditar = (u) => {
 const guardarUsuario = async () => {
   try {
     if (editando.value) {
-      // ← Corregido: era /auth/register, ahora usa el endpoint correcto
       await usuarioService.editar(form.value.id, form.value);
       notify.success('¡Actualizado!', 'Perfil modificado correctamente.');
     } else {
-      // ← Corregido: era /auth/register, ahora usa POST /usuarios
       await usuarioService.crear(form.value);
       notify.success('¡Creado!', 'Nuevo usuario registrado.');
     }
@@ -135,7 +131,6 @@ const toggleUsuario = async (u) => {
   );
   if (!ok) return;
   try {
-    // ← Corregido: era DELETE, ahora usa PATCH /usuarios/:id/toggle-activo
     await usuarioService.toggleActivo(u.id);
     notify.success('¡Listo!', `Usuario ${accion === 'desactivar' ? 'desactivado' : 'activado'}.`);
     cargarUsuarios();
@@ -143,22 +138,6 @@ const toggleUsuario = async (u) => {
     notify.error('Error', 'Operación no permitida.');
   }
 };
-
-// ── LOGS: ACCIONES ────────────────────────────────────────────────────────────
-const verDetalleLog = (log) => {
-  logSeleccionado.value = log;
-  modalLogOpen.value = true;
-};
-
-// Páginas visibles en el paginador (máximo 5 botones)
-const paginasVisibles = computed(() => {
-  const total = totalPaginas.value;
-  const actual = paginaActual.value;
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-  if (actual <= 3) return [1, 2, 3, 4, 5];
-  if (actual >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
-  return [actual - 2, actual - 1, actual, actual + 1, actual + 2];
-});
 
 const eliminarUsuario = async (u) => {
   const ok = await notify.confirm(
@@ -174,6 +153,21 @@ const eliminarUsuario = async (u) => {
     notify.error('Error', e.response?.data?.error || 'No se pudo eliminar. Puede tener registros asociados.');
   }
 };
+
+// ── LOGS: ACCIONES ────────────────────────────────────────────────────────────
+const verDetalleLog = (log) => {
+  logSeleccionado.value = log;
+  modalLogOpen.value = true;
+};
+
+const paginasVisibles = computed(() => {
+  const total = totalPaginas.value;
+  const actual = paginaActual.value;
+  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
+  if (actual <= 3) return [1, 2, 3, 4, 5];
+  if (actual >= total - 2) return [total - 4, total - 3, total - 2, total - 1, total];
+  return [actual - 2, actual - 1, actual, actual + 1, actual + 2];
+});
 </script>
 
 <template>
@@ -190,304 +184,59 @@ const eliminarUsuario = async (u) => {
           <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Snapshot del Sistema</p>
         </div>
       </div>
-      <button v-if="tabActiva === 'usuarios'" @click="abrirCrear"
-        class="btn btn-sm md:btn-md bg-lyer-green text-white border-none px-6 md:px-8 rounded-xl shadow-md w-full md:w-auto">
+      <button
+        v-if="tabActiva === 'usuarios'"
+        @click="abrirCrear"
+        class="btn btn-sm md:btn-md bg-lyer-green text-white border-none px-6 md:px-8 rounded-xl shadow-md w-full md:w-auto"
+      >
         <UserPlus class="w-4 h-4 mr-1" /> Nuevo Acceso
       </button>
     </div>
 
-    <!-- Tabs -->
-    <div class="overflow-x-auto custom-scroll-sm pb-1">
-      <div class="tabs tabs-boxed bg-slate-100 p-1 flex flex-nowrap min-w-max rounded-2xl border border-slate-200">
-        <button @click="tabActiva = 'usuarios'"
-          :class="['tab tab-md md:tab-lg px-6 md:px-8 font-black transition-all rounded-xl whitespace-nowrap', 
-          tabActiva === 'usuarios' ? 'bg-white text-lyer-green shadow-sm' : 'text-slate-400']">
-          <Users class="w-4 h-4 mr-2" /> Usuarios
-        </button>
-        <button @click="tabActiva = 'logs'"
-          :class="['tab tab-md md:tab-lg px-6 md:px-8 font-black transition-all rounded-xl whitespace-nowrap', 
-          tabActiva === 'logs' ? 'bg-white text-lyer-green shadow-sm' : 'text-slate-400']">
-          <History class="w-4 h-4 mr-2" /> Auditoría
-        </button>
-      </div>
-    </div>
+    <TabsSeguridad v-model="tabActiva" />
 
-    <!-- ── TAB USUARIOS ── -->
-    <div v-if="tabActiva === 'usuarios'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-      <div v-for="u in usuarios" :key="u.id"
-        class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group"
-        :class="{ 'opacity-50': !u.activo }">
-        <div class="flex items-center gap-4 relative z-10">
-          <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-lyer-green font-black border border-emerald-100 uppercase">
-            {{ u.username.charAt(0) }}
-          </div>
-          <div class="min-w-0">
-            <h4 class="font-black text-slate-800 uppercase text-xs md:text-sm truncate">{{ u.nombreCompleto }}</h4>
-            <div class="flex flex-wrap gap-1 mt-1">
-              <span class="badge badge-xs font-black bg-lyer-green text-white border-none">{{ u.rol }}</span>
-              <span :class="['badge badge-xs font-black border-none', u.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500']">
-                {{ u.activo ? 'ACTIVO' : 'INACTIVO' }}
-              </span>
-            </div>
-          </div>
-        </div>
-        <!-- Acciones Inferiores -->
-        <div class="mt-6 flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-          <span class="text-[10px] font-black text-slate-700 uppercase tracking-tighter">{{ u.username }}</span>
-          <div class="flex gap-1">
-            <button @click="abrirEditar(u)" class="btn btn-square btn-ghost btn-xs text-lyer-green"><Edit3 class="w-4 h-4"/></button>
-            <button @click="toggleUsuario(u)" class="btn btn-square btn-ghost btn-xs text-slate-400">  
-              <ToggleLeft v-if="u.activo" class="w-4 h-4 text-red-400"/>
-              <ToggleRight v-else class="w-4 h-4 text-emerald-500"/>
-            </button>
-            <button @click="eliminarUsuario(u)" class="btn btn-square btn-ghost btn-xs text-slate-400">
-              <Trash2 class="w-4 h-4 text-red-400"/>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <GridUsuarios
+      v-if="tabActiva === 'usuarios'"
+      :usuarios="usuarios"
+      @editar="abrirEditar"
+      @toggle="toggleUsuario"
+      @eliminar="eliminarUsuario"
+    />
 
-    <!-- ── TAB LOGS ── -->
     <div v-else class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+      <FiltrosAuditoria
+        v-model:busqueda="busqueda"
+        v-model:filtroUsuarioId="filtroUsuarioId"
+        :usuarios="usuarios"
+      />
 
-      <!-- Barra de filtros: Adaptada para móvil (column) y desktop (row) -->
-      <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-center">
-        <div class="relative w-full sm:flex-1">
-          <Search class="absolute left-4 top-3 w-4 h-4 text-slate-400" />
-          <input v-model="busqueda" type="text" placeholder="Buscar por acción..."
-            class="input input-bordered w-full pl-12 bg-white border-slate-200 focus:border-lyer-accent rounded-2xl text-sm font-medium shadow-inner" />
-        </div>
-        <!-- Filtro por usuario -->
-        <div class="w-full sm:w-auto">
-          <select v-model="filtroUsuarioId"
-            class="select select-bordered w-full bg-white border-slate-200 rounded-2xl text-sm font-bold focus:border-lyer-accent min-w-[160px]">
-            <option value="">Todos los usuarios</option>
-            <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombreCompleto }}</option>
-          </select>
-        </div>
-      </div>
+      <TablaAuditoria
+        :logs="logs"
+        :loading="loading"
+        @ver-detalle="verDetalleLog"
+      />
 
-      <!-- Contenedor de Datos -->
-      <div class="min-h-[400px]">
-        <div v-if="loading" class="py-20 text-center">
-          <span class="loading loading-ring loading-lg text-lyer-green"></span>
-        </div>
-
-        <template v-else>
-          <!-- ── VISTA MÓVIL: Tarjetas (visible solo en < md) ── -->
-          <div class="md:hidden divide-y divide-slate-100">
-            <div v-for="l in logs" :key="'m-' + l.id"
-              class="p-4 hover:bg-emerald-50/20 transition-colors flex items-start justify-between gap-3">
-
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 mb-1.5">
-                  <Clock class="w-3.5 h-3.5 text-slate-300" />
-                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                    {{ new Date(l.fecha).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }) }}
-                  </span>
-                </div>
-
-                <p class="font-black text-slate-800 text-xs uppercase leading-tight">
-                  {{ l.usuario?.nombreCompleto || 'Sistema' }}
-                  <span class="text-[9px] font-medium text-slate-400 normal-case block italic">{{ l.usuario?.rol ||
-                    'Automático' }}</span>
-                </p>
-
-                <div class="mt-3 flex flex-wrap items-center gap-2">
-                  <span
-                    class="px-2 py-1 bg-white rounded-lg text-[9px] font-black text-lyer-green border border-slate-200 uppercase tracking-tighter shadow-sm">
-                    {{ l.accion }}
-                  </span>
-                  <span v-if="l.orden" class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
-                    OT: {{ l.orden.numeroOrden }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Acción Detalle en móvil -->
-              <div class="shrink-0">
-                <button @click="verDetalleLog(l)"
-                  class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-xl shadow-sm border border-slate-100 bg-white">
-                  <Eye class="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div v-if="!logs.length"
-              class="py-16 text-center text-slate-300 font-bold text-xs uppercase tracking-widest">
-              Sin registros
-            </div>
-          </div>
-
-          <!-- ── VISTA DESKTOP: Tabla (visible solo en >= md) ── -->
-          <div class="hidden md:block overflow-x-auto">
-            <table class="table w-full border-separate border-spacing-0">
-              <thead class="bg-slate-50 text-slate-400 uppercase text-[9px] font-black tracking-[0.2em] border-b">
-                <tr>
-                  <th class="py-5 pl-8 text-left">Timestamp</th>
-                  <th class="text-left">Operador</th>
-                  <th class="text-left">Acción</th>
-                  <th class="text-left">Relacionado</th>
-                  <th class="text-center pr-8 w-24">Detalle</th>
-                </tr>
-              </thead>
-              <tbody class="text-slate-600">
-                <tr v-for="l in logs" :key="l.id"
-                  class="hover:bg-emerald-50/30 transition-colors border-b border-slate-50 group">
-                  <td class="pl-8 text-[11px] font-bold py-4">
-                    <div class="flex items-center gap-2">
-                      <Clock class="w-3.5 h-3.5 text-slate-300" />
-                      {{ new Date(l.fecha).toLocaleString('es-PE') }}
-                    </div>
-                  </td>
-                  <td class="py-4">
-                    <p class="font-black text-slate-800 text-xs">{{ l.usuario?.nombreCompleto || 'Sistema' }}</p>
-                    <p class="text-[9px] text-slate-400 font-bold">{{ l.usuario?.rol }}</p>
-                  </td>
-                  <td class="py-4">
-                    <span
-                      class="px-3 py-1.5 bg-white rounded-lg text-[10px] font-black text-lyer-green border border-slate-200 uppercase tracking-tighter shadow-sm">
-                      {{ l.accion }}
-                    </span>
-                  </td>
-                  <td class="py-4 text-[10px] font-bold text-slate-400">
-                    <span v-if="l.orden" class="bg-slate-100 px-2 py-1 rounded-md">{{ l.orden.numeroOrden }}</span>
-                    <span v-else>—</span>
-                  </td>
-                  <td class="text-center pr-8 py-4">
-                    <button @click="verDetalleLog(l)"
-                      class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-xl transition-all">
-                      <Eye class="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </template>
-      </div>
-
-      <!-- Paginación: Optimizada para no romperse en iPhone SE -->
-      <div class="p-4 md:p-6 bg-slate-50/50 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-            <ListOrdered class="w-4 h-4" /> Ver:
-            <select v-model="itemsPorPagina"
-              class="select select-ghost select-xs font-black text-lyer-green focus:bg-transparent">
-              <option v-for="opt in opcionesItems" :key="opt" :value="opt">{{ opt }}</option>
-            </select>
-          </div>
-          <div class="h-4 w-[1px] bg-slate-200 hidden sm:block"></div>
-          <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Total: {{ totalLogs }}
-          </span>
-        </div>
-
-        <div class="join border border-slate-200 bg-white rounded-xl overflow-hidden shadow-sm">
-          <button @click="paginaActual--" :disabled="paginaActual === 1"
-            class="join-item btn btn-xs sm:btn-sm bg-white border-none disabled:text-slate-200">
-            <ChevronLeft class="w-4 h-4" />
-          </button>
-          <!-- Mostrar solo actual y total en móviles muy pequeños si hay muchas páginas -->
-          <button v-for="p in paginasVisibles" :key="p" @click="paginaActual = p"
-            :class="['join-item btn btn-xs sm:btn-sm border-none font-black px-3 sm:px-4', paginaActual === p ? 'bg-lyer-green text-white' : 'bg-white text-slate-400 hover:bg-slate-50']">
-            {{ p }}
-          </button>
-          <button @click="paginaActual++" :disabled="paginaActual === totalPaginas"
-            class="join-item btn btn-xs sm:btn-sm bg-white border-none disabled:text-slate-200">
-            <ChevronRight class="w-4 h-4" />
-          </button>
-        </div>
+      <div class="p-4 md:p-6 bg-slate-50/50 border-t">
+        <Paginador
+          v-model="paginaActual"
+          v-model:items-por-pagina="itemsPorPagina"
+          :total-paginas="totalPaginas"
+          :opciones-items="opcionesItems"
+          :total="totalLogs"
+          :paginas-visibles="paginasVisibles"
+          mostrar-label-ver
+        />
       </div>
     </div>
 
-    <!-- Modal crear/editar usuario -->
-    <div :class="['modal modal-bottom sm:modal-middle', { 'modal-open': modalOpen }]">
-      <div class="modal-box p-0 overflow-hidden border-t-8 border-lyer-green rounded-[3rem] shadow-2xl">
-        <div class="p-8 bg-slate-50 border-b flex justify-between items-center">
-          <h3 class="font-black text-xl text-slate-800 uppercase italic tracking-tighter">
-            {{ editando ? 'Editar Perfil' : 'Nuevo Acceso al Sistema' }}
-          </h3>
-          <button @click="modalOpen = false" class="btn btn-circle btn-ghost btn-sm text-slate-300 hover:text-red-500">
-            <X class="w-6 h-6" />
-          </button>
-        </div>
-        <div class="p-10 space-y-6">
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-black text-slate-400 uppercase text-[9px] tracking-widest">Nombre y
-                Apellido</span>
-            </label>
-            <input v-model="form.nombreCompleto" type="text"
-              class="input input-bordered w-full bg-slate-50 rounded-2xl font-bold border-slate-100 focus:border-lyer-accent" />
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-black text-slate-400 uppercase text-[9px] tracking-widest">Username</span>
-              </label>
-              <input v-model="form.username" type="text"
-                class="input input-bordered w-full bg-slate-50 rounded-2xl font-bold border-slate-100 focus:border-lyer-accent" />
-            </div>
-            <div class="form-control">
-              <label class="label">
-                <span
-                  class="label-text font-black text-slate-400 uppercase text-[9px] tracking-widest">Privilegios</span>
-              </label>
-              <select v-model="form.rol"
-                class="select select-bordered w-full bg-slate-50 rounded-2xl font-bold border-slate-100 focus:border-lyer-accent">
-                <option value="ADMIN">ADMINISTRADOR</option>
-                <option value="RESPONSABLE">RESPONSABLE TALLER</option>
-                <option value="USUARIO_GENERAL">USUARIO GENERAL</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text font-black text-slate-400 uppercase text-[9px] tracking-widest">Contraseña</span>
-            </label>
-            <div class="relative">
-              <Key class="absolute left-4 top-3.5 w-4 h-4 text-slate-300" />
-              <input v-model="form.password" type="password" placeholder="••••••••"
-                class="input input-bordered w-full pl-12 bg-slate-50 rounded-2xl font-bold border-slate-100 focus:border-lyer-accent" />
-            </div>
-            <p v-if="editando"
-              class="text-[10px] text-slate-400 italic mt-3 bg-amber-50 p-2 rounded-lg text-center font-medium">
-              Dejar en blanco para mantener la contraseña actual.
-            </p>
-          </div>
-        </div>
-        <div class="p-8 bg-slate-50 border-t flex justify-end gap-3">
-          <button @click="modalOpen = false" class="btn btn-ghost font-black text-slate-400 uppercase text-xs">
-            Cancelar
-          </button>
-          <button @click="guardarUsuario"
-            class="btn bg-lyer-green text-white border-none px-10 rounded-[1.5rem] shadow-xl hover:bg-emerald-900 transition-all hover:scale-105 font-black uppercase text-xs">
-            {{ editando ? 'Guardar Cambios' : 'Crear Usuario' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ModalUsuarioForm
+      :is-open="modalOpen"
+      :editando="editando"
+      v-model:form="form"
+      @close="modalOpen = false"
+      @guardar="guardarUsuario"
+    />
 
     <LogDetalleModal :isOpen="modalLogOpen" :log="logSeleccionado" @close="modalLogOpen = false" />
   </div>
 </template>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

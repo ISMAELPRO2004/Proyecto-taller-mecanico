@@ -6,5 +6,5 @@ export const usuarioService = {
   editar:       (id, payload) => api.put(`/usuarios/${id}`, payload).then(r => r.data),
   toggleActivo: (id)          => api.patch(`/usuarios/${id}/toggle-activo`).then(r => r.data),
   eliminar:     (id)          => api.delete(`/usuarios/${id}`),
-  listarLogs:   (params)      => api.get('/usuarios/logs', { params }).then(r => r.data),
+  listarLogs:   (params)      => api.get('/auditoria/logs', { params }).then(r => r.data),
 };

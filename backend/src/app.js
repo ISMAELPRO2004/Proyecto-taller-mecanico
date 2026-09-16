@@ -11,6 +11,7 @@ import servicioRoutes from './routes/serviciosRoutes.js';
 import tercerRoutes from './routes/serviciosTercerosRoutes.js';
 import ordenRoutes from './routes/ordenRoutes.js';
 import vehiculoRoutes from './routes/vehiculoRoutes.js';
+import clienteRoutes from './routes/clienteRoutes.js';
 
 export const createApp = () => {
   const app = express();
@@ -20,7 +21,7 @@ export const createApp = () => {
     credentials: true,
   }));
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
 
   const loginLimiter = rateLimit({
     windowMs: 3 * 60 * 1000,
@@ -41,6 +42,7 @@ export const createApp = () => {
   app.use('/api/terceros', tercerRoutes);
   app.use('/api/ordenes', ordenRoutes);
   app.use('/api/vehiculos', vehiculoRoutes);
+  app.use('/api/clientes', clienteRoutes);
 
   return app;
 };

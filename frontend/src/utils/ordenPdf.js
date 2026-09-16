@@ -29,8 +29,8 @@ export function generarOrdenPDF(orden) {
   doc.text('INFORMACIÓN DEL CLIENTE', 15, 50);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
-  doc.text(`Nombre: ${orden.clienteNombre}`, 15, 57);
-  doc.text(`Celular: ${orden.clienteCelular || 'N/A'}`, 15, 63);
+  doc.text(`Nombre: ${orden.cliente?.nombreRazonSocial || '—'}`, 15, 57);
+  doc.text(`Celular: ${orden.cliente?.celular || 'N/A'}`, 15, 63);
 
   doc.setFont(undefined, 'bold');
   doc.setFontSize(11);
@@ -38,8 +38,8 @@ export function generarOrdenPDF(orden) {
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
   doc.text(`Placa: ${orden.placa}`, 15, 82);
-  doc.text(`Unidad: ${orden.marca} ${orden.modelo}`, 15, 88);
-  doc.text(`Recorrido: ${orden.kilometraje} KM / ${orden.horometro} H`, 15, 94);
+  doc.text(`Unidad: ${orden.vehiculo?.marca?.nombre || ''} ${orden.vehiculo?.modelo || ''}`, 15, 88);
+  doc.text(`Recorrido: ${orden.vehiculo?.kilometraje ?? '—'} KM / ${orden.vehiculo?.horometro ?? '—'} H`, 15, 94);
 
   let currentY = 105;
   if (orden.materiales?.length > 0) {

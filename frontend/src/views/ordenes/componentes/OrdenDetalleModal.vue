@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { ordenService } from '../../services/ordenService.js';
-import { generarOrdenPDF } from '../../utils/ordenPdf.js';
+import { ordenService } from '../../../services/ordenService.js';
+import { generarOrdenPDF } from '../../../utils/ordenPdf.js';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download
 } from 'lucide-vue-next';
@@ -85,10 +85,10 @@ const imprimir = () => { window.print(); };
               <User class="w-4 h-4" /> Información del Cliente
             </div>
             <div class="bg-slate-50/50 p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 space-y-2">
-              <h4 class="text-2xl sm:text-3xl font-black text-slate-800 leading-none">{{ orden.clienteNombre }}</h4>
+              <h4 class="text-2xl sm:text-3xl font-black text-slate-800 leading-none">{{ orden.cliente?.nombreRazonSocial || '—' }}</h4>
               <div class="flex items-center gap-3">
                 <span class="text-[10px] bg-lyer-accent text-white px-2 py-0.5 rounded-full font-bold">CONTACTO</span>
-                <p class="text-sm font-bold text-slate-500">{{ orden.clienteCelular || 'N/A' }}</p>
+                <p class="text-sm font-bold text-slate-500">{{ orden.cliente?.celular || 'N/A' }}</p>
               </div>
               <div class="mt-4 p-4 bg-white rounded-2xl border border-slate-100 text-slate-600 text-sm italic leading-relaxed shadow-sm">
                 "{{ orden.trabajoSolicitado }}"
@@ -109,7 +109,7 @@ const imprimir = () => { window.print(); };
               <div class="bg-emerald-50/50 p-4 sm:p-5 rounded-2xl border border-emerald-100/50 text-center">
                 <span class="block text-[9px] uppercase font-bold text-emerald-600/60 mb-1">Marca / Modelo</span>
                 <span class="text-xs sm:text-sm font-black text-emerald-900 block truncate uppercase">
-                  {{ orden.marca }} {{ orden.modelo }}
+                  {{ orden.vehiculo?.marca?.nombre }} {{ orden.vehiculo?.modelo }}
                 </span>
               </div>
               <div class="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 text-center">

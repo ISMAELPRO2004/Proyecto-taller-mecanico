@@ -7,52 +7,69 @@ import {
   actualizarEstadoOrden,
   eliminarOrden,
   cerrarOrden,
+  aceptarOrden,
 } from '../controllers/ordenController.js';
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validateBody, validateParams } from '../middleware/validateBody.js';
 import {
-  crearOrdenSchema,
+  crearBorradorOrdenSchema,
   actualizarOrdenSchema,
   actualizarEstadoSchema,
+  aceptarOrdenSchema,
   idParamSchema,
 } from '../schemas/index.js';
 
 const router = Router();
 
-router.get('/', authenticateJWT, listarOrdenes);
+const ROLES_TODOS = ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'];
+const ROLES_CREAR = ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'];
+const ROLES_EDITAR = ['ADMIN', 'SUPERVISOR', 'TECNICO'];
+const ROLES_ACEPTAR = ['ADMIN', 'SUPERVISOR'];
+const ROLES_ADMIN = ['ADMIN'];
 
-router.get('/:id', authenticateJWT, validateParams(idParamSchema), obtenerOrdenPorId);
+router.get('/', authenticateJWT, authorize(ROLES_TODOS), listarOrdenes);
+
+router.get('/:id', authenticateJWT, authorize(ROLES_TODOS), validateParams(idParamSchema), obtenerOrdenPorId);
 
 router.post('/',
   authenticateJWT,
-  authorize(['ADMIN', 'RESPONSABLE']),
-  validateBody(crearOrdenSchema),
-  auditLog('REGISTRO DE NUEVA ORDEN DE TRABAJO'),
+  authorize(ROLES_CREAR),
+  validateBody(crearBorradorOrdenSchema),
+  auditLog('REGISTRO BORRADOR OT'),
   crearOrden
 );
 
 router.put('/:id',
   authenticateJWT,
-  authorize(['ADMIN', 'RESPONSABLE']),
+  authorize(ROLES_EDITAR),
   validateParams(idParamSchema),
   validateBody(actualizarOrdenSchema),
-  auditLog('ACTUALIZAR ORDEN DE TRABAJO'),
+  auditLog('ACTUALIZAR ORDEN'),
   actualizarOrden
+);
+
+router.post('/:id/aceptar',
+  authenticateJWT,
+  authorize(ROLES_ACEPTAR),
+  validateParams(idParamSchema),
+  validateBody(aceptarOrdenSchema),
+  auditLog('ACEPTAR ORDEN'),
+  aceptarOrden
 );
 
 router.put('/:id/estado',
   authenticateJWT,
-  authorize(['ADMIN', 'RESPONSABLE']),
+  authorize(ROLES_EDITAR),
   validateParams(idParamSchema),
   validateBody(actualizarEstadoSchema),
-  auditLog('CAMBIO DE ESTADO EN OT'),
+  auditLog('CAMBIO DE ESTADO OT'),
   actualizarEstadoOrden
 );
 
 router.patch('/:id/cerrar',
   authenticateJWT,
-  authorize(['ADMIN']),
+  authorize(ROLES_ADMIN),
   validateParams(idParamSchema),
   auditLog('CIERRE DEFINITIVO OT'),
   cerrarOrden
@@ -60,9 +77,9 @@ router.patch('/:id/cerrar',
 
 router.delete('/:id',
   authenticateJWT,
-  authorize(['ADMIN']),
+  authorize(ROLES_ADMIN),
   validateParams(idParamSchema),
-  auditLog('ELIMINAR ORDEN DE TRABAJO'),
+  auditLog('ELIMINAR ORDEN'),
   eliminarOrden
 );
 

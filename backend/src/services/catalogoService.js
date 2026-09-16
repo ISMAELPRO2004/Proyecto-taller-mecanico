@@ -16,31 +16,42 @@ export const createCatalogoService = ({
     return repo().findMany({ orderBy: { descripcion: 'asc' } });
   };
 
-  const crear = async ({ descripcion, precioBase }, req) => {
-    const nuevo = await repo().create({
-      data: { descripcion, precioBase: parseFloat(precioBase) },
-    });
+  const crear = async ({ descripcion, precioBase, responsable }, req) => {
+    const data = {
+      descripcion,
+      precioBase: parseFloat(precioBase),
+    };
+    if (model === 'catalogoTercero' && responsable !== undefined) {
+      data.responsable = responsable?.trim() || null;
+    }
+
+    const nuevo = await repo().create({ data });
 
     await registrarLog(req, labels.crear, nuevo);
     return nuevo;
   };
 
-  const actualizar = async (id, { descripcion, precioBase }, req) => {
+  const actualizar = async (id, { descripcion, precioBase, responsable }, req) => {
     const anterior = await repo().findUnique({ where: { id: parseInt(id) } });
     if (!anterior) throw new AppError(`${labels.entidad} no encontrado`, 404);
 
+    const data = {
+      descripcion,
+      precioBase: parseFloat(precioBase),
+    };
+    if (model === 'catalogoTercero' && responsable !== undefined) {
+      data.responsable = responsable?.trim() || null;
+    }
+
     const actualizado = await repo().update({
       where: { id: parseInt(id) },
-      data: {
-        descripcion,
-        precioBase: parseFloat(precioBase),
-      },
+      data,
     });
 
     await registrarLog(
       req,
       labels.actualizar,
-      { descripcion, precioBase, _nombreItem: anterior.descripcion },
+      { descripcion, precioBase, responsable, _nombreItem: anterior.descripcion },
       anterior
     );
 

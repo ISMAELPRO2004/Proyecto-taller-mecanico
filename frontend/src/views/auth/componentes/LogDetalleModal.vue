@@ -5,6 +5,7 @@ import {
   Package, Wrench, ExternalLink, Activity, Info,
   User, Monitor
 } from 'lucide-vue-next';
+import { labelEstadoOrden } from '../../../constants/estadosOrden.js';
 
 const props = defineProps({ isOpen: Boolean, log: Object });
 const emit = defineEmits(['close']);
@@ -18,15 +19,9 @@ const data = computed(() => {
   } catch { return null; }
 });
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const ESTADO_LABELS = {
-  EN_REPARACION: 'En Reparación', TERMINADO: 'Terminado',
-  CANCELADO: 'Cancelado', CAMBIO_ACEITE: 'Cambio de Aceite',
-  ESPERANDO_REPUESTO: 'Esperando Repuesto',
-};
-const estadoLabel = (val) => ESTADO_LABELS[val] || val || '—';
+const estadoLabel = (val) => labelEstadoOrden(val);
 const ROL_LABELS  = {
-  ADMIN: 'Administrador', RESPONSABLE: 'Responsable', USUARIO_GENERAL: 'Usuario General'
+  ADMIN: 'Administrador', SUPERVISOR: 'Supervisor', TECNICO: 'Técnico', RECEPCIONISTA: 'Recepcionista'
 };
 const rolLabel = (val) => ROL_LABELS[val] || val || '—';
 

@@ -2,10 +2,12 @@
 defineProps({
   estado: { type: String, required: true },
   cerrada: { type: Boolean, default: false },
-  size: { type: String, default: 'sm' }, // sm, md
+  size: { type: String, default: 'sm' },
 });
 
 const ESTADO_CONFIG = {
+  EN_ESPERA: { label: 'En Espera', badge: 'badge-ghost text-slate-600' },
+  ACEPTADO: { label: 'Aceptado', badge: 'badge-primary text-primary-content' },
   EN_REPARACION: { label: 'En Reparación', badge: 'badge-warning text-warning-content' },
   CAMBIO_ACEITE: { label: 'Cambio de Aceite', badge: 'badge-info text-info-content' },
   ESPERANDO_REPUESTO: { label: 'Esperando Repuesto', badge: 'badge-info text-info-content' },

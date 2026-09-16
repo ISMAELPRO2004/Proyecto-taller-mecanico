@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import { Search, X, Check, Plus, ArrowLeft } from 'lucide-vue-next';
-import { catalogoService, endpoints } from '../../services/catalogoService.js';
-import { notify } from '../../utils/alerts.js';
+import { catalogoService, endpoints } from '../../../services/catalogoService.js';
+import { notify } from '../../../utils/alerts.js';
 
 const props = defineProps({
   isOpen: Boolean,

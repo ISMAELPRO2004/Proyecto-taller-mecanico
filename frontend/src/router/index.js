@@ -4,71 +4,81 @@ import { useAuthStore } from '../stores/auth.js';
 const routes = [
   {
     path: '/',
-    redirect: '/home' // Redirigimos al Dashboard por defecto si ya está logueado
+    redirect: '/home',
   },
   {
     path: '/login',
     name: 'login',
-    component: () => import('../views/auth/LoginView.vue')
+    component: () => import('../views/auth/LoginView.vue'),
   },
   {
     path: '/home',
     name: 'dashboard',
-    component: () => import('../views/home/DashboardView.vue'), // Ajustado a tu nueva estructura
-    meta: { requiresAuth: true }
+    component: () => import('../views/home/DashboardView.vue'),
+    meta: { requiresAuth: true },
   },
   {
-    /* Ruta Consolidada: Aquí manejas Usuarios y Logs en un solo lugar. 
-       Solo los ADMIN pueden ver esta sección de control total. 
-    */
     path: '/usuarios',
     name: 'usuarios-logs',
     component: () => import('../views/auth/UserManagementView.vue'),
-    meta: { requiresAuth: true, role: 'ADMIN' }
+    meta: { requiresAuth: true, role: 'ADMIN' },
   },
   {
     path: '/catalogos',
     name: 'catalogos-maestros',
-    component: () => import('../views/inventario/CatalogosView.vue'), // Ajustado según tu captura
-    meta: { requiresAuth: true, role: 'ADMIN' }
+    component: () => import('../views/inventario/CatalogosView.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'SUPERVISOR'] },
   },
   {
     path: '/ordenes',
     name: 'listado-ordenes',
     component: () => import('../views/ordenes/OrdenesListView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/ordenes/nueva',
     name: 'nueva-orden',
     component: () => import('../views/ordenes/NuevaOrdenView.vue'),
-    meta: { requiresAuth: true, role: 'ADMIN' }
+    meta: {
+      requiresAuth: true,
+      roles: ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'],
+    },
   },
   {
-    path: '/ordenes/editar/:id', // Ruta para edición
+    path: '/ordenes/editar/:id',
     name: 'editar-orden',
     component: () => import('../views/ordenes/NuevaOrdenView.vue'),
-    meta: { requiresAuth: true, role: 'ADMIN' }
-  }
+    meta: {
+      requiresAuth: true,
+      roles: ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'],
+    },
+  },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 });
 
-// Guardia de seguridad: Verificación de Token y Roles
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
-  
+
   if (to.meta.requiresAuth && !auth.token) {
     next('/login');
-  } else if (to.meta.role && auth.usuario?.rol !== to.meta.role) {
-    // Si no es ADMIN, lo devolvemos al Home en lugar de sacarlo al Login
-    next('/home');
-  } else {
-    next();
+    return;
   }
+
+  const rol = auth.usuario?.rol;
+  if (to.meta.role && rol !== to.meta.role) {
+    next('/home');
+    return;
+  }
+  if (to.meta.roles && !to.meta.roles.includes(rol)) {
+    next('/home');
+    return;
+  }
+
+  next();
 });
 
 export default router;

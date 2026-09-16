@@ -33,7 +33,7 @@ export const listarLogs = async (query = {}) => {
         orden: {
           select: {
             numeroOrden: true,
-            clienteNombre: true,
+            cliente: { select: { nombreRazonSocial: true, numeroDocumento: true } },
             responsable: { select: { nombreCompleto: true } },
           },
         },
