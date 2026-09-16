@@ -3,6 +3,7 @@ import { ExternalLink, Trash2 } from 'lucide-vue-next';
 
 defineProps({
   terceros: { type: Array, required: true },
+  verPrecios: { type: Boolean, default: true },
 });
 
 defineEmits(['add', 'remove']);
@@ -16,9 +17,12 @@ defineEmits(['add', 'remove']);
     </div>
     <div class="grid grid-cols-1 gap-3">
       <div v-for="(t, i) in terceros" :key="i" class="flex flex-col md:flex-row md:items-center gap-4 bg-blue-50/20 p-4 rounded-2xl border border-blue-50">
-        <span class="flex-1 text-[11px] font-bold text-blue-900 italic uppercase">{{ t.descripcion }}</span>
+        <div class="min-w-0 flex-1">
+          <span class="text-[11px] font-bold text-blue-900 italic uppercase">{{ t.descripcion }}</span>
+          <p v-if="t.responsable" class="text-[10px] text-blue-400 font-bold">Responsable: {{ t.responsable }}</p>
+        </div>
         <div class="flex items-center justify-end gap-3">
-          <div class="w-32 flex items-center gap-1 bg-white px-3 py-1 rounded-lg border border-blue-100 shadow-sm"><span class="text-[9px] font-bold text-blue-200">S/</span><input v-model="t.monto" type="number" step="0.01" class="w-full bg-transparent font-black text-xs text-blue-700 outline-none text-right" /></div>
+          <div v-if="verPrecios" class="w-32 flex items-center gap-1 bg-white px-3 py-1 rounded-lg border border-blue-100 shadow-sm"><span class="text-[9px] font-bold text-blue-200">S/</span><input v-model="t.monto" type="number" step="0.01" class="w-full bg-transparent font-black text-xs text-blue-700 outline-none text-right" /></div>
           <button @click="$emit('remove', i)" class="text-red-200 hover:text-red-500"><Trash2 class="w-4 h-4" /></button>
         </div>
       </div>

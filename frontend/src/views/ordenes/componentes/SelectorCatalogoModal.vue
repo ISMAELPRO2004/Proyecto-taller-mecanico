@@ -9,7 +9,8 @@ const props = defineProps({
   titulo: String,
   tipo: { type: String, default: 'materiales' },
   items: { type: Array, default: () => [] },
-  yaSeleccionadosIds: { type: Array, default: () => [] }
+  yaSeleccionadosIds: { type: Array, default: () => [] },
+  verPrecios: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['close', 'confirmar', 'creado']);
@@ -172,7 +173,7 @@ const guardarNuevo = async () => {
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <button
-            v-if="vista === 'seleccionar'"
+            v-if="vista === 'seleccionar' && verPrecios"
             type="button"
             @click="abrirCrear()"
             class="btn btn-sm h-9 min-h-9 bg-lyer-green text-white border-none rounded-xl gap-1 px-3"
@@ -226,7 +227,7 @@ const guardarNuevo = async () => {
               >
                 <Search class="w-3.5 h-3.5 text-slate-300 shrink-0" />
                 <span class="text-xs font-bold text-slate-700 uppercase truncate flex-1">{{ item.descripcion }}</span>
-                <span class="text-[10px] font-black text-lyer-green shrink-0">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</span>
+                <span v-if="verPrecios" class="text-[10px] font-black text-lyer-green shrink-0">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</span>
               </button>
             </div>
           </div>
@@ -256,7 +257,7 @@ const guardarNuevo = async () => {
             </div>
             <div class="min-w-0 flex-1">
               <p class="font-bold text-slate-700 text-xs uppercase truncate">{{ item.descripcion }}</p>
-              <p class="text-[10px] font-black text-lyer-green">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</p>
+              <p v-if="verPrecios" class="text-[10px] font-black text-lyer-green">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</p>
             </div>
           </button>
 
@@ -265,7 +266,7 @@ const guardarNuevo = async () => {
               {{ q ? `Sin resultados para “${filtro}”` : 'Catálogo vacío' }}
             </p>
             <button
-              v-if="q"
+              v-if="q && verPrecios"
               type="button"
               @click="abrirCrear(filtro.trim())"
               class="btn btn-sm bg-lyer-green text-white border-none rounded-xl gap-1"

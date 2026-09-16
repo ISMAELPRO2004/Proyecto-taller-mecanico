@@ -1,7 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { ordenService } from '../../../services/ordenService.js';
 import { generarOrdenPDF } from '../../../utils/ordenPdf.js';
+import { useAuthStore } from '../../../stores/auth.js';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download
 } from 'lucide-vue-next';
@@ -12,6 +13,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const auth = useAuthStore();
+const verPrecios = computed(() => auth.usuario?.rol !== 'TECNICO');
 const orden   = ref(null);
 const loading = ref(false);
 
@@ -35,7 +38,7 @@ watch(() => props.isOpen, (newVal) => {
 const generarPDF = () => {
   if (!orden.value) return;
   try {
-    generarOrdenPDF(orden.value);
+    generarOrdenPDF(orden.value, { verPrecios: verPrecios.value });
   } catch (e) {
     console.error('PDF Error:', e);
   }
@@ -138,7 +141,7 @@ const imprimir = () => { window.print(); };
                   <tr class="text-[9px] uppercase tracking-widest">
                     <th class="w-16 sm:w-20 text-center py-3 sm:py-4">Cant.</th>
                     <th class="py-3 sm:py-4">Repuesto</th>
-                    <th class="text-right py-3 sm:py-4 pr-4 sm:pr-8">Total</th>
+                    <th v-if="verPrecios" class="text-right py-3 sm:py-4 pr-4 sm:pr-8">Total</th>
                   </tr>
                 </thead>
                 <tbody class="text-xs text-slate-700">
@@ -146,7 +149,7 @@ const imprimir = () => { window.print(); };
                     class="border-b last:border-0 border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <td class="text-center font-black py-3 sm:py-4">{{ m.cantidad }}</td>
                     <td class="py-3 sm:py-4 font-medium">{{ m.material.descripcion }}</td>
-                    <td class="text-right py-3 sm:py-4 pr-4 sm:pr-8 font-black text-slate-900">
+                    <td v-if="verPrecios" class="text-right py-3 sm:py-4 pr-4 sm:pr-8 font-black text-slate-900">
                       S/ {{ (Number(m.cantidad) * Number(m.precioAplicado)).toFixed(2) }}
                     </td>
                   </tr>
@@ -166,7 +169,7 @@ const imprimir = () => { window.print(); };
                   <tr v-for="s in orden.servicios" :key="s.id"
                     class="border-b last:border-0 border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <td class="py-4 pl-4 sm:pl-8 font-medium">{{ s.descripcion }}</td>
-                    <td class="text-right pr-4 sm:pr-8 font-black text-lyer-green">
+                    <td v-if="verPrecios" class="text-right pr-4 sm:pr-8 font-black text-lyer-green">
                       S/ {{ parseFloat(s.monto).toFixed(2) }}
                     </td>
                   </tr>
@@ -178,7 +181,7 @@ const imprimir = () => { window.print(); };
                       </span>
                       {{ t.descripcion }}
                     </td>
-                    <td class="text-right pr-4 sm:pr-8 font-black text-blue-700">
+                    <td v-if="verPrecios" class="text-right pr-4 sm:pr-8 font-black text-blue-700">
                       S/ {{ parseFloat(t.monto).toFixed(2) }}
                     </td>
                   </tr>
@@ -188,7 +191,7 @@ const imprimir = () => { window.print(); };
           </section>
 
           <!-- Total — DENTRO del v-else-if="orden", único footer de total -->
-          <div class="bg-slate-900 text-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center relative overflow-hidden group">
+          <div v-if="verPrecios" class="bg-slate-900 text-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center relative overflow-hidden group">
             <div class="absolute -right-6 -bottom-6 opacity-5 rotate-12 group-hover:scale-110 transition-transform">
               <FileText class="w-40 sm:w-64 h-40 sm:h-64" />
             </div>

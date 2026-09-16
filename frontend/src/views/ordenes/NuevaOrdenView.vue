@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '../../stores/auth.js';
 import { ordenService } from '../../services/ordenService.js';
 import { vehiculoService } from '../../services/vehiculoService.js';
 import { clienteService } from '../../services/clienteService.js';
@@ -15,6 +16,7 @@ import { CheckCircle, ClipboardList, ArrowRight, ArrowLeft, Car } from 'lucide-v
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 const esEdicion = computed(() => !!route.params.id);
 const cargando = ref(false);
 const guardando = ref(false);
@@ -109,6 +111,15 @@ const inicializar = async () => {
     await cargarMarcas();
     if (esEdicion.value) {
       const orden = await ordenService.obtener(route.params.id);
+      if (orden.estado !== 'EN_ESPERA') {
+        const puedeTaller = ['ADMIN', 'SUPERVISOR', 'TECNICO'].includes(auth.usuario?.rol);
+        if (puedeTaller) router.replace(`/ordenes/taller/${orden.id}`);
+        else {
+          notify.info('Orden aceptada', 'La recepción ya no edita esta orden.');
+          router.replace('/ordenes');
+        }
+        return;
+      }
       mapOrdenAForm(orden);
       historialOrdenes.value = [];
     }

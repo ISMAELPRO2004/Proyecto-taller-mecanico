@@ -5,7 +5,7 @@ import autoTable from 'jspdf-autotable';
  * Genera y descarga el PDF de una orden de trabajo.
  * @param {object} orden - Orden con detalle (materiales, servicios, terceros)
  */
-export function generarOrdenPDF(orden) {
+export function generarOrdenPDF(orden, { verPrecios = true } = {}) {
   if (!orden) return;
 
   const doc = new jsPDF();
@@ -45,13 +45,17 @@ export function generarOrdenPDF(orden) {
   if (orden.materiales?.length > 0) {
     autoTable(doc, {
       startY: currentY,
-      head: [['Cant.', 'Descripción de Repuestos', 'Unitario', 'Total']],
-      body: orden.materiales.map(m => [
-        m.cantidad,
-        m.material.descripcion,
-        `S/ ${Number(m.precioAplicado).toFixed(2)}`,
-        `S/ ${(Number(m.cantidad) * Number(m.precioAplicado)).toFixed(2)}`
-      ]),
+      head: [verPrecios
+        ? ['Cant.', 'Descripción de Repuestos', 'Unitario', 'Total']
+        : ['Cant.', 'Descripción de Repuestos']],
+      body: orden.materiales.map(m => verPrecios
+        ? [
+          m.cantidad,
+          m.material.descripcion,
+          `S/ ${Number(m.precioAplicado).toFixed(2)}`,
+          `S/ ${(Number(m.cantidad) * Number(m.precioAplicado)).toFixed(2)}`
+        ]
+        : [m.cantidad, m.material.descripcion]),
       headStyles: { fillColor: verdeLyer, fontSize: 10 },
       theme: 'striped'
     });
@@ -59,14 +63,18 @@ export function generarOrdenPDF(orden) {
   }
 
   const servicios = [
-    ...(orden.servicios || []).map(s => [s.descripcion, `S/ ${Number(s.monto).toFixed(2)}`]),
-    ...(orden.terceros || []).map(t => [`(Tercero) ${t.descripcion}`, `S/ ${Number(t.monto).toFixed(2)}`])
+    ...(orden.servicios || []).map(s => verPrecios
+      ? [s.descripcion, `S/ ${Number(s.monto).toFixed(2)}`]
+      : [s.descripcion]),
+    ...(orden.terceros || []).map(t => verPrecios
+      ? [`(Tercero) ${t.descripcion}`, `S/ ${Number(t.monto).toFixed(2)}`]
+      : [`(Tercero) ${t.descripcion}`])
   ];
 
   if (servicios.length > 0) {
     autoTable(doc, {
       startY: currentY,
-      head: [['Descripción de Servicios', 'Monto']],
+      head: [verPrecios ? ['Descripción de Servicios', 'Monto'] : ['Descripción de Servicios']],
       body: servicios,
       headStyles: { fillColor: verdeAccent, fontSize: 10 },
       theme: 'grid'
@@ -74,8 +82,10 @@ export function generarOrdenPDF(orden) {
     currentY = doc.lastAutoTable.finalY + 15;
   }
 
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  doc.text(`INVERSIÓN TOTAL: S/ ${Number(orden.totalFinal).toFixed(2)}`, 130, currentY);
+  if (verPrecios) {
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text(`INVERSIÓN TOTAL: S/ ${Number(orden.totalFinal).toFixed(2)}`, 130, currentY);
+  }
   doc.save(`OT_${orden.numeroOrden}.pdf`);
 }

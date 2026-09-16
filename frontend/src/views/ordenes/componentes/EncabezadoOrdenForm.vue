@@ -19,7 +19,7 @@ const opcionesEstado = ESTADO_ORDEN_OPTIONS.filter((o) => ESTADOS_OPERATIVOS.inc
       <button @click="$emit('back')" class="btn btn-circle btn-ghost"><ArrowLeft class="w-5 h-5" /></button>
       <div>
         <h2 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter">
-          {{ esEdicion ? 'Editar' : 'Nueva' }} <span class="text-lyer-green">Orden</span>
+          {{ modo === 'taller' ? 'Completar' : (esEdicion ? 'Editar' : 'Nueva') }} <span class="text-lyer-green">Orden</span>
         </h2>
         <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
           {{ modo === 'recepcion' ? 'Registro de recepción / borrador' : 'Mecánica LYER Motors' }}
@@ -30,6 +30,7 @@ const opcionesEstado = ESTADO_ORDEN_OPTIONS.filter((o) => ESTADOS_OPERATIVOS.inc
       <span class="text-[9px] font-black text-slate-400 uppercase">Estado:</span>
       <select :value="estado" @change="$emit('update:estado', $event.target.value)"
         class="select select-xs select-ghost font-black text-lyer-green focus:bg-transparent">
+        <option v-if="estado === 'ACEPTADO'" value="ACEPTADO">ACEPTADO</option>
         <option v-for="opt in opcionesEstado" :key="opt.value" :value="opt.value">
           {{ opt.label.toUpperCase() }}
         </option>

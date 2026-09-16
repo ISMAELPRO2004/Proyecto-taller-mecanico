@@ -6,6 +6,7 @@ defineProps({
   responsables: { type: Array, default: () => [] },
   totalFinal: { type: Number, default: 0 },
   esEdicion: { type: Boolean, default: false },
+  verPrecios: { type: Boolean, default: true },
 });
 
 defineEmits(['update:responsableId', 'guardar']);
@@ -23,7 +24,7 @@ defineEmits(['update:responsableId', 'guardar']);
     </div>
 
     <div class="z-10 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-slate-800 pt-6">
-      <div>
+      <div v-if="verPrecios">
         <p class="text-[8px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-1 opacity-60">Liquidación OT</p>
         <h2 class="text-4xl font-black text-white tracking-tighter tabular-nums">S/ {{ totalFinal.toFixed(2) }}</h2>
       </div>

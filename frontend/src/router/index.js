@@ -59,6 +59,15 @@ const routes = [
       roles: ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'],
     },
   },
+  {
+    path: '/ordenes/taller/:id',
+    name: 'taller-orden',
+    component: () => import('../views/ordenes/TallerOrdenView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['ADMIN', 'SUPERVISOR', 'TECNICO'],
+    },
+  },
 ];
 
 const router = createRouter({

@@ -5,6 +5,7 @@ import TablaOrdenes from './componentes/TablaOrdenes.vue';
 import Paginador from '../../components/ui/Paginador.vue';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../../stores/auth.js';
 import { ordenService } from '../../services/ordenService.js';
 import { usePaginacion } from '../../composables/usePaginacion.js';
 import { notify } from '../../utils/alerts.js';
@@ -13,6 +14,7 @@ import { nombreClienteOrden } from '../../utils/ordenDisplay.js';
 import { Plus, FileText } from 'lucide-vue-next';
 
 const router = useRouter();
+const auth = useAuthStore();
 const ordenes = ref([]);
 const busqueda = ref('');
 const filtroEstado = ref('');
@@ -101,12 +103,20 @@ const imprimirOrden = async (o) => {
   imprimiendoId.value = o.id;
   try {
     const detalle = await ordenService.obtener(o.id);
-    generarOrdenPDF(detalle);
+    generarOrdenPDF(detalle, { verPrecios: auth.usuario?.rol !== 'TECNICO' });
   } catch {
     notify.error('Error', 'No se pudo generar el PDF de la orden.');
   } finally {
     imprimiendoId.value = null;
   }
+};
+
+const irAEditar = (o) => {
+  if (o.estado === 'EN_ESPERA') {
+    router.push(`/ordenes/editar/${o.id}`);
+    return;
+  }
+  router.push(`/ordenes/taller/${o.id}`);
 };
 
 onMounted(obtenerOrdenes);
@@ -145,7 +155,7 @@ onMounted(obtenerOrdenes);
         :imprimiendo-id="imprimiendoId"
         @ver-detalle="verDetalle"
         @imprimir="imprimirOrden"
-        @editar="(o) => router.push(`/ordenes/editar/${o.id}`)"
+        @editar="irAEditar"
         @aceptar="aceptarOrden"
         @cerrar="cerrarOrden"
         @eliminar="eliminarOrden"

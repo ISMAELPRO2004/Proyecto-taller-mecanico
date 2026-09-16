@@ -2,9 +2,22 @@
 import StatusBadge from '../../../components/ui/StatusBadge.vue';
 import { puedeEditar, puedeEliminar, puedeCerrar, puedeAceptar } from '../composables/usePermisosOrden.js';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
+import { useAuthStore } from '../../../stores/auth.js';
 import {
   Eye, Trash2, Edit3, Lock, Printer, CheckCircle2
 } from 'lucide-vue-next';
+
+const auth = useAuthStore();
+const ROLES_TALLER = ['ADMIN', 'SUPERVISOR', 'TECNICO'];
+const ROLES_ACEPTAR = ['ADMIN', 'SUPERVISOR'];
+
+const mostrarEditar = (o) => {
+  if (!puedeEditar(o)) return false;
+  if (o.estado === 'EN_ESPERA') return true;
+  return ROLES_TALLER.includes(auth.usuario?.rol);
+};
+
+const mostrarAceptar = (o) => puedeAceptar(o) && ROLES_ACEPTAR.includes(auth.usuario?.rol);
 
 defineProps({
   ordenes: { type: Array, required: true },
@@ -52,15 +65,15 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
           <Printer v-else class="w-4 h-4 shrink-0" />
           <span class="text-xs">Imprimir</span>
         </button>
-        <button v-if="puedeAceptar(o)" @click="$emit('aceptar', o)"
+        <button v-if="mostrarAceptar(o)" @click="$emit('aceptar', o)"
           class="btn btn-sm h-11 min-h-11 bg-sky-50 text-sky-700 border border-sky-100 hover:bg-sky-600 hover:text-white rounded-xl font-bold gap-1.5 px-2">
           <CheckCircle2 class="w-4 h-4 shrink-0" />
           <span class="text-xs">Aceptar</span>
         </button>
-        <button v-if="puedeEditar(o)" @click="$emit('editar', o)"
+        <button v-if="mostrarEditar(o)" @click="$emit('editar', o)"
           class="btn btn-sm h-11 min-h-11 bg-emerald-50 text-lyer-green border border-emerald-100 hover:bg-lyer-green hover:text-white rounded-xl font-bold gap-1.5 px-2">
           <Edit3 class="w-4 h-4 shrink-0" />
-          <span class="text-xs">Editar</span>
+          <span class="text-xs">{{ o.estado === 'EN_ESPERA' ? 'Editar' : 'Completar' }}</span>
         </button>
         <button v-if="puedeCerrar(o)" @click="$emit('cerrar', o)"
           class="btn btn-sm h-11 min-h-11 bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
@@ -129,12 +142,12 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
                 <span v-if="imprimiendoId === o.id" class="loading loading-spinner loading-xs" />
                 <Printer v-else class="w-5 h-5" />
               </button>
-              <button v-if="puedeAceptar(o)" @click="$emit('aceptar', o)" title="Aceptar borrador"
+              <button v-if="mostrarAceptar(o)" @click="$emit('aceptar', o)" title="Aceptar borrador"
                 class="btn btn-square btn-ghost btn-sm text-sky-600 hover:bg-sky-600 hover:text-white rounded-lg">
                 <CheckCircle2 class="w-5 h-5" />
               </button>
-              <button @click="$emit('editar', o)" :disabled="!puedeEditar(o)" title="Editar"
-                class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg disabled:opacity-20">
+              <button v-if="mostrarEditar(o)" @click="$emit('editar', o)" :title="o.estado === 'EN_ESPERA' ? 'Editar' : 'Completar'"
+                class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg">
                 <Edit3 class="w-5 h-5" />
               </button>
               <button v-if="puedeCerrar(o)" @click="$emit('cerrar', o)" title="Cerrar orden"

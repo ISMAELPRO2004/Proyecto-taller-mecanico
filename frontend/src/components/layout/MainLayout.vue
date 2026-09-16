@@ -44,6 +44,7 @@ const routeTitle = (name) => {
     'listado-ordenes': 'Listado Órdenes',
     'nueva-orden':     'Nueva Orden',
     'editar-orden':    'Editar Orden',
+    'taller-orden':    'Orden de trabajo',
     'catalogos-maestros': 'Inventario',
     'registros-maestros': 'Registros',
     'usuarios-logs':   'Usuarios & Logs',

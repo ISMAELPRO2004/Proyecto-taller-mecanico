@@ -175,6 +175,34 @@ export const actualizarOrden = async (id, data, req) => {
     throw new AppError('No se puede modificar una orden cerrada o cancelada.');
   }
 
+  if (ordenPrevia.estado === 'EN_ESPERA' && (data.materiales || data.servicios || data.terceros)) {
+    throw new AppError('La orden debe estar aceptada antes de registrar materiales o servicios.');
+  }
+
+  const ESTADOS_TRABAJO = ['EN_REPARACION', 'CAMBIO_ACEITE', 'ESPERANDO_REPUESTO', 'TERMINADO', 'CANCELADO'];
+  if (data.estado) {
+    if (ordenPrevia.estado === 'EN_ESPERA' && data.estado !== 'EN_ESPERA') {
+      throw new AppError('Acepte la orden antes de cambiar el estado de trabajo.');
+    }
+    if (ordenPrevia.estado !== 'EN_ESPERA' && data.estado === 'EN_ESPERA') {
+      throw new AppError('No se puede volver a En espera.');
+    }
+    if (ESTADOS_TRABAJO.includes(ordenPrevia.estado) && !ESTADOS_TRABAJO.includes(data.estado)) {
+      throw new AppError('El estado de trabajo solo puede ser reparación, cambio de aceite, esperando repuesto, terminado o cancelado.');
+    }
+  }
+
+  const esTecnico = req.user?.rol === 'TECNICO';
+  const precioMaterialPrevio = new Map(
+    (ordenPrevia.materiales || []).map((m) => [m.materialId, m.precioAplicado])
+  );
+  const montoServicioPrevio = new Map(
+    (ordenPrevia.servicios || []).map((s) => [s.servicioId, s.monto])
+  );
+  const montoTerceroPrevio = new Map(
+    (ordenPrevia.terceros || []).map((t) => [t.terceroId, t.monto])
+  );
+
   const resultado = await prisma.$transaction(async (tx) => {
     if (data.cliente) {
       await upsertCliente(tx, { ...ordenPrevia.cliente, ...data.cliente });
@@ -210,7 +238,9 @@ export const actualizarOrden = async (id, data, req) => {
             ordenId: parseInt(id),
             materialId: m.materialId,
             cantidad: m.cantidad,
-            precioAplicado: m.precioAlMomento ?? null,
+            precioAplicado: esTecnico
+              ? (precioMaterialPrevio.get(m.materialId) ?? null)
+              : (m.precioAlMomento ?? null),
           })),
         });
       }
@@ -220,7 +250,9 @@ export const actualizarOrden = async (id, data, req) => {
             ordenId: parseInt(id),
             servicioId: s.servicioId,
             descripcion: s.descripcion,
-            monto: s.monto ?? null,
+            monto: esTecnico
+              ? (montoServicioPrevio.get(s.servicioId) ?? null)
+              : (s.monto ?? null),
           })),
         });
       }
@@ -230,20 +262,35 @@ export const actualizarOrden = async (id, data, req) => {
             ordenId: parseInt(id),
             terceroId: t.terceroId,
             descripcion: t.descripcion,
-            monto: t.monto ?? null,
+            monto: esTecnico
+              ? (montoTerceroPrevio.get(t.terceroId) ?? null)
+              : (t.monto ?? null),
           })),
         });
       }
     }
 
+    const matsParaTotal = esTecnico
+      ? (materiales || []).map((m) => ({
+        cantidad: m.cantidad,
+        precioAlMomento: precioMaterialPrevio.get(m.materialId) ?? 0,
+      }))
+      : (materiales || []).map((m) => ({
+        cantidad: m.cantidad,
+        precioAlMomento: m.precioAlMomento ?? 0,
+      }));
+    const servsParaTotal = esTecnico
+      ? (servicios || []).map((s) => ({ monto: montoServicioPrevio.get(s.servicioId) ?? 0 }))
+      : (servicios || []).map((s) => ({ monto: s.monto ?? 0 }));
+    const tercsParaTotal = esTecnico
+      ? (terceros || []).map((t) => ({ monto: montoTerceroPrevio.get(t.terceroId) ?? 0 }))
+      : (terceros || []).map((t) => ({ monto: t.monto ?? 0 }));
+
     const totalFinal = tieneDetalles
       ? calcularTotalOrden({
-        materiales: (materiales || []).map((m) => ({
-          cantidad: m.cantidad,
-          precioAlMomento: m.precioAlMomento ?? 0,
-        })),
-        servicios: (servicios || []).map((s) => ({ monto: s.monto ?? 0 })),
-        terceros: (terceros || []).map((t) => ({ monto: t.monto ?? 0 })),
+        materiales: matsParaTotal,
+        servicios: servsParaTotal,
+        terceros: tercsParaTotal,
       })
       : undefined;
 
@@ -297,6 +344,12 @@ export const actualizarEstadoOrden = async (id, payload, req) => {
 
   if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
   if (ordenPrevia.estaCerrada) throw new AppError('La orden está cerrada.');
+  if (ordenPrevia.estado === 'EN_ESPERA') {
+    throw new AppError('Acepte la orden antes de cambiar el estado de trabajo.');
+  }
+  if (!['EN_REPARACION', 'CAMBIO_ACEITE', 'ESPERANDO_REPUESTO', 'TERMINADO', 'CANCELADO'].includes(estado)) {
+    throw new AppError('Solo se pueden asignar los estados de trabajo: reparación, cambio de aceite, esperando repuesto, terminado o cancelado.');
+  }
 
   const data = { estado };
   if (estado === 'CANCELADO') {
