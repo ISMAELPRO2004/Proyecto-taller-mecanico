@@ -1,25 +1,34 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useAuthStore } from '../../stores/auth.js';
 import { 
   LayoutDashboard, Users, ClipboardList, 
-  Package, ChevronLeft, Menu, LogOut, X
+  Package, ChevronLeft, Menu, LogOut, X, Database
 } from 'lucide-vue-next';
 
 const router = useRouter();
 const route  = useRoute();
+const auth = useAuthStore();
 
-// En desktop: sidebar expandido/colapsado
-// En móvil: sidebar visible/oculto como drawer
-const sidebarOpen      = ref(false); // drawer móvil
-const isCollapsed      = ref(false); // colapso desktop
+const sidebarOpen      = ref(false);
+const isCollapsed      = ref(false);
 
-const menuItems = [
-  { name: 'Dashboard',         path: '/home',     icon: LayoutDashboard },
-  { name: 'Listado de Órdenes', path: '/ordenes',  icon: ClipboardList   },
-  { name: 'Inventario',        path: '/catalogos', icon: Package         },
-  { name: 'Usuarios & Logs',   path: '/usuarios',  icon: Users           },
-];
+const menuItems = computed(() => {
+  const rol = auth.usuario?.rol;
+  const items = [
+    { name: 'Dashboard', path: '/home', icon: LayoutDashboard },
+    { name: 'Listado de Órdenes', path: '/ordenes', icon: ClipboardList },
+  ];
+  if (rol === 'ADMIN' || rol === 'SUPERVISOR') {
+    items.push({ name: 'Inventario', path: '/catalogos', icon: Package });
+  }
+  if (rol === 'ADMIN') {
+    items.push({ name: 'Registros', path: '/registros', icon: Database });
+    items.push({ name: 'Usuarios & Logs', path: '/usuarios', icon: Users });
+  }
+  return items;
+});
 
 // Cerrar drawer al navegar en móvil
 watch(() => route.path, () => { sidebarOpen.value = false; });
@@ -36,6 +45,7 @@ const routeTitle = (name) => {
     'nueva-orden':     'Nueva Orden',
     'editar-orden':    'Editar Orden',
     'catalogos-maestros': 'Inventario',
+    'registros-maestros': 'Registros',
     'usuarios-logs':   'Usuarios & Logs',
   };
   return map[name] || name?.replace(/-/g, ' ') || '';
@@ -88,7 +98,7 @@ const routeTitle = (name) => {
           :class="[
             'flex items-center p-3 rounded-xl transition-colors',
             'hover:bg-lyer-accent/20',
-            route.path.startsWith(item.path)
+            route.path === item.path || (item.path !== '/home' && route.path.startsWith(item.path))
               ? 'bg-lyer-accent text-lyer-green font-bold'
               : 'text-slate-200',
           ]">

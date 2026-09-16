@@ -30,6 +30,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['ADMIN', 'SUPERVISOR'] },
   },
   {
+    path: '/registros',
+    name: 'registros-maestros',
+    component: () => import('../views/registros/RegistrosView.vue'),
+    meta: { requiresAuth: true, role: 'ADMIN' },
+  },
+  {
     path: '/ordenes',
     name: 'listado-ordenes',
     component: () => import('../views/ordenes/OrdenesListView.vue'),

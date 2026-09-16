@@ -20,3 +20,28 @@ export const upsertVehiculo = asyncHandler(async (req, res) => {
   const vehiculo = await vehiculoService.upsertVehiculo(req.body, req);
   res.status(201).json(vehiculo);
 });
+
+export const listarVehiculos = asyncHandler(async (req, res) => {
+  const vehiculos = await vehiculoService.listarVehiculos();
+  res.json(vehiculos);
+}, { defaultStatus: 500, useMessageKey: false });
+
+export const actualizarVehiculo = asyncHandler(async (req, res) => {
+  const vehiculo = await vehiculoService.actualizarVehiculo(req.params.placa, req.body, req);
+  res.json(vehiculo);
+});
+
+export const eliminarVehiculo = asyncHandler(async (req, res) => {
+  const resultado = await vehiculoService.eliminarVehiculo(req.params.placa, req);
+  res.json(resultado);
+});
+
+export const actualizarMarca = asyncHandler(async (req, res) => {
+  const marca = await vehiculoService.actualizarMarca(req.params.id, req.body, req);
+  res.json(marca);
+});
+
+export const eliminarMarca = asyncHandler(async (req, res) => {
+  const resultado = await vehiculoService.eliminarMarca(req.params.id, req);
+  res.json(resultado);
+});
