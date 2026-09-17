@@ -29,7 +29,10 @@ defineEmits(['editar', 'eliminar']);
           <p class="font-bold text-slate-700 capitalize text-sm leading-snug">{{ item.descripcion }}</p>
           <p v-if="tabActiva === 'terceros' && item.responsable" class="text-[11px] text-slate-400 font-bold">{{ item.responsable }}</p>
           <p class="font-black text-lyer-green text-base mt-1">
-            <span class="text-[10px] font-medium text-slate-400 mr-0.5">S/</span>{{ parseFloat(item.precioBase).toFixed(2) }}
+            <template v-if="item.precioBase != null">
+              <span class="text-[10px] font-medium text-slate-400 mr-0.5">S/</span>{{ parseFloat(item.precioBase).toFixed(2) }}
+            </template>
+            <span v-else class="text-xs font-black text-amber-500 uppercase">Sin precio</span>
           </p>
         </div>
       </div>
@@ -76,8 +79,10 @@ defineEmits(['editar', 'eliminar']);
             </div>
           </td>
           <td class="text-right font-black text-lyer-green text-lg">
-            <span class="text-[10px] font-medium text-slate-400 mr-1">S/</span>{{
-              parseFloat(item.precioBase).toFixed(2) }}
+            <template v-if="item.precioBase != null">
+              <span class="text-[10px] font-medium text-slate-400 mr-1">S/</span>{{ parseFloat(item.precioBase).toFixed(2) }}
+            </template>
+            <span v-else class="text-xs font-black text-amber-500 uppercase">Sin precio</span>
           </td>
           <td class="text-center pr-8">
             <div class="flex justify-center gap-2">

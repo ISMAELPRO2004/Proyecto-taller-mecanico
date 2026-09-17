@@ -148,7 +148,7 @@ model ContadorOrden {
 model CatalogoMaterial {
   id            Int          @id @default(autoincrement())
   descripcion   String
-  precioBase    Decimal      @db.Decimal(10, 2)
+  precioBase    Decimal?     @db.Decimal(10, 2)
   actualizadoAt DateTime     @updatedAt
   detalles      OTMaterial[]
 }
@@ -156,7 +156,7 @@ model CatalogoMaterial {
 model CatalogoServicio {
   id            Int          @id @default(autoincrement())
   descripcion   String
-  precioBase    Decimal      @db.Decimal(10, 2)
+  precioBase    Decimal?     @db.Decimal(10, 2)
   actualizadoAt DateTime     @updatedAt
   detalles      OTServicio[]
 }
@@ -165,7 +165,7 @@ model CatalogoTercero {
   id            Int         @id @default(autoincrement())
   descripcion   String
   responsable   String? // Nombre de la empresa o persona que hace este servicio externo
-  precioBase    Decimal     @db.Decimal(10, 2)
+  precioBase    Decimal?    @db.Decimal(10, 2)
   actualizadoAt DateTime    @updatedAt
   detalles      OTTercero[]
 }

@@ -123,13 +123,13 @@ const guardarNuevo = async () => {
 
   if (!descripcion) return notify.error('Ingresa una descripción');
   if (esTercero.value && !responsable) return notify.error('Ingresa el responsable del tercero');
-  if (!precio || precio <= 0) return notify.error('Ingresa un precio válido');
+  if (props.verPrecios && (!precio || precio <= 0)) return notify.error('Ingresa un precio válido');
 
   guardando.value = true;
   try {
     const creado = await catalogoService.crear(endpoints[props.tipo], {
       descripcion,
-      precioBase: precio,
+      ...(props.verPrecios ? { precioBase: precio } : {}),
       ...(esTercero.value ? { responsable } : {}),
     });
 
@@ -172,13 +172,13 @@ const guardarNuevo = async () => {
               {{ vista === 'crear' ? `Nuevo ${nombreTipo}` : titulo }}
             </h3>
             <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-              {{ vista === 'crear' ? 'Alta rápida' : 'Busca o selecciona' }}
+              {{ vista === 'crear' ? (verPrecios ? 'Alta rápida' : 'Solo el nombre') : 'Busca o selecciona' }}
             </p>
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <button
-            v-if="vista === 'seleccionar' && verPrecios"
+            v-if="vista === 'seleccionar'"
             type="button"
             @click="abrirCrear()"
             class="btn btn-sm h-9 min-h-9 bg-lyer-green text-white border-none rounded-xl gap-1 px-3"
@@ -232,7 +232,7 @@ const guardarNuevo = async () => {
               >
                 <Search class="w-3.5 h-3.5 text-slate-300 shrink-0" />
                 <span class="text-xs font-bold text-slate-700 uppercase truncate flex-1">{{ item.descripcion }}</span>
-                <span v-if="verPrecios" class="text-[10px] font-black text-lyer-green shrink-0">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</span>
+                <span v-if="verPrecios && item.precioBase != null" class="text-[10px] font-black text-lyer-green shrink-0">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</span>
               </button>
             </div>
           </div>
@@ -263,7 +263,7 @@ const guardarNuevo = async () => {
             <div class="min-w-0 flex-1">
               <p class="font-bold text-slate-700 text-xs uppercase truncate">{{ item.descripcion }}</p>
               <p v-if="item.responsable" class="text-[10px] font-bold text-slate-400 truncate">{{ item.responsable }}</p>
-              <p v-if="verPrecios" class="text-[10px] font-black text-lyer-green">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</p>
+              <p v-if="verPrecios && item.precioBase != null" class="text-[10px] font-black text-lyer-green">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</p>
             </div>
           </button>
 
@@ -272,7 +272,7 @@ const guardarNuevo = async () => {
               {{ q ? `Sin resultados para “${filtro}”` : 'Catálogo vacío' }}
             </p>
             <button
-              v-if="q && verPrecios"
+              v-if="q"
               type="button"
               @click="abrirCrear(filtro.trim())"
               class="btn btn-sm bg-lyer-green text-white border-none rounded-xl gap-1"
@@ -328,7 +328,7 @@ const guardarNuevo = async () => {
               type="text"
               :placeholder="esTercero ? 'Ej: Rectificado de motor' : 'Ej: Aceite 15W40'"
               class="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl font-bold text-sm"
-              @keydown.enter.prevent="esTercero ? responsableRef?.focus() : precioRef?.focus()"
+              @keydown.enter.prevent="esTercero ? responsableRef?.focus() : (verPrecios ? precioRef?.focus() : guardarNuevo())"
             />
           </div>
           <div v-if="esTercero" class="form-control">
@@ -341,10 +341,10 @@ const guardarNuevo = async () => {
               type="text"
               placeholder="Empresa o persona"
               class="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl font-bold text-sm"
-              @keydown.enter.prevent="precioRef?.focus()"
+              @keydown.enter.prevent="verPrecios ? precioRef?.focus() : guardarNuevo()"
             />
           </div>
-          <div class="form-control">
+          <div v-if="verPrecios" class="form-control">
             <label class="label py-1">
               <span class="label-text font-black text-slate-400 uppercase text-[10px]">Precio base (S/)</span>
             </label>

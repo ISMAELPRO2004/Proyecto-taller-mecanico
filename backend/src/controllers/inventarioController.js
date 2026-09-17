@@ -2,7 +2,7 @@ import { materialService } from '../services/catalogoService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const listarMateriales = asyncHandler(async (req, res) => {
-  const materiales = await materialService.listar();
+  const materiales = await materialService.listar(req);
   res.json(materiales);
 }, { defaultStatus: 500, useMessageKey: false });
 

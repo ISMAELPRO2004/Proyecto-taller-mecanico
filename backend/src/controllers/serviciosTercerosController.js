@@ -2,7 +2,7 @@ import { terceroService } from '../services/catalogoService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const listarServiciosTerceros = asyncHandler(async (req, res) => {
-  const servicios = await terceroService.listar();
+  const servicios = await terceroService.listar(req);
   res.json(servicios);
 }, { defaultStatus: 500, useMessageKey: false });
 

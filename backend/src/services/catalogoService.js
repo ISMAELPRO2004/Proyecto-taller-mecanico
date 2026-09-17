@@ -12,14 +12,32 @@ export const createCatalogoService = ({
 }) => {
   const repo = () => prisma[model];
 
-  const listar = async () => {
-    return repo().findMany({ orderBy: { descripcion: 'asc' } });
+  const sinPrecio = (item) => {
+    const { precioBase, ...resto } = item;
+    return resto;
+  };
+
+  const listar = async (req) => {
+    const items = await repo().findMany({ orderBy: { descripcion: 'asc' } });
+    if (req?.user?.rol === 'TECNICO') return items.map(sinPrecio);
+    return items;
   };
 
   const crear = async ({ descripcion, precioBase, responsable }, req) => {
+    const nombreItem = descripcion?.trim();
+    if (!nombreItem) throw new AppError('La descripción es obligatoria.');
+
+    const esTecnico = req.user?.rol === 'TECNICO';
+    let precio = null;
+    if (!esTecnico) {
+      const n = parseFloat(precioBase);
+      if (!Number.isFinite(n) || n <= 0) throw new AppError('Ingresa un precio válido.');
+      precio = n;
+    }
+
     const data = {
-      descripcion,
-      precioBase: parseFloat(precioBase),
+      descripcion: nombreItem,
+      precioBase: precio,
     };
     if (model === 'catalogoTercero') {
       const nombre = responsable?.trim();
@@ -30,16 +48,19 @@ export const createCatalogoService = ({
     const nuevo = await repo().create({ data });
 
     await registrarLog(req, labels.crear, nuevo);
-    return nuevo;
+    return esTecnico ? sinPrecio(nuevo) : nuevo;
   };
 
   const actualizar = async (id, { descripcion, precioBase, responsable }, req) => {
     const anterior = await repo().findUnique({ where: { id: parseInt(id) } });
     if (!anterior) throw new AppError(`${labels.entidad} no encontrado`, 404);
 
+    const precio = parseFloat(precioBase);
+    if (!Number.isFinite(precio) || precio <= 0) throw new AppError('Ingresa un precio válido.');
+
     const data = {
       descripcion,
-      precioBase: parseFloat(precioBase),
+      precioBase: precio,
     };
     if (model === 'catalogoTercero') {
       const nombre = responsable?.trim();
