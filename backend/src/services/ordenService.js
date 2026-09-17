@@ -348,9 +348,17 @@ export const actualizarEstadoOrden = async (id, payload, req) => {
   });
 
   if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
-  if (ordenPrevia.estaCerrada) throw new AppError('La orden está cerrada.');
+  const cancelarTerminado = ordenPrevia.estado === 'TERMINADO'
+    && estado === 'CANCELADO'
+    && req.user?.rol === 'ADMIN';
+  if (ordenPrevia.estaCerrada && !cancelarTerminado) {
+    throw new AppError('La orden ya no admite cambios de estado.');
+  }
   if (ordenPrevia.estado === 'EN_ESPERA') {
     throw new AppError('Acepte la orden antes de cambiar el estado de trabajo.');
+  }
+  if (['TERMINADO', 'CANCELADO'].includes(ordenPrevia.estado) && !cancelarTerminado) {
+    throw new AppError('La orden ya terminó. Solo el administrador puede pasarla a cancelado.');
   }
   if (!['EN_REPARACION', 'CAMBIO_ACEITE', 'ESPERANDO_REPUESTO', 'TERMINADO', 'CANCELADO'].includes(estado)) {
     throw new AppError('Solo se pueden asignar los estados de trabajo: reparación, cambio de aceite, esperando repuesto, terminado o cancelado.');
@@ -380,25 +388,8 @@ export const actualizarEstadoOrden = async (id, payload, req) => {
   return actualizada;
 };
 
-export const cerrarOrden = async (id, req) => {
-  const orden = await prisma.ordenTrabajo.findUnique({
-    where: { id: parseInt(id) },
-    select: { estado: true, estaCerrada: true, numeroOrden: true },
-  });
-
-  if (!orden) throw new AppError('Orden no encontrada', 404);
-  if (orden.estaCerrada) throw new AppError('La orden ya está cerrada.');
-  if (!['TERMINADO', 'CANCELADO'].includes(orden.estado)) {
-    throw new AppError('Solo se pueden cerrar órdenes con estado TERMINADO o CANCELADO.');
-  }
-
-  const actualizada = await prisma.ordenTrabajo.update({
-    where: { id: parseInt(id) },
-    data: { estaCerrada: true },
-  });
-
-  await registrarLog(req, 'CIERRE DEFINITIVO DE ORDEN', { estaCerrada: true }, { estaCerrada: false }, id);
-  return actualizada;
+export const cerrarOrden = async () => {
+  throw new AppError('El cierre ya no se usa. Al marcar Terminado la orden queda bloqueada.');
 };
 
 export const eliminarOrden = async (id, req) => {
@@ -408,18 +399,17 @@ export const eliminarOrden = async (id, req) => {
   });
 
   if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
-  if (ordenPrevia.estaCerrada) {
-    throw new AppError('No se puede eliminar una orden cerrada permanentemente.');
-  }
-  if (ordenPrevia.estado === 'TERMINADO') {
-    throw new AppError('No se puede eliminar una orden terminada.');
+  if (req.user?.rol !== 'ADMIN') {
+    throw new AppError('Solo el administrador puede eliminar órdenes.', 403);
   }
 
+  const ordenId = parseInt(id);
   await prisma.$transaction([
-    prisma.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } }),
-    prisma.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } }),
-    prisma.oTTercero.deleteMany({ where: { ordenId: parseInt(id) } }),
-    prisma.ordenTrabajo.delete({ where: { id: parseInt(id) } }),
+    prisma.logActividad.updateMany({ where: { ordenId }, data: { ordenId: null } }),
+    prisma.oTMaterial.deleteMany({ where: { ordenId } }),
+    prisma.oTServicio.deleteMany({ where: { ordenId } }),
+    prisma.oTTercero.deleteMany({ where: { ordenId } }),
+    prisma.ordenTrabajo.delete({ where: { id: ordenId } }),
   ]);
 
   await borrarCarpetaOrden(id);
@@ -431,6 +421,54 @@ export const eliminarOrden = async (id, req) => {
   }, null);
 
   return { message: 'Orden eliminada exitosamente' };
+};
+
+export const actualizarFacturaOrden = async (id, data, req) => {
+  if (req.user?.rol !== 'ADMIN') {
+    throw new AppError('Solo el administrador puede completar o cambiar la factura.', 403);
+  }
+
+  const orden = await prisma.ordenTrabajo.findUnique({
+    where: { id: parseInt(id) },
+    select: {
+      id: true,
+      estado: true,
+      numeroOrden: true,
+      requiereFactura: true,
+      numeroFactura: true,
+      montoFactura: true,
+    },
+  });
+  if (!orden) throw new AppError('Orden no encontrada', 404);
+  if (orden.estado !== 'CANCELADO') {
+    throw new AppError('La factura solo se gestiona cuando la orden está cancelada.');
+  }
+
+  const requiereFactura = !!data.requiereFactura;
+  const numeroFactura = requiereFactura ? (data.numeroFactura?.trim() || null) : null;
+  const montoFactura = requiereFactura && data.montoFactura != null && data.montoFactura !== ''
+    ? data.montoFactura
+    : null;
+
+  const actualizada = await prisma.ordenTrabajo.update({
+    where: { id: orden.id },
+    data: { requiereFactura, numeroFactura, montoFactura },
+    include: includeOrdenDetalle,
+  });
+
+  await registrarLog(
+    req,
+    'ACTUALIZAR FACTURA',
+    { requiereFactura, numeroFactura, montoFactura },
+    {
+      requiereFactura: orden.requiereFactura,
+      numeroFactura: orden.numeroFactura,
+      montoFactura: orden.montoFactura,
+    },
+    orden.id
+  );
+
+  return actualizada;
 };
 
 const campoFoto = {
@@ -454,6 +492,11 @@ export const subirFotoOrden = async (id, tipo, file, req) => {
   const campo = campoFoto[tipo];
   const previa = orden[campo];
   const esAdmin = req.user?.rol === 'ADMIN';
+  const ordenTerminada = ['TERMINADO', 'CANCELADO'].includes(orden.estado) || orden.estaCerrada;
+
+  if (ordenTerminada) {
+    throw new AppError('La orden ya terminó. Solo se puede ajustar la facturación.');
+  }
 
   if (tipo === 'registro') {
     if (previa && !esAdmin) {
@@ -493,7 +536,9 @@ export const quitarFotoOrden = async (id, tipo, req) => {
     select: { id: true, estado: true, estaCerrada: true, fotoRegistro: true, fotoDesarrollo: true },
   });
   if (!orden) throw new AppError('Orden no encontrada', 404);
-
+  if (['TERMINADO', 'CANCELADO'].includes(orden.estado) || orden.estaCerrada) {
+    throw new AppError('La orden ya terminó. Solo se puede ajustar la facturación.');
+  }
   const esAdmin = req.user?.rol === 'ADMIN';
   if (tipo === 'registro' && !esAdmin) {
     throw new AppError('Solo un administrador puede quitar la foto de registro.', 403);

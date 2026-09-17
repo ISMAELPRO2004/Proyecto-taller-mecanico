@@ -1,10 +1,11 @@
 <script setup>
+import { computed } from 'vue';
 import StatusBadge from '../../../components/ui/StatusBadge.vue';
-import { puedeEditar, puedeEliminar, puedeCerrar, puedeAceptar } from '../composables/usePermisosOrden.js';
+import { puedeEditar, puedeEliminar, puedeAceptar, facturaPendiente, puedeCancelarTerminado } from '../composables/usePermisosOrden.js';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
 import { useAuthStore } from '../../../stores/auth.js';
 import {
-  Eye, Trash2, Edit3, Lock, Printer, CheckCircle2
+  Eye, Trash2, Edit3, Lock, Printer, CheckCircle2, Receipt, Ban
 } from 'lucide-vue-next';
 
 const auth = useAuthStore();
@@ -18,6 +19,11 @@ const mostrarEditar = (o) => {
 };
 
 const mostrarAceptar = (o) => puedeAceptar(o) && ROLES_ACEPTAR.includes(auth.usuario?.rol);
+const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
+const mostrarEliminar = (o) => esAdmin.value && puedeEliminar(o);
+const mostrarCancelar = (o) => esAdmin.value && puedeCancelarTerminado(o);
+const mostrarFactura = (o) => esAdmin.value && o.estado === 'CANCELADO';
+const ordenBloqueada = (o) => ['TERMINADO', 'CANCELADO'].includes(o.estado);
 
 defineProps({
   ordenes: { type: Array, required: true },
@@ -26,7 +32,7 @@ defineProps({
   imprimiendoId: { type: [Number, String, null], default: null },
 });
 
-defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar']);
+defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura', 'cancelar']);
 </script>
 
 <template>
@@ -35,10 +41,10 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
       <span class="loading loading-ring loading-md text-lyer-green" />
     </div>
     <div v-for="o in ordenes" :key="'m-' + o.id"
-      :class="['p-4 space-y-3 hover:bg-emerald-50/20 transition-colors', o.estaCerrada ? 'bg-slate-50/50' : '']">
+      :class="['p-4 space-y-3 hover:bg-emerald-50/20 transition-colors', ordenBloqueada(o) ? 'bg-slate-50/50' : '']">
       <div class="min-w-0">
         <div class="flex items-center gap-1.5 mb-1">
-          <Lock v-if="o.estaCerrada" class="w-3 h-3 text-slate-400 shrink-0" />
+          <Lock v-if="ordenBloqueada(o)" class="w-3 h-3 text-slate-400 shrink-0" />
           <span class="font-black text-lyer-green italic text-sm">{{ o.numeroOrden }}</span>
           <span class="text-[9px] text-slate-400">· {{ new Date(o.fechaCreacion).toLocaleDateString('es-PE') }}</span>
         </div>
@@ -49,7 +55,11 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
         </p>
         <p class="text-xs text-slate-500 font-medium mt-0.5">{{ nombreClienteOrden(o) }}</p>
         <div class="flex items-center gap-2 mt-2 flex-wrap">
-          <StatusBadge :estado="o.estado" :cerrada="o.estaCerrada" />
+          <StatusBadge :estado="o.estado" />
+          <span
+            v-if="facturaPendiente(o)"
+            class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
+          >Factura pendiente</span>
           <span class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
         </div>
       </div>
@@ -75,12 +85,17 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
           <Edit3 class="w-4 h-4 shrink-0" />
           <span class="text-xs">{{ o.estado === 'EN_ESPERA' ? 'Editar' : 'Completar' }}</span>
         </button>
-        <button v-if="puedeCerrar(o)" @click="$emit('cerrar', o)"
-          class="btn btn-sm h-11 min-h-11 bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
-          <Lock class="w-4 h-4 shrink-0" />
-          <span class="text-xs">Cerrar</span>
+        <button v-if="mostrarFactura(o)" @click="$emit('factura', o)"
+          class="btn btn-sm h-11 min-h-11 bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
+          <Receipt class="w-4 h-4 shrink-0" />
+          <span class="text-xs">Factura</span>
         </button>
-        <button v-if="puedeEliminar(o)" @click="$emit('eliminar', o)"
+        <button v-if="mostrarCancelar(o)" @click="$emit('cancelar', o)"
+          class="btn btn-sm h-11 min-h-11 bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
+          <Ban class="w-4 h-4 shrink-0" />
+          <span class="text-xs">Cancelar</span>
+        </button>
+        <button v-if="mostrarEliminar(o)" @click="$emit('eliminar', o)"
           class="btn btn-sm h-11 min-h-11 bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
           <Trash2 class="w-4 h-4 shrink-0" />
           <span class="text-xs">Borrar</span>
@@ -108,11 +123,11 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
       </thead>
       <tbody class="text-slate-600">
         <tr v-for="o in ordenes" :key="o.id"
-          :class="['hover:bg-emerald-50/30 transition-colors h-[75px]', o.estaCerrada ? 'bg-slate-50/50' : '']">
+          :class="['hover:bg-emerald-50/30 transition-colors h-[75px]', ordenBloqueada(o) ? 'bg-slate-50/50' : '']">
           <td class="pl-8 text-xs">{{ new Date(o.fechaCreacion).toLocaleDateString('es-PE') }}</td>
           <td>
             <div class="flex items-center gap-1">
-              <Lock v-if="o.estaCerrada" class="w-3 h-3 text-slate-400 shrink-0" />
+              <Lock v-if="ordenBloqueada(o)" class="w-3 h-3 text-slate-400 shrink-0" />
               <span class="font-black text-lyer-green italic">{{ o.numeroOrden }}</span>
             </div>
           </td>
@@ -126,7 +141,13 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
           </td>
           <td class="text-sm font-bold">{{ nombreClienteOrden(o) }}</td>
           <td>
-            <StatusBadge :estado="o.estado" :cerrada="o.estaCerrada" size="md" />
+            <div class="flex items-center gap-2">
+              <StatusBadge :estado="o.estado" size="md" />
+              <span
+                v-if="facturaPendiente(o)"
+                class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
+              >Factura pendiente</span>
+            </div>
           </td>
           <td class="text-right font-black text-slate-800">
             S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}
@@ -150,13 +171,16 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'cerrar', 'eliminar', 'aceptar'
                 class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg">
                 <Edit3 class="w-5 h-5" />
               </button>
-              <button v-if="puedeCerrar(o)" @click="$emit('cerrar', o)" title="Cerrar orden"
-                class="btn btn-square btn-ghost btn-sm text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg">
-                <Lock class="w-4 h-4" />
+              <button v-if="mostrarCancelar(o)" @click="$emit('cancelar', o)" title="Cancelar y pedir factura"
+                class="btn btn-square btn-ghost btn-sm text-red-500 hover:bg-red-500 hover:text-white rounded-lg">
+                <Ban class="w-5 h-5" />
               </button>
-              <button @click="$emit('eliminar', o)" :disabled="!puedeEliminar(o)" title="Eliminar"
-                :class="['btn btn-square btn-ghost btn-sm rounded-lg transition-all',
-                  puedeEliminar(o) ? 'text-red-400 hover:text-red-500 hover:bg-red-50' : 'text-slate-200 opacity-20 cursor-not-allowed']">
+              <button v-if="mostrarFactura(o)" @click="$emit('factura', o)" title="Factura"
+                class="btn btn-square btn-ghost btn-sm text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg">
+                <Receipt class="w-5 h-5" />
+              </button>
+              <button v-if="mostrarEliminar(o)" @click="$emit('eliminar', o)" title="Eliminar"
+                class="btn btn-square btn-ghost btn-sm rounded-lg text-red-400 hover:text-red-500 hover:bg-red-50">
                 <Trash2 class="w-5 h-5" />
               </button>
             </div>

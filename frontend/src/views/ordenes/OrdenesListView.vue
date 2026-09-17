@@ -2,6 +2,7 @@
 import OrdenDetalleModal from './componentes/OrdenDetalleModal.vue';
 import FiltrosOrdenes from './componentes/FiltrosOrdenes.vue';
 import TablaOrdenes from './componentes/TablaOrdenes.vue';
+import ModalFacturaOrden from './componentes/ModalFacturaOrden.vue';
 import Paginador from '../../components/ui/Paginador.vue';
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -21,6 +22,9 @@ const filtroEstado = ref('');
 const cargando = ref(true);
 const idSeleccionado = ref(null);
 const modalAbierto = ref(false);
+const facturaAbierta = ref(false);
+const ordenFactura = ref(null);
+const guardandoFactura = ref(false);
 
 const obtenerOrdenes = async () => {
   cargando.value = true;
@@ -51,6 +55,11 @@ const { paginaActual, itemsPorPagina, opcionesItems, totalPaginas, itemsPaginado
 
 const verDetalle = (id) => { idSeleccionado.value = id; modalAbierto.value = true; };
 
+const abrirFactura = (o) => {
+  ordenFactura.value = o;
+  facturaAbierta.value = true;
+};
+
 const aceptarOrden = async (o) => {
   const ok = await notify.confirm(
     '¿Aceptar borrador?',
@@ -66,27 +75,37 @@ const aceptarOrden = async (o) => {
   }
 };
 
-const cerrarOrden = async (o) => {
-  const ok = await notify.confirm(
-    '¿Cerrar orden permanentemente?',
-    `La orden ${o.numeroOrden} quedará bloqueada. Esta acción no se puede deshacer.`
-  );
-  if (!ok) return;
+const cancelarTerminado = (o) => {
+  ordenFactura.value = o;
+  facturaAbierta.value = true;
+};
+
+const guardarFactura = async (payload) => {
+  if (!ordenFactura.value) return;
+  guardandoFactura.value = true;
+  const esCancelacion = ordenFactura.value.estado === 'TERMINADO';
   try {
-    await ordenService.cerrar(o.id);
-    notify.success('Orden Cerrada', 'El registro ha sido sellado correctamente.');
+    if (esCancelacion) {
+      await ordenService.cambiarEstado(ordenFactura.value.id, { estado: 'CANCELADO', ...payload });
+      notify.success('Orden cancelada', 'La facturación quedó registrada.');
+    } else {
+      await ordenService.actualizarFactura(ordenFactura.value.id, payload);
+      notify.success('Factura actualizada');
+    }
+    facturaAbierta.value = false;
     obtenerOrdenes();
   } catch (e) {
-    notify.error('Error', e.response?.data?.message || 'No se pudo cerrar la orden.');
+    notify.error(esCancelacion ? 'No se pudo cancelar' : 'No se pudo guardar la factura', e.response?.data?.message);
+  } finally {
+    guardandoFactura.value = false;
   }
 };
 
 const eliminarOrden = async (o) => {
-  if (o.estaCerrada) {
-    notify.error('Acción bloqueada', 'No se puede eliminar una orden cerrada.');
-    return;
-  }
-  const ok = await notify.confirm('¿Eliminar orden?', 'Esta acción no se puede deshacer.');
+  const ok = await notify.confirm(
+    '¿Eliminar orden?',
+    `Se borrará ${o.numeroOrden} de forma definitiva.`
+  );
   if (!ok) return;
   try {
     await ordenService.eliminar(o.id);
@@ -157,8 +176,9 @@ onMounted(obtenerOrdenes);
         @imprimir="imprimirOrden"
         @editar="irAEditar"
         @aceptar="aceptarOrden"
-        @cerrar="cerrarOrden"
+        @cancelar="cancelarTerminado"
         @eliminar="eliminarOrden"
+        @factura="abrirFactura"
       />
 
       <div class="p-4 md:p-6 bg-slate-50/50 border-t border-slate-100">
@@ -172,6 +192,13 @@ onMounted(obtenerOrdenes);
       </div>
     </div>
 
-    <OrdenDetalleModal :orden-id="idSeleccionado" :is-open="modalAbierto" @close="modalAbierto = false" />
+    <OrdenDetalleModal :orden-id="idSeleccionado" :is-open="modalAbierto" @close="modalAbierto = false" @actualizada="obtenerOrdenes" />
+    <ModalFacturaOrden
+      :is-open="facturaAbierta"
+      :orden="ordenFactura"
+      :guardando="guardandoFactura"
+      @close="facturaAbierta = false"
+      @guardar="guardarFactura"
+    />
   </div>
 </template>

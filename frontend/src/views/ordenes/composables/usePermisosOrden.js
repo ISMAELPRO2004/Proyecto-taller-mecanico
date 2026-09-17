@@ -1,4 +1,6 @@
-export const puedeEditar = (o) => !o.estaCerrada && !['TERMINADO', 'CANCELADO'].includes(o.estado);
-export const puedeEliminar = (o) => !o.estaCerrada && o.estado !== 'TERMINADO';
-export const puedeCerrar = (o) => !o.estaCerrada && ['TERMINADO', 'CANCELADO'].includes(o.estado);
-export const puedeAceptar = (o) => !o.estaCerrada && o.estado === 'EN_ESPERA';
+export const puedeEditar = (o) => !['TERMINADO', 'CANCELADO'].includes(o.estado);
+export const puedeEliminar = () => true;
+export const facturaPendiente = (o) =>
+  o?.estado === 'CANCELADO' && !!o.requiereFactura && !String(o.numeroFactura || '').trim();
+export const puedeCancelarTerminado = (o) => o?.estado === 'TERMINADO';
+export const puedeAceptar = (o) => o?.estado === 'EN_ESPERA';

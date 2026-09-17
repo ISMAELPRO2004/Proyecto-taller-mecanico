@@ -42,6 +42,11 @@ export const eliminarOrden = asyncHandler(async (req, res) => {
   res.json(resultado);
 }, { useMessageKey: false });
 
+export const actualizarFactura = asyncHandler(async (req, res) => {
+  const orden = await ordenService.actualizarFacturaOrden(req.params.id, req.body, req);
+  res.json(orden);
+});
+
 export const subirFoto = asyncHandler(async (req, res) => {
   const orden = await ordenService.subirFotoOrden(req.params.id, req.params.tipo, req.file, req);
   res.json(orden);

@@ -5,6 +5,8 @@ import { generarOrdenPDF } from '../../../utils/ordenPdf.js';
 import { useAuthStore } from '../../../stores/auth.js';
 import { notify } from '../../../utils/alerts.js';
 import CampoFoto from './CampoFoto.vue';
+import ModalFacturaOrden from './ModalFacturaOrden.vue';
+import { facturaPendiente } from '../composables/usePermisosOrden.js';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download
 } from 'lucide-vue-next';
@@ -14,7 +16,7 @@ const props = defineProps({
   isOpen:  { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'actualizada']);
 const auth = useAuthStore();
 const verPrecios = computed(() => auth.usuario?.rol !== 'TECNICO');
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
@@ -22,6 +24,9 @@ const fotos = ref({ registro: '', desarrollo: '' });
 const subiendoFoto = ref('');
 const orden   = ref(null);
 const loading = ref(false);
+const facturaAbierta = ref(false);
+const guardandoFactura = ref(false);
+const pendienteFactura = computed(() => facturaPendiente(orden.value));
 
 const revocarFotos = () => {
   if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
@@ -90,6 +95,25 @@ watch(() => props.isOpen, (newVal) => {
     revocarFotos();
   }
 });
+
+const guardarFactura = async (payload) => {
+  guardandoFactura.value = true;
+  try {
+    if (orden.value.estado === 'TERMINADO') {
+      orden.value = await ordenService.cambiarEstado(props.ordenId, { estado: 'CANCELADO', ...payload });
+      notify.success('Orden cancelada', 'La facturación quedó registrada.');
+    } else {
+      orden.value = await ordenService.actualizarFactura(props.ordenId, payload);
+      notify.success('Factura actualizada');
+    }
+    facturaAbierta.value = false;
+    emit('actualizada');
+  } catch (error) {
+    notify.error('No se pudo guardar la factura', error.response?.data?.message);
+  } finally {
+    guardandoFactura.value = false;
+  }
+};
 
 const generarPDF = () => {
   if (!orden.value) return;
@@ -186,12 +210,43 @@ const imprimir = () => { window.print(); };
             </div>
           </section>
 
+          <section
+            v-if="orden.estado === 'TERMINADO' && esAdmin"
+            class="rounded-2xl p-4 border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          >
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Orden terminada</p>
+              <p class="text-sm font-bold text-slate-600">Nadie puede modificar el trabajo. Puedes cancelarla y registrar la factura.</p>
+            </div>
+            <button type="button" class="btn btn-sm bg-red-500 text-white border-none rounded-xl" @click="facturaAbierta = true">
+              Cancelar
+            </button>
+          </section>
+
+          <section
+            v-if="orden.estado === 'CANCELADO'"
+            :class="['rounded-2xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-3', pendienteFactura ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100']"
+          >
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest" :class="pendienteFactura ? 'text-amber-600 animate-pulse' : 'text-slate-400'">
+                {{ pendienteFactura ? 'Factura pendiente' : (orden.requiereFactura ? 'Factura registrada' : 'Sin factura') }}
+              </p>
+              <p v-if="orden.requiereFactura" class="text-sm font-bold text-slate-700">
+                {{ orden.numeroFactura || 'Sin número' }}
+                <span v-if="orden.montoFactura != null"> · S/ {{ Number(orden.montoFactura).toFixed(2) }}</span>
+              </p>
+            </div>
+            <button v-if="esAdmin" type="button" class="btn btn-sm bg-lyer-green text-white border-none rounded-xl" @click="facturaAbierta = true">
+              Completar factura
+            </button>
+          </section>
+
           <section class="grid md:grid-cols-2 gap-4">
             <CampoFoto
               titulo="Foto de registro"
               :src="fotos.registro"
-              :puede-cambiar="esAdmin"
-              :puede-quitar="esAdmin && !!fotos.registro"
+              :puede-cambiar="esAdmin && !['TERMINADO', 'CANCELADO'].includes(orden.estado)"
+              :puede-quitar="esAdmin && !!fotos.registro && !['TERMINADO', 'CANCELADO'].includes(orden.estado)"
               :subiendo="subiendoFoto === 'registro'"
               @seleccionar="cambiarRegistro"
               @quitar="quitarRegistro"
@@ -301,6 +356,13 @@ const imprimir = () => { window.print(); };
       </footer>
 
     </div>
+    <ModalFacturaOrden
+      :is-open="facturaAbierta"
+      :orden="orden"
+      :guardando="guardandoFactura"
+      @close="facturaAbierta = false"
+      @guardar="guardarFactura"
+    />
   </div>
 </template>
 

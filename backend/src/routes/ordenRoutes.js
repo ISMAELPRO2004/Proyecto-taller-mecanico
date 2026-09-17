@@ -8,6 +8,7 @@ import {
   eliminarOrden,
   cerrarOrden,
   aceptarOrden,
+  actualizarFactura,
   subirFoto,
   quitarFoto,
   obtenerFoto,
@@ -21,6 +22,7 @@ import {
   actualizarOrdenSchema,
   actualizarEstadoSchema,
   aceptarOrdenSchema,
+  actualizarFacturaSchema,
   idParamSchema,
   fotoParamSchema,
 } from '../schemas/index.js';
@@ -74,6 +76,15 @@ router.put('/:id/estado',
   validateBody(actualizarEstadoSchema),
   auditLog('CAMBIO DE ESTADO OT'),
   actualizarEstadoOrden
+);
+
+router.patch('/:id/factura',
+  authenticateJWT,
+  authorize(ROLES_ADMIN),
+  validateParams(idParamSchema),
+  validateBody(actualizarFacturaSchema),
+  auditLog('ACTUALIZAR FACTURA'),
+  actualizarFactura
 );
 
 router.patch('/:id/cerrar',

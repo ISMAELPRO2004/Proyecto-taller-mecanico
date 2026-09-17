@@ -15,14 +15,8 @@ const ESTADO_CONFIG = {
   CANCELADO: { label: 'Cancelado', badge: 'badge-error text-error-content' },
 };
 
-const badgeClass = (estado, cerrada) => {
-  if (cerrada) return 'badge-neutral text-neutral-content';
-  return ESTADO_CONFIG[estado]?.badge || 'badge-ghost';
-};
-const label = (estado, cerrada) => {
-  if (cerrada) return 'CERRADA';
-  return ESTADO_CONFIG[estado]?.label || estado;
-};
+const badgeClass = (estado) => ESTADO_CONFIG[estado]?.badge || 'badge-ghost';
+const label = (estado) => ESTADO_CONFIG[estado]?.label || estado;
 </script>
 
 <template>
@@ -30,9 +24,9 @@ const label = (estado, cerrada) => {
     :class="[
       'badge badge-sm font-black p-2 border-none text-[9px] uppercase',
       size === 'md' ? 'p-3' : '',
-      badgeClass(estado, cerrada),
+      badgeClass(estado),
     ]"
   >
-    {{ label(estado, cerrada) }}
+    {{ label(estado) }}
   </span>
 </template>

@@ -120,3 +120,10 @@ export const aceptarOrdenSchema = z.object({
   responsableId: z.union([z.string(), z.number()]).optional()
     .transform((v) => (v === null || v === undefined || v === '' ? undefined : parseInt(v, 10))),
 });
+
+export const actualizarFacturaSchema = z.object({
+  requiereFactura: z.boolean(),
+  numeroFactura: z.union([z.string().max(50), z.literal(''), z.null()]).optional(),
+  montoFactura: z.union([z.string(), z.number(), z.null()]).optional()
+    .transform((v) => (v === null || v === undefined || v === '' ? null : parseFloat(v))),
+});

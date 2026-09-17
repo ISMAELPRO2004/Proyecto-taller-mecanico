@@ -5,6 +5,7 @@ export {
   actualizarOrdenSchema,
   actualizarEstadoSchema,
   aceptarOrdenSchema,
+  actualizarFacturaSchema,
 } from './orden.schema.js';
 export {
   crearClienteSchema,

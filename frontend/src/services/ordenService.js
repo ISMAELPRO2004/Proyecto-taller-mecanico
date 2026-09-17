@@ -16,4 +16,5 @@ export const ordenService = {
   },
   quitarFoto: (id, tipo) => api.delete(`/ordenes/${id}/foto/${tipo}`).then(r => r.data),
   descargarFoto: (id, tipo) => api.get(`/ordenes/${id}/foto/${tipo}`, { responseType: 'blob' }).then(r => r.data),
+  actualizarFactura: (id, payload) => api.patch(`/ordenes/${id}/factura`, payload).then(r => r.data),
 };
