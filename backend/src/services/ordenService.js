@@ -2,6 +2,13 @@ import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { calcularTotalOrden } from '../utils/money.js';
 import { registrarLog } from '../utils/logger.js';
+import {
+  TIPOS_FOTO,
+  guardarFotoArchivo,
+  leerFotoArchivo,
+  borrarFotoArchivo,
+  borrarCarpetaOrden,
+} from './fotoOrdenService.js';
 
 const includeOrdenLista = {
   cliente: true,
@@ -94,7 +101,6 @@ export const crearBorradorOrden = async (data, req) => {
         trabajoSolicitado: data.trabajoSolicitado?.trim() || null,
         estadoIngreso: data.estadoIngreso || 'ACEPTADO',
         observacionIngreso: data.observacionIngreso?.trim() || null,
-        fotoRegistro: data.fotoRegistro?.trim() || null,
         estado: 'EN_ESPERA',
         creadorId: req.user.id,
         responsableId: data.responsableId || null,
@@ -301,7 +307,6 @@ export const actualizarOrden = async (id, data, req) => {
         ...(data.trabajoSolicitado !== undefined && { trabajoSolicitado: data.trabajoSolicitado }),
         ...(data.estadoIngreso !== undefined && { estadoIngreso: data.estadoIngreso }),
         ...(data.observacionIngreso !== undefined && { observacionIngreso: data.observacionIngreso }),
-        ...(data.fotoDesarrollo !== undefined && { fotoDesarrollo: data.fotoDesarrollo }),
         ...(data.responsableId !== undefined && { responsableId: data.responsableId }),
         ...(data.estado !== undefined && { estado: data.estado }),
         ...(data.requiereFactura !== undefined && { requiereFactura: data.requiereFactura }),
@@ -417,6 +422,8 @@ export const eliminarOrden = async (id, req) => {
     prisma.ordenTrabajo.delete({ where: { id: parseInt(id) } }),
   ]);
 
+  await borrarCarpetaOrden(id);
+
   await registrarLog(req, 'ELIMINAR ORDEN', null, {
     numeroOrden: ordenPrevia.numeroOrden,
     cliente: ordenPrevia.cliente?.nombreRazonSocial,
@@ -424,4 +431,99 @@ export const eliminarOrden = async (id, req) => {
   }, null);
 
   return { message: 'Orden eliminada exitosamente' };
+};
+
+const campoFoto = {
+  registro: 'fotoRegistro',
+  desarrollo: 'fotoDesarrollo',
+};
+
+const puedeEditarDesarrollo = (orden) =>
+  !orden.estaCerrada && !['TERMINADO', 'CANCELADO', 'EN_ESPERA'].includes(orden.estado);
+
+export const subirFotoOrden = async (id, tipo, file, req) => {
+  if (!TIPOS_FOTO.includes(tipo)) throw new AppError('Tipo de foto inválido', 400);
+  if (!file) throw new AppError('Selecciona una imagen', 400);
+
+  const orden = await prisma.ordenTrabajo.findUnique({
+    where: { id: parseInt(id) },
+    select: { id: true, estado: true, estaCerrada: true, fotoRegistro: true, fotoDesarrollo: true, numeroOrden: true },
+  });
+  if (!orden) throw new AppError('Orden no encontrada', 404);
+
+  const campo = campoFoto[tipo];
+  const previa = orden[campo];
+  const esAdmin = req.user?.rol === 'ADMIN';
+
+  if (tipo === 'registro') {
+    if (previa && !esAdmin) {
+      throw new AppError('La foto de registro ya fue tomada. Solo un administrador puede cambiarla.', 403);
+    }
+  } else if (!puedeEditarDesarrollo(orden)) {
+    throw new AppError(
+      orden.estado === 'EN_ESPERA'
+        ? 'La foto de desarrollo se toma después de aceptar la orden.'
+        : 'La foto de desarrollo solo se reemplaza mientras la orden está en trabajo.'
+    );
+  }
+
+  const ruta = await guardarFotoArchivo(orden.id, tipo, file);
+  const actualizada = await prisma.ordenTrabajo.update({
+    where: { id: orden.id },
+    data: { [campo]: ruta },
+    include: includeOrdenDetalle,
+  });
+
+  await registrarLog(
+    req,
+    previa ? `REEMPLAZAR FOTO ${tipo.toUpperCase()}` : `SUBIR FOTO ${tipo.toUpperCase()}`,
+    { [campo]: ruta },
+    { [campo]: previa },
+    orden.id
+  );
+
+  return actualizada;
+};
+
+export const quitarFotoOrden = async (id, tipo, req) => {
+  if (!TIPOS_FOTO.includes(tipo)) throw new AppError('Tipo de foto inválido', 400);
+
+  const orden = await prisma.ordenTrabajo.findUnique({
+    where: { id: parseInt(id) },
+    select: { id: true, estado: true, estaCerrada: true, fotoRegistro: true, fotoDesarrollo: true },
+  });
+  if (!orden) throw new AppError('Orden no encontrada', 404);
+
+  const esAdmin = req.user?.rol === 'ADMIN';
+  if (tipo === 'registro' && !esAdmin) {
+    throw new AppError('Solo un administrador puede quitar la foto de registro.', 403);
+  }
+  if (tipo === 'desarrollo' && !puedeEditarDesarrollo(orden)) {
+    throw new AppError('Ya no se puede quitar la foto de desarrollo.');
+  }
+
+  const campo = campoFoto[tipo];
+  const previa = orden[campo];
+  if (previa) await borrarFotoArchivo(previa);
+
+  const actualizada = await prisma.ordenTrabajo.update({
+    where: { id: orden.id },
+    data: { [campo]: null },
+    include: includeOrdenDetalle,
+  });
+
+  await registrarLog(req, `QUITAR FOTO ${tipo.toUpperCase()}`, { [campo]: null }, { [campo]: previa }, orden.id);
+  return actualizada;
+};
+
+export const obtenerArchivoFoto = async (id, tipo) => {
+  if (!TIPOS_FOTO.includes(tipo)) throw new AppError('Tipo de foto inválido', 400);
+  const orden = await prisma.ordenTrabajo.findUnique({
+    where: { id: parseInt(id) },
+    select: { fotoRegistro: true, fotoDesarrollo: true },
+  });
+  if (!orden) throw new AppError('Orden no encontrada', 404);
+  const ruta = orden[campoFoto[tipo]];
+  if (!ruta) throw new AppError('Imagen no encontrada', 404);
+  return leerFotoArchivo(ruta);
 };

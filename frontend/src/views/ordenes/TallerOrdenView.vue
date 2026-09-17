@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.js';
 import { ordenService } from '../../services/ordenService.js';
@@ -13,12 +13,16 @@ import ListaServicios from './componentes/ListaServicios.vue';
 import ListaTerceros from './componentes/ListaTerceros.vue';
 import SelectorCatalogoModal from './componentes/SelectorCatalogoModal.vue';
 import FooterResumenOrden from './componentes/FooterResumenOrden.vue';
+import CampoFoto from './componentes/CampoFoto.vue';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 
 const verPrecios = computed(() => auth.usuario?.rol !== 'TECNICO');
+const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
+const fotos = ref({ registro: '', desarrollo: '' });
+const subiendoFoto = ref('');
 const cargando = ref(true);
 const guardando = ref(false);
 const responsables = ref([]);
@@ -74,6 +78,70 @@ const totalFinal = computed(() => {
 const facturaPendiente = computed(
   () => form.value.estado === 'CANCELADO' && form.value.requiereFactura && !String(form.value.numeroFactura || '').trim()
 );
+
+const cargarFoto = async (tipo, ruta) => {
+  if (fotos.value[tipo]) URL.revokeObjectURL(fotos.value[tipo]);
+  fotos.value[tipo] = '';
+  if (!ruta) return;
+  try {
+    const blob = await ordenService.descargarFoto(route.params.id, tipo);
+    fotos.value[tipo] = URL.createObjectURL(blob);
+  } catch {
+    fotos.value[tipo] = '';
+  }
+};
+
+const subirDesarrollo = async (file) => {
+  subiendoFoto.value = 'desarrollo';
+  try {
+    const orden = await ordenService.subirFoto(route.params.id, 'desarrollo', file);
+    await cargarFoto('desarrollo', orden.fotoDesarrollo);
+    notify.success('Foto de desarrollo actualizada');
+  } catch (e) {
+    notify.error('No se pudo subir la foto', e.response?.data?.message);
+  } finally {
+    subiendoFoto.value = '';
+  }
+};
+
+const quitarDesarrollo = async () => {
+  subiendoFoto.value = 'desarrollo';
+  try {
+    await ordenService.quitarFoto(route.params.id, 'desarrollo');
+    if (fotos.value.desarrollo) URL.revokeObjectURL(fotos.value.desarrollo);
+    fotos.value.desarrollo = '';
+  } catch (e) {
+    notify.error('No se pudo quitar', e.response?.data?.message);
+  } finally {
+    subiendoFoto.value = '';
+  }
+};
+
+const subirRegistroAdmin = async (file) => {
+  subiendoFoto.value = 'registro';
+  try {
+    const orden = await ordenService.subirFoto(route.params.id, 'registro', file);
+    await cargarFoto('registro', orden.fotoRegistro);
+    notify.success('Foto de registro actualizada');
+  } catch (e) {
+    notify.error('No se pudo cambiar la foto', e.response?.data?.message);
+  } finally {
+    subiendoFoto.value = '';
+  }
+};
+
+const quitarRegistroAdmin = async () => {
+  subiendoFoto.value = 'registro';
+  try {
+    await ordenService.quitarFoto(route.params.id, 'registro');
+    if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
+    fotos.value.registro = '';
+  } catch (e) {
+    notify.error('No se pudo quitar', e.response?.data?.message);
+  } finally {
+    subiendoFoto.value = '';
+  }
+};
 
 const abrirSelector = (tipo) => {
   selector.value = { abierto: true, tipo, titulo: titulosCatalogo[tipo] };
@@ -247,6 +315,10 @@ const inicializar = async () => {
     }
 
     mapOrden(orden);
+    await Promise.all([
+      cargarFoto('registro', orden.fotoRegistro),
+      cargarFoto('desarrollo', orden.fotoDesarrollo),
+    ]);
     responsables.value = (usuarios || []).filter((u) => u.activo && ['TECNICO', 'SUPERVISOR'].includes(u.rol));
     catalogos.value = { materiales, servicios, terceros };
   } catch {
@@ -258,6 +330,10 @@ const inicializar = async () => {
 };
 
 onMounted(inicializar);
+onUnmounted(() => {
+  if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
+  if (fotos.value.desarrollo) URL.revokeObjectURL(fotos.value.desarrollo);
+});
 </script>
 
 <template>
@@ -291,6 +367,29 @@ onMounted(inicializar);
             Factura pendiente
           </span>
         </div>
+      </section>
+
+      <section class="grid md:grid-cols-2 gap-4">
+        <CampoFoto
+          titulo="Foto de registro"
+          ayuda="Tomada al ingreso. Solo el administrador puede cambiarla."
+          :src="fotos.registro"
+          :puede-cambiar="esAdmin"
+          :puede-quitar="esAdmin && !!fotos.registro"
+          :subiendo="subiendoFoto === 'registro'"
+          @seleccionar="subirRegistroAdmin"
+          @quitar="quitarRegistroAdmin"
+        />
+        <CampoFoto
+          titulo="Foto de desarrollo"
+          ayuda="Se puede ir reemplazando mientras la orden está en trabajo."
+          :src="fotos.desarrollo"
+          puede-cambiar
+          :puede-quitar="!!fotos.desarrollo"
+          :subiendo="subiendoFoto === 'desarrollo'"
+          @seleccionar="subirDesarrollo"
+          @quitar="quitarDesarrollo"
+        />
       </section>
 
       <section class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-6 grid md:grid-cols-2 gap-4">

@@ -9,4 +9,11 @@ export const ordenService = {
   cambiarEstado: (id, payload) => api.put(`/ordenes/${id}/estado`, typeof payload === 'string' ? { estado: payload } : payload).then(r => r.data),
   cerrar: (id) => api.patch(`/ordenes/${id}/cerrar`).then(r => r.data),
   eliminar: (id) => api.delete(`/ordenes/${id}`),
+  subirFoto: (id, tipo, file) => {
+    const data = new FormData();
+    data.append('foto', file);
+    return api.post(`/ordenes/${id}/foto/${tipo}`, data).then(r => r.data);
+  },
+  quitarFoto: (id, tipo) => api.delete(`/ordenes/${id}/foto/${tipo}`).then(r => r.data),
+  descargarFoto: (id, tipo) => api.get(`/ordenes/${id}/foto/${tipo}`, { responseType: 'blob' }).then(r => r.data),
 };

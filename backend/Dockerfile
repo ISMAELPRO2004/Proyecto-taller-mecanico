@@ -16,6 +16,8 @@ RUN npx prisma generate
 
 EXPOSE 3000
 
+VOLUME ["/app/uploads"]
+
 # Migraciones + seed opcional + arrancar
 # SEED=true solo si quieres poblar la DB en este despliegue
 CMD ["sh", "-c", "pnpm exec prisma migrate deploy && \

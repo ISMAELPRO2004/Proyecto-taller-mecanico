@@ -63,7 +63,6 @@ export const crearBorradorOrdenSchema = z.object({
   trabajoSolicitado: z.string().max(5000).optional().nullable().or(z.literal('')),
   estadoIngreso: z.enum(['ACEPTADO', 'OBSERVADO']).default('ACEPTADO'),
   observacionIngreso: z.string().max(5000).optional().nullable().or(z.literal('')),
-  fotoRegistro: z.string().max(5000).optional().nullable().or(z.literal('')),
   responsableId: z.union([z.string(), z.number(), z.null()]).optional()
     .transform((v) => (v === null || v === undefined || v === '' ? null : parseInt(v, 10))),
 }).superRefine((data, ctx) => {
@@ -89,7 +88,6 @@ export const actualizarOrdenSchema = z.object({
   trabajoSolicitado: z.string().max(5000).optional().nullable(),
   estadoIngreso: z.enum(['ACEPTADO', 'OBSERVADO']).optional(),
   observacionIngreso: z.string().max(5000).optional().nullable(),
-  fotoDesarrollo: z.string().max(5000).optional().nullable(),
   responsableId: z.union([z.string(), z.number(), z.null()]).optional()
     .transform((v) => (v === null || v === undefined || v === '' ? null : parseInt(v, 10))),
   estado: z.enum([

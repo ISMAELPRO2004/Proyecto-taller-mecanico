@@ -1,3 +1,4 @@
+import { createReadStream } from 'fs';
 import * as ordenService from '../services/ordenService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -40,3 +41,20 @@ export const eliminarOrden = asyncHandler(async (req, res) => {
   const resultado = await ordenService.eliminarOrden(req.params.id, req);
   res.json(resultado);
 }, { useMessageKey: false });
+
+export const subirFoto = asyncHandler(async (req, res) => {
+  const orden = await ordenService.subirFotoOrden(req.params.id, req.params.tipo, req.file, req);
+  res.json(orden);
+});
+
+export const quitarFoto = asyncHandler(async (req, res) => {
+  const orden = await ordenService.quitarFotoOrden(req.params.id, req.params.tipo, req);
+  res.json(orden);
+});
+
+export const obtenerFoto = asyncHandler(async (req, res) => {
+  const { abs, mime } = await ordenService.obtenerArchivoFoto(req.params.id, req.params.tipo);
+  res.setHeader('Content-Type', mime);
+  res.setHeader('Cache-Control', 'private, no-store');
+  createReadStream(abs).pipe(res);
+});

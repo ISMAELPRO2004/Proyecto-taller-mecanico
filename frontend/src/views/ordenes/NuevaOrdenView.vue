@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.js';
 import { ordenService } from '../../services/ordenService.js';
@@ -12,6 +12,7 @@ import FormBusquedaPlaca from './componentes/FormBusquedaPlaca.vue';
 import FormVehiculo from './componentes/FormVehiculo.vue';
 import FormCliente from './componentes/FormCliente.vue';
 import FormIngresoOrden from './componentes/FormIngresoOrden.vue';
+import CampoFoto from './componentes/CampoFoto.vue';
 import { CheckCircle, ClipboardList, ArrowRight, ArrowLeft, Car } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -26,6 +27,12 @@ const historialOrdenes = ref([]);
 const vehiculoRegistrado = ref(false);
 /** Solo tras Buscar placa: muestra datos del vehículo */
 const placaConsultada = ref(false);
+const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
+const fotoSrc = ref('');
+const archivoRegistro = ref(null);
+const subiendoFoto = ref(false);
+const puedeCambiarRegistro = computed(() => !form.value.fotoRegistro || esAdmin.value);
+const puedeQuitarRegistro = computed(() => !!archivoRegistro.value || (esAdmin.value && !!form.value.fotoRegistro));
 
 /** 1 = vehículo, 2 = cliente + orden */
 const paso = ref(1);
@@ -103,6 +110,36 @@ const mapOrdenAForm = (orden) => {
   vehiculoRegistrado.value = true;
   placaConsultada.value = true;
   paso.value = 2;
+  cargarFotoRegistro(orden.id, orden.fotoRegistro);
+};
+
+const cargarFotoRegistro = async (ordenId, ruta) => {
+  if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
+  fotoSrc.value = '';
+  if (!ruta || !ordenId) return;
+  try {
+    const blob = await ordenService.descargarFoto(ordenId, 'registro');
+    fotoSrc.value = URL.createObjectURL(blob);
+  } catch {
+    fotoSrc.value = '';
+  }
+};
+
+const quitarRegistro = async () => {
+  archivoRegistro.value = null;
+  if (!esEdicion.value || !form.value.fotoRegistro) return;
+  subiendoFoto.value = true;
+  try {
+    await ordenService.quitarFoto(route.params.id, 'registro');
+    form.value.fotoRegistro = '';
+    if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
+    fotoSrc.value = '';
+    notify.success('Foto quitada');
+  } catch (e) {
+    notify.error('No se pudo quitar', e.response?.data?.message);
+  } finally {
+    subiendoFoto.value = false;
+  }
 };
 
 const inicializar = async () => {
@@ -277,20 +314,33 @@ const payload = () => ({
   trabajoSolicitado: form.value.trabajoSolicitado || null,
   estadoIngreso: form.value.estadoIngreso,
   observacionIngreso: form.value.observacionIngreso || null,
-  fotoRegistro: form.value.fotoRegistro || null,
 });
 
 const guardar = async () => {
   if (!validarOrden()) return notify.error('Revisa los campos', 'Faltan datos del cliente o ingreso.');
   guardando.value = true;
   try {
+    let ordenId = route.params.id;
     if (esEdicion.value) {
-      await ordenService.actualizar(route.params.id, payload());
-      notify.success('Actualizado', 'Borrador de orden actualizado.');
+      await ordenService.actualizar(ordenId, payload());
     } else {
       const orden = await ordenService.crear(payload());
-      notify.success('Borrador creado', `${orden.numeroOrden} quedó en espera de validación.`);
+      ordenId = orden.id;
     }
+    if (archivoRegistro.value) {
+      subiendoFoto.value = true;
+      try {
+        await ordenService.subirFoto(ordenId, 'registro', archivoRegistro.value);
+      } catch (e) {
+        notify.error('La orden se guardó, pero la foto no', e.response?.data?.message || 'Vuelve a subirla en la orden.');
+        router.replace(`/ordenes/editar/${ordenId}`);
+        return;
+      }
+    }
+    notify.success(
+      esEdicion.value ? 'Actualizado' : 'Borrador creado',
+      esEdicion.value ? 'Borrador de orden actualizado.' : 'La orden quedó en espera de validación.'
+    );
     router.push('/ordenes');
   } catch (e) {
     const msg = e.response?.data?.errors?.[0]?.mensaje
@@ -299,10 +349,14 @@ const guardar = async () => {
     notify.error('Error', msg);
   } finally {
     guardando.value = false;
+    subiendoFoto.value = false;
   }
 };
 
 onMounted(inicializar);
+onUnmounted(() => {
+  if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
+});
 </script>
 
 <template>
@@ -391,6 +445,17 @@ onMounted(inicializar);
           v-model:estado-ingreso="form.estadoIngreso"
           v-model:observacion-ingreso="form.observacionIngreso"
           :errores="errores"
+        />
+
+        <CampoFoto
+          titulo="Foto de registro"
+          ayuda="Se toma una sola vez al ingresar el vehículo. Después solo el administrador puede cambiarla."
+          :src="fotoSrc"
+          :puede-cambiar="puedeCambiarRegistro"
+          :puede-quitar="puedeQuitarRegistro"
+          :subiendo="subiendoFoto"
+          @seleccionar="archivoRegistro = $event"
+          @quitar="quitarRegistro"
         />
 
         <footer class="bg-slate-900 p-6 md:p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden">

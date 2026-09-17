@@ -3,6 +3,8 @@ import { ref, watch, computed } from 'vue';
 import { ordenService } from '../../../services/ordenService.js';
 import { generarOrdenPDF } from '../../../utils/ordenPdf.js';
 import { useAuthStore } from '../../../stores/auth.js';
+import { notify } from '../../../utils/alerts.js';
+import CampoFoto from './CampoFoto.vue';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download
 } from 'lucide-vue-next';
@@ -15,14 +17,38 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 const auth = useAuthStore();
 const verPrecios = computed(() => auth.usuario?.rol !== 'TECNICO');
+const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
+const fotos = ref({ registro: '', desarrollo: '' });
+const subiendoFoto = ref('');
 const orden   = ref(null);
 const loading = ref(false);
+
+const revocarFotos = () => {
+  if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
+  if (fotos.value.desarrollo) URL.revokeObjectURL(fotos.value.desarrollo);
+  fotos.value = { registro: '', desarrollo: '' };
+};
+
+const cargarFoto = async (tipo, ruta) => {
+  if (!ruta || !props.ordenId) return;
+  try {
+    const blob = await ordenService.descargarFoto(props.ordenId, tipo);
+    if (fotos.value[tipo]) URL.revokeObjectURL(fotos.value[tipo]);
+    fotos.value[tipo] = URL.createObjectURL(blob);
+  } catch {
+    fotos.value[tipo] = '';
+  }
+};
 
 const cargarDetalle = async () => {
   if (!props.ordenId) return;
   loading.value = true;
   try {
     orden.value = await ordenService.obtener(props.ordenId);
+    await Promise.all([
+      cargarFoto('registro', orden.value.fotoRegistro),
+      cargarFoto('desarrollo', orden.value.fotoDesarrollo),
+    ]);
   } catch (error) {
     console.error('Error al cargar detalle:', error);
   } finally {
@@ -30,9 +56,39 @@ const cargarDetalle = async () => {
   }
 };
 
+const cambiarRegistro = async (file) => {
+  subiendoFoto.value = 'registro';
+  try {
+    const actualizada = await ordenService.subirFoto(props.ordenId, 'registro', file);
+    orden.value = actualizada;
+    await cargarFoto('registro', actualizada.fotoRegistro);
+  } catch (error) {
+    notify.error('No se pudo cambiar la foto', error.response?.data?.message);
+  } finally {
+    subiendoFoto.value = '';
+  }
+};
+
+const quitarRegistro = async () => {
+  subiendoFoto.value = 'registro';
+  try {
+    const actualizada = await ordenService.quitarFoto(props.ordenId, 'registro');
+    orden.value = actualizada;
+    if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
+    fotos.value.registro = '';
+  } catch (error) {
+    notify.error('No se pudo quitar', error.response?.data?.message);
+  } finally {
+    subiendoFoto.value = '';
+  }
+};
+
 watch(() => props.isOpen, (newVal) => {
   if (newVal) cargarDetalle();
-  else orden.value = null; // limpiar al cerrar
+  else {
+    orden.value = null;
+    revocarFotos();
+  }
 });
 
 const generarPDF = () => {
@@ -128,6 +184,23 @@ const imprimir = () => { window.print(); };
                 </span>
               </div>
             </div>
+          </section>
+
+          <section class="grid md:grid-cols-2 gap-4">
+            <CampoFoto
+              titulo="Foto de registro"
+              :src="fotos.registro"
+              :puede-cambiar="esAdmin"
+              :puede-quitar="esAdmin && !!fotos.registro"
+              :subiendo="subiendoFoto === 'registro'"
+              @seleccionar="cambiarRegistro"
+              @quitar="quitarRegistro"
+            />
+            <CampoFoto
+              titulo="Foto de desarrollo"
+              ayuda="Se reemplaza durante el trabajo."
+              :src="fotos.desarrollo"
+            />
           </section>
 
           <!-- Materiales -->

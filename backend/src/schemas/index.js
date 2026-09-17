@@ -11,4 +11,4 @@ export {
   crearMarcaSchema,
   upsertVehiculoSchema,
 } from './cliente.schema.js';
-export { idParamSchema } from './common.schema.js';
+export { idParamSchema, fotoParamSchema } from './common.schema.js';
