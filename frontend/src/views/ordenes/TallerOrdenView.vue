@@ -260,6 +260,15 @@ const guardar = async () => {
 };
 
 const mapOrden = (orden) => {
+  const precioVisible = (aplicado, base) => {
+    const valor = (aplicado !== null && aplicado !== undefined && aplicado !== '')
+      ? aplicado
+      : (verPrecios.value ? base : aplicado);
+    if (valor === null || valor === undefined || valor === '') return null;
+    const numero = Number(valor);
+    return Number.isNaN(numero) ? null : numero;
+  };
+
   form.value = {
     numeroOrden: orden.numeroOrden || '',
     placa: orden.placa || orden.vehiculo?.placa || '',
@@ -277,17 +286,17 @@ const mapOrden = (orden) => {
       materialId: m.materialId,
       descripcion: m.material?.descripcion || '',
       cantidad: m.cantidad,
-      precioAlMomento: m.precioAplicado,
+      precioAlMomento: precioVisible(m.precioAplicado, m.material?.precioBase),
     })),
     servicios: (orden.servicios || []).map((s) => ({
       servicioId: s.servicioId,
       descripcion: s.descripcion || s.servicio?.descripcion || '',
-      monto: s.monto,
+      monto: precioVisible(s.monto, s.servicio?.precioBase),
     })),
     terceros: (orden.terceros || []).map((t) => ({
       terceroId: t.terceroId,
       descripcion: t.descripcion || t.tercero?.descripcion || '',
-      monto: t.monto,
+      monto: precioVisible(t.monto, t.tercero?.precioBase),
       responsable: t.tercero?.responsable || '',
     })),
   };

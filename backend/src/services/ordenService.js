@@ -229,6 +229,8 @@ export const actualizarOrden = async (id, data, req) => {
     const terceros = data.terceros;
     const tieneDetalles = materiales !== undefined || servicios !== undefined || terceros !== undefined;
 
+    let lineasTotal = null;
+
     if (tieneDetalles) {
       await tx.oTMaterial.deleteMany({ where: { ordenId: parseInt(id) } });
       await tx.oTServicio.deleteMany({ where: { ordenId: parseInt(id) } });
@@ -238,15 +240,54 @@ export const actualizarOrden = async (id, data, req) => {
       const servs = servicios || [];
       const tercs = terceros || [];
 
+      const matsSinPrecio = mats
+        .filter((m) => precioMaterialPrevio.get(m.materialId) == null)
+        .map((m) => m.materialId);
+      const servsSinPrecio = servs
+        .filter((s) => montoServicioPrevio.get(s.servicioId) == null)
+        .map((s) => s.servicioId);
+      const tercsSinPrecio = tercs
+        .filter((t) => montoTerceroPrevio.get(t.terceroId) == null)
+        .map((t) => t.terceroId);
+
+      const [basesMaterial, basesServicio, basesTercero] = await Promise.all([
+        matsSinPrecio.length
+          ? tx.catalogoMaterial.findMany({ where: { id: { in: matsSinPrecio } }, select: { id: true, precioBase: true } })
+          : [],
+        servsSinPrecio.length
+          ? tx.catalogoServicio.findMany({ where: { id: { in: servsSinPrecio } }, select: { id: true, precioBase: true } })
+          : [],
+        tercsSinPrecio.length
+          ? tx.catalogoTercero.findMany({ where: { id: { in: tercsSinPrecio } }, select: { id: true, precioBase: true } })
+          : [],
+      ]);
+      const baseMaterial = new Map(basesMaterial.map((item) => [item.id, item.precioBase]));
+      const baseServicio = new Map(basesServicio.map((item) => [item.id, item.precioBase]));
+      const baseTercero = new Map(basesTercero.map((item) => [item.id, item.precioBase]));
+
+      const precioMaterial = (m) => (
+        esTecnico
+          ? (precioMaterialPrevio.get(m.materialId) ?? baseMaterial.get(m.materialId) ?? null)
+          : (m.precioAlMomento ?? baseMaterial.get(m.materialId) ?? null)
+      );
+      const montoServicio = (s) => (
+        esTecnico
+          ? (montoServicioPrevio.get(s.servicioId) ?? baseServicio.get(s.servicioId) ?? null)
+          : (s.monto ?? baseServicio.get(s.servicioId) ?? null)
+      );
+      const montoTercero = (t) => (
+        esTecnico
+          ? (montoTerceroPrevio.get(t.terceroId) ?? baseTercero.get(t.terceroId) ?? null)
+          : (t.monto ?? baseTercero.get(t.terceroId) ?? null)
+      );
+
       if (mats.length > 0) {
         await tx.oTMaterial.createMany({
           data: mats.map((m) => ({
             ordenId: parseInt(id),
             materialId: m.materialId,
             cantidad: m.cantidad,
-            precioAplicado: esTecnico
-              ? (precioMaterialPrevio.get(m.materialId) ?? null)
-              : (m.precioAlMomento ?? null),
+            precioAplicado: precioMaterial(m),
           })),
         });
       }
@@ -256,9 +297,7 @@ export const actualizarOrden = async (id, data, req) => {
             ordenId: parseInt(id),
             servicioId: s.servicioId,
             descripcion: s.descripcion,
-            monto: esTecnico
-              ? (montoServicioPrevio.get(s.servicioId) ?? null)
-              : (s.monto ?? null),
+            monto: montoServicio(s),
           })),
         });
       }
@@ -268,37 +307,22 @@ export const actualizarOrden = async (id, data, req) => {
             ordenId: parseInt(id),
             terceroId: t.terceroId,
             descripcion: t.descripcion,
-            monto: esTecnico
-              ? (montoTerceroPrevio.get(t.terceroId) ?? null)
-              : (t.monto ?? null),
+            monto: montoTercero(t),
           })),
         });
       }
+
+      lineasTotal = {
+        materiales: mats.map((m) => ({
+          cantidad: m.cantidad,
+          precioAlMomento: precioMaterial(m) ?? 0,
+        })),
+        servicios: servs.map((s) => ({ monto: montoServicio(s) ?? 0 })),
+        terceros: tercs.map((t) => ({ monto: montoTercero(t) ?? 0 })),
+      };
     }
 
-    const matsParaTotal = esTecnico
-      ? (materiales || []).map((m) => ({
-        cantidad: m.cantidad,
-        precioAlMomento: precioMaterialPrevio.get(m.materialId) ?? 0,
-      }))
-      : (materiales || []).map((m) => ({
-        cantidad: m.cantidad,
-        precioAlMomento: m.precioAlMomento ?? 0,
-      }));
-    const servsParaTotal = esTecnico
-      ? (servicios || []).map((s) => ({ monto: montoServicioPrevio.get(s.servicioId) ?? 0 }))
-      : (servicios || []).map((s) => ({ monto: s.monto ?? 0 }));
-    const tercsParaTotal = esTecnico
-      ? (terceros || []).map((t) => ({ monto: montoTerceroPrevio.get(t.terceroId) ?? 0 }))
-      : (terceros || []).map((t) => ({ monto: t.monto ?? 0 }));
-
-    const totalFinal = tieneDetalles
-      ? calcularTotalOrden({
-        materiales: matsParaTotal,
-        servicios: servsParaTotal,
-        terceros: tercsParaTotal,
-      })
-      : undefined;
+    const totalFinal = lineasTotal ? calcularTotalOrden(lineasTotal) : undefined;
 
     return tx.ordenTrabajo.update({
       where: { id: parseInt(id) },
