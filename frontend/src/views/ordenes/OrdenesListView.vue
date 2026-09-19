@@ -125,7 +125,7 @@ const imprimirOrden = async (o) => {
   imprimiendoId.value = o.id;
   try {
     const detalle = await ordenService.obtener(o.id);
-    generarOrdenPDF(detalle, {
+    await generarOrdenPDF(detalle, {
       verPrecios: ['ADMIN', 'SUPERVISOR'].includes(auth.usuario?.rol),
       accion: 'imprimir',
     });

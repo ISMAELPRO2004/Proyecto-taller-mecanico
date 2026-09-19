@@ -2,10 +2,12 @@
 import { computed, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.js';
-import { 
-  LayoutDashboard, Users, ClipboardList, 
+import {
+  LayoutDashboard, Users, ClipboardList,
   Package, ChevronLeft, Menu, LogOut, X, Database
 } from 'lucide-vue-next';
+import logoEmpresa from '../../assets/logoEmpresa.png';
+import iconCamion from '../../assets/iconCamion.svg';
 
 const router = useRouter();
 const route  = useRoute();
@@ -90,11 +92,27 @@ const routeTitle = (name) => {
     ]">
 
       <!-- Logo + toggle -->
-      <div class="p-5 flex items-center justify-between shrink-0">
-        <h1 v-if="!isCollapsed || sidebarOpen"
-          class="text-xl font-black italic tracking-tighter whitespace-nowrap">
-          LYER <span class="text-lyer-accent">MOTORS</span>
-        </h1>
+      <div class="p-4 flex items-center justify-between gap-2 shrink-0">
+        <div
+          v-if="!isCollapsed || sidebarOpen"
+          class="min-w-0 flex-1 rounded-xl bg-black/90 px-2 py-1.5"
+        >
+          <img
+            :src="logoEmpresa"
+            alt="Taller Mecánica LYER"
+            class="h-11 w-auto max-w-full object-contain object-left"
+          />
+        </div>
+        <div
+          v-else
+          class="rounded-xl bg-black/90 p-1.5 mx-auto"
+        >
+          <img
+            :src="iconCamion"
+            alt="LYER"
+            class="h-8 w-8 object-contain invert"
+          />
+        </div>
         <!-- En desktop: colapsar sidebar -->
         <button @click="isCollapsed = !isCollapsed"
           class="hidden lg:flex w-8 h-8 rounded hover:bg-lyer-accent/20 transition-colors items-center justify-center shrink-0">

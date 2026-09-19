@@ -2,9 +2,10 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../../stores/auth.js';
 import { useRouter } from 'vue-router';
-import { User, Lock, ArrowRight, Settings } from 'lucide-vue-next';
+import { User, Lock, ArrowRight } from 'lucide-vue-next';
 import { notify } from '../../utils/alerts.js';
 import fondoLogin from '../../assets/fondo_login.jpg';
+import logoEmpresa from '../../assets/logoEmpresa.png';
 
 const username = ref('');
 const password = ref('');
@@ -32,18 +33,15 @@ const handleLogin = async () => {
       
       <div class="absolute top-[-10%] left-[-10%] w-64 h-64 bg-lyer-green/20 blur-[120px] rounded-full"></div>
       
-      <div class="relative mb-12">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="bg-lyer-green p-3 rounded-2xl shadow-lg shadow-emerald-900/40">
-            <Settings class="w-8 h-8 text-white animate-spin-slow" />
-          </div>
-          <div>
-            <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">
-              LYER <span class="text-lyer-green">MOTORS</span>
-            </h1>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Gestión de Taller Pesado</p>
-          </div>
-        </div>
+      <div class="relative mb-10">
+        <img
+          :src="logoEmpresa"
+          alt="Taller Mecánica LYER"
+          class="h-20 sm:h-24 w-auto max-w-[280px] object-contain object-left"
+        />
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-3">
+          Sistema de gestión de taller
+        </p>
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-6 relative">

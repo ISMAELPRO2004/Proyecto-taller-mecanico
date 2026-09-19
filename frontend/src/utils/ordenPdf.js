@@ -1,44 +1,74 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import logoEmpresa from '../assets/logoEmpresa.png';
+
+let logoDataUrlPromise = null;
+
+const cargarLogoDataUrl = () => {
+  if (!logoDataUrlPromise) {
+    logoDataUrlPromise = fetch(logoEmpresa)
+      .then((r) => r.blob())
+      .then((blob) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }))
+      .catch(() => null);
+  }
+  return logoDataUrlPromise;
+};
 
 /**
  * Construye el PDF de una orden (mismo formato para descargar o imprimir).
  */
-function construirDocumento(orden, verPrecios) {
+async function construirDocumento(orden, verPrecios) {
   const doc = new jsPDF();
   const verdeLyer = [6, 78, 59];
   const verdeAccent = [16, 185, 129];
+  const logoDataUrl = await cargarLogoDataUrl();
 
-  doc.setFillColor(...verdeLyer);
-  doc.rect(0, 0, 210, 40, 'F');
+  doc.setFillColor(0, 0, 0);
+  doc.rect(0, 0, 210, 42, 'F');
+
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, 'PNG', 12, 6, 58, 30);
+  } else {
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('LYER MOTORS', 15, 22);
+  }
+
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
+  doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.text('LYER MOTORS', 15, 20);
-  doc.setFontSize(10);
+  doc.text(`ORDEN DE TRABAJO`, 130, 18);
   doc.setFont(undefined, 'normal');
-  doc.text(`ORDEN DE TRABAJO: ${orden.numeroOrden}`, 15, 30);
-  doc.text(`Fecha: ${new Date(orden.fechaCreacion).toLocaleDateString()}`, 155, 25);
+  doc.setFontSize(12);
+  doc.text(`${orden.numeroOrden}`, 130, 26);
+  doc.setFontSize(9);
+  doc.text(`Fecha: ${new Date(orden.fechaCreacion).toLocaleDateString('es-PE')}`, 130, 34);
 
   doc.setTextColor(40, 40, 40);
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.text('INFORMACIÓN DEL CLIENTE', 15, 50);
+  doc.text('INFORMACIÓN DEL CLIENTE', 15, 55);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
-  doc.text(`Nombre: ${orden.cliente?.nombreRazonSocial || '—'}`, 15, 57);
-  doc.text(`Celular: ${orden.cliente?.celular || 'N/A'}`, 15, 63);
+  doc.text(`Nombre: ${orden.cliente?.nombreRazonSocial || '—'}`, 15, 62);
+  doc.text(`Celular: ${orden.cliente?.celular || 'N/A'}`, 15, 68);
 
   doc.setFont(undefined, 'bold');
   doc.setFontSize(11);
-  doc.text('ESPECIFICACIONES DEL VEHÍCULO', 15, 75);
+  doc.text('ESPECIFICACIONES DEL VEHÍCULO', 15, 80);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
-  doc.text(`Placa: ${orden.placa}`, 15, 82);
-  doc.text(`Unidad: ${orden.vehiculo?.marca?.nombre || ''} ${orden.vehiculo?.modelo || ''}`, 15, 88);
-  doc.text(`Recorrido: ${orden.vehiculo?.kilometraje ?? '—'} KM / ${orden.vehiculo?.horometro ?? '—'} H`, 15, 94);
+  doc.text(`Placa: ${orden.placa}`, 15, 87);
+  doc.text(`Unidad: ${orden.vehiculo?.marca?.nombre || ''} ${orden.vehiculo?.modelo || ''}`, 15, 93);
+  doc.text(`Recorrido: ${orden.vehiculo?.kilometraje ?? '—'} KM / ${orden.vehiculo?.horometro ?? '—'} H`, 15, 99);
 
-  let currentY = 105;
+  let currentY = 110;
   if (orden.materiales?.length > 0) {
     autoTable(doc, {
       startY: currentY,
@@ -92,22 +122,20 @@ function construirDocumento(orden, verPrecios) {
  * Genera el PDF de una OT.
  * @param {'imprimir'|'descargar'} [opciones.accion='imprimir']
  */
-export function generarOrdenPDF(orden, { verPrecios = true, accion = 'imprimir' } = {}) {
+export async function generarOrdenPDF(orden, { verPrecios = true, accion = 'imprimir' } = {}) {
   if (!orden) return;
 
-  const doc = construirDocumento(orden, verPrecios);
+  const doc = await construirDocumento(orden, verPrecios);
 
   if (accion === 'descargar') {
     doc.save(`OT_${orden.numeroOrden}.pdf`);
     return;
   }
 
-  // Mismo formato: abre el PDF e invoca el diálogo de impresión del navegador
   doc.autoPrint();
   const url = doc.output('bloburl');
   const ventana = window.open(url, '_blank');
   if (!ventana) {
-    // Si el navegador bloquea popups, al menos descarga
     doc.save(`OT_${orden.numeroOrden}.pdf`);
   }
 }

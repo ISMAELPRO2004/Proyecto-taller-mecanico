@@ -119,19 +119,19 @@ const guardarFactura = async (payload) => {
   }
 };
 
-const generarPDF = () => {
+const generarPDF = async () => {
   if (!orden.value) return;
   try {
-    generarOrdenPDF(orden.value, { verPrecios: verPrecios.value, accion: 'descargar' });
+    await generarOrdenPDF(orden.value, { verPrecios: verPrecios.value, accion: 'descargar' });
   } catch (e) {
     console.error('PDF Error:', e);
   }
 };
 
-const imprimir = () => {
+const imprimir = async () => {
   if (!orden.value) return;
   try {
-    generarOrdenPDF(orden.value, { verPrecios: verPrecios.value, accion: 'imprimir' });
+    await generarOrdenPDF(orden.value, { verPrecios: verPrecios.value, accion: 'imprimir' });
   } catch (e) {
     console.error('Print Error:', e);
     notify.error('No se pudo abrir la impresión');
