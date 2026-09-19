@@ -2,12 +2,9 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
- * Genera y descarga el PDF de una orden de trabajo.
- * @param {object} orden - Orden con detalle (materiales, servicios, terceros)
+ * Construye el PDF de una orden (mismo formato para descargar o imprimir).
  */
-export function generarOrdenPDF(orden, { verPrecios = true } = {}) {
-  if (!orden) return;
-
+function construirDocumento(orden, verPrecios) {
   const doc = new jsPDF();
   const verdeLyer = [6, 78, 59];
   const verdeAccent = [16, 185, 129];
@@ -87,5 +84,30 @@ export function generarOrdenPDF(orden, { verPrecios = true } = {}) {
     doc.setFont(undefined, 'bold');
     doc.text(`INVERSIÓN TOTAL: S/ ${Number(orden.totalFinal).toFixed(2)}`, 130, currentY);
   }
-  doc.save(`OT_${orden.numeroOrden}.pdf`);
+
+  return doc;
+}
+
+/**
+ * Genera el PDF de una OT.
+ * @param {'imprimir'|'descargar'} [opciones.accion='imprimir']
+ */
+export function generarOrdenPDF(orden, { verPrecios = true, accion = 'imprimir' } = {}) {
+  if (!orden) return;
+
+  const doc = construirDocumento(orden, verPrecios);
+
+  if (accion === 'descargar') {
+    doc.save(`OT_${orden.numeroOrden}.pdf`);
+    return;
+  }
+
+  // Mismo formato: abre el PDF e invoca el diálogo de impresión del navegador
+  doc.autoPrint();
+  const url = doc.output('bloburl');
+  const ventana = window.open(url, '_blank');
+  if (!ventana) {
+    // Si el navegador bloquea popups, al menos descarga
+    doc.save(`OT_${orden.numeroOrden}.pdf`);
+  }
 }

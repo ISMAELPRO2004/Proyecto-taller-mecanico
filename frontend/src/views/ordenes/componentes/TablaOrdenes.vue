@@ -1,19 +1,21 @@
 <script setup>
 import { computed } from 'vue';
 import StatusBadge from '../../../components/ui/StatusBadge.vue';
-import { puedeEditar, puedeEliminar, puedeAceptar, facturaPendiente, puedeCancelarTerminado } from '../composables/usePermisosOrden.js';
+import { puedeEditar, puedeEliminar, puedeAceptar, puedeCancelarTerminado } from '../composables/usePermisosOrden.js';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
 import { useAuthStore } from '../../../stores/auth.js';
 import {
   Eye, Trash2, Edit3, Lock, Printer, CheckCircle2, Receipt, Ban
 } from 'lucide-vue-next';
 
-import { puedeVerPrecios, recepcionPendiente } from '../../../utils/roles.js';
+import { puedeVerPrecios, recepcionPendiente, puedeImprimir, mostrarAlertaFactura } from '../../../utils/roles.js';
 
 const auth = useAuthStore();
 const ROLES_TALLER = ['ADMIN', 'SUPERVISOR', 'TECNICO'];
 const ROLES_ACEPTAR = ['ADMIN', 'SUPERVISOR'];
 const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
+const puedeVerImprimir = computed(() => puedeImprimir(auth.usuario?.rol));
+const verFacturaPendiente = (o) => mostrarAlertaFactura(o, auth.usuario?.rol);
 
 const mostrarEditar = (o) => {
   if (!puedeEditar(o)) return false;
@@ -60,7 +62,7 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
         <div class="flex items-center gap-2 mt-2 flex-wrap">
           <StatusBadge :estado="o.estado" />
           <span
-            v-if="facturaPendiente(o)"
+            v-if="verFacturaPendiente(o)"
             class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
           >Factura pendiente</span>
           <span v-if="verPrecios" class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
@@ -76,7 +78,7 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
           <Eye class="w-4 h-4 shrink-0" />
           <span class="text-xs">Ver</span>
         </button>
-        <button @click="$emit('imprimir', o)" :disabled="imprimiendoId === o.id"
+        <button v-if="puedeVerImprimir" @click="$emit('imprimir', o)" :disabled="imprimiendoId === o.id"
           class="btn btn-sm h-11 min-h-11 bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-700 hover:text-white rounded-xl font-bold gap-1.5 px-2 disabled:opacity-50">
           <span v-if="imprimiendoId === o.id" class="loading loading-spinner loading-xs" />
           <Printer v-else class="w-4 h-4 shrink-0" />
@@ -151,7 +153,7 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
             <div class="flex items-center gap-2">
               <StatusBadge :estado="o.estado" size="md" />
               <span
-                v-if="facturaPendiente(o)"
+                v-if="verFacturaPendiente(o)"
                 class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
               >Factura pendiente</span>
               <span
@@ -169,7 +171,7 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
                 class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-lg">
                 <Eye class="w-5 h-5" />
               </button>
-              <button @click="$emit('imprimir', o)" :disabled="imprimiendoId === o.id" title="Imprimir PDF"
+              <button v-if="puedeVerImprimir" @click="$emit('imprimir', o)" :disabled="imprimiendoId === o.id" title="Imprimir"
                 class="btn btn-square btn-ghost btn-sm text-slate-500 hover:bg-slate-700 hover:text-white rounded-lg disabled:opacity-40">
                 <span v-if="imprimiendoId === o.id" class="loading loading-spinner loading-xs" />
                 <Printer v-else class="w-5 h-5" />

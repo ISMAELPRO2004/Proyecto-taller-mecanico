@@ -4,7 +4,7 @@ import { ordenService } from '../../../services/ordenService.js';
 import { generarOrdenPDF } from '../../../utils/ordenPdf.js';
 import { useAuthStore } from '../../../stores/auth.js';
 import { notify } from '../../../utils/alerts.js';
-import { puedeVerPrecios } from '../../../utils/roles.js';
+import { puedeVerPrecios, puedeImprimir } from '../../../utils/roles.js';
 import CampoFoto from './CampoFoto.vue';
 import ModalFacturaOrden from './ModalFacturaOrden.vue';
 import { facturaPendiente } from '../composables/usePermisosOrden.js';
@@ -20,6 +20,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'actualizada']);
 const auth = useAuthStore();
 const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
+const puedeVerImprimir = computed(() => puedeImprimir(auth.usuario?.rol));
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
 const fotos = ref({ registro: '', desarrollo: '' });
 const subiendoFoto = ref('');
@@ -27,7 +28,9 @@ const orden   = ref(null);
 const loading = ref(false);
 const facturaAbierta = ref(false);
 const guardandoFactura = ref(false);
-const pendienteFactura = computed(() => facturaPendiente(orden.value));
+const pendienteFactura = computed(() =>
+  esAdmin.value && facturaPendiente(orden.value)
+);
 
 const revocarFotos = () => {
   if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
@@ -119,13 +122,21 @@ const guardarFactura = async (payload) => {
 const generarPDF = () => {
   if (!orden.value) return;
   try {
-    generarOrdenPDF(orden.value, { verPrecios: verPrecios.value });
+    generarOrdenPDF(orden.value, { verPrecios: verPrecios.value, accion: 'descargar' });
   } catch (e) {
     console.error('PDF Error:', e);
   }
 };
 
-const imprimir = () => { window.print(); };
+const imprimir = () => {
+  if (!orden.value) return;
+  try {
+    generarOrdenPDF(orden.value, { verPrecios: verPrecios.value, accion: 'imprimir' });
+  } catch (e) {
+    console.error('Print Error:', e);
+    notify.error('No se pudo abrir la impresión');
+  }
+};
 </script>
 
 <template>
@@ -225,7 +236,7 @@ const imprimir = () => { window.print(); };
           </section>
 
           <section
-            v-if="orden.estado === 'CANCELADO'"
+            v-if="esAdmin && orden.estado === 'CANCELADO'"
             :class="['rounded-2xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-3', pendienteFactura ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100']"
           >
             <div>
@@ -342,12 +353,18 @@ const imprimir = () => { window.print(); };
 
       <!-- Footer de botones — único, fuera del scroll, siempre visible -->
       <footer class="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex flex-wrap justify-end gap-2 shrink-0 no-print">
-        <button @click="generarPDF"
-          class="btn btn-sm sm:btn-md bg-lyer-green text-white border-none hover:bg-emerald-900 px-4 sm:px-8 rounded-2xl transition-all hover:scale-105 active:scale-95">
+        <button
+          v-if="puedeVerImprimir"
+          @click="generarPDF"
+          class="btn btn-sm sm:btn-md bg-lyer-green text-white border-none hover:bg-emerald-900 px-4 sm:px-8 rounded-2xl transition-all hover:scale-105 active:scale-95"
+        >
           <Download class="w-4 h-4 mr-1 sm:mr-2" /> PDF
         </button>
-        <button @click="imprimir"
-          class="btn btn-sm sm:btn-md btn-outline border-slate-200 text-slate-500 hover:bg-white hover:text-lyer-green px-4 sm:px-8 rounded-2xl transition-all">
+        <button
+          v-if="puedeVerImprimir"
+          @click="imprimir"
+          class="btn btn-sm sm:btn-md btn-outline border-slate-200 text-slate-500 hover:bg-white hover:text-lyer-green px-4 sm:px-8 rounded-2xl transition-all"
+        >
           <Printer class="w-4 h-4 mr-1 sm:mr-2" /> Imprimir
         </button>
         <button @click="emit('close')"

@@ -76,7 +76,10 @@ const totalFinal = computed(() => {
 });
 
 const facturaPendiente = computed(
-  () => form.value.estado === 'CANCELADO' && form.value.requiereFactura && !String(form.value.numeroFactura || '').trim()
+  () => esAdmin.value
+    && form.value.estado === 'CANCELADO'
+    && form.value.requiereFactura
+    && !String(form.value.numeroFactura || '').trim()
 );
 
 const cargarFoto = async (tipo, ruta) => {

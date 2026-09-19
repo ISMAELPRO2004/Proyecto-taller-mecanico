@@ -125,9 +125,12 @@ const imprimirOrden = async (o) => {
   imprimiendoId.value = o.id;
   try {
     const detalle = await ordenService.obtener(o.id);
-    generarOrdenPDF(detalle, { verPrecios: ['ADMIN', 'SUPERVISOR'].includes(auth.usuario?.rol) });
+    generarOrdenPDF(detalle, {
+      verPrecios: ['ADMIN', 'SUPERVISOR'].includes(auth.usuario?.rol),
+      accion: 'imprimir',
+    });
   } catch {
-    notify.error('Error', 'No se pudo generar el PDF de la orden.');
+    notify.error('Error', 'No se pudo preparar la impresión de la orden.');
   } finally {
     imprimiendoId.value = null;
   }
