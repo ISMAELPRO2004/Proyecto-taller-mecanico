@@ -34,37 +34,55 @@ const normalizarClienteInput = (cliente) => ({
   correo: cliente.correo?.trim() || null,
 });
 
-const upsertCliente = async (tx, clienteInput) => {
+const upsertCliente = async (tx, clienteInput, { actualizarDatos = false } = {}) => {
   const data = normalizarClienteInput(clienteInput);
-  return tx.cliente.upsert({
-    where: { numeroDocumento: data.numeroDocumento },
-    update: {
-      tipoCliente: data.tipoCliente,
-      tipoDocumento: data.tipoDocumento,
-      nombreRazonSocial: data.nombreRazonSocial,
-      representante: data.representante,
-      celular: data.celular,
-      correo: data.correo,
-    },
-    create: data,
-  });
+  const existente = await tx.cliente.findUnique({ where: { numeroDocumento: data.numeroDocumento } });
+  if (existente) {
+    if (!actualizarDatos) return { cliente: existente, eraNuevo: false };
+    const cliente = await tx.cliente.update({
+      where: { id: existente.id },
+      data: {
+        tipoCliente: data.tipoCliente,
+        tipoDocumento: data.tipoDocumento,
+        nombreRazonSocial: data.nombreRazonSocial,
+        representante: data.representante,
+        celular: data.celular,
+        correo: data.correo,
+      },
+    });
+    return { cliente, eraNuevo: false };
+  }
+  const cliente = await tx.cliente.create({ data });
+  return { cliente, eraNuevo: true };
 };
 
-const upsertVehiculo = async (tx, vehiculoInput) => {
+const upsertVehiculo = async (tx, vehiculoInput, { actualizarDatos = false } = {}) => {
   const placa = vehiculoInput.placa.trim().toUpperCase();
   const marcaId = parseInt(vehiculoInput.marcaId);
   const marca = await tx.marcaVehiculo.findUnique({ where: { id: marcaId } });
   if (!marca) throw new AppError('Marca de vehículo no encontrada', 404);
 
-  return tx.vehiculo.upsert({
+  const existente = await tx.vehiculo.findUnique({
     where: { placa },
-    update: {
-      marcaId,
-      modelo: vehiculoInput.modelo,
-      horometro: vehiculoInput.horometro ?? null,
-      kilometraje: vehiculoInput.kilometraje ?? null,
-    },
-    create: {
+    include: { marca: true },
+  });
+  if (existente) {
+    if (!actualizarDatos) return { vehiculo: existente, eraNuevo: false };
+    const vehiculo = await tx.vehiculo.update({
+      where: { placa },
+      data: {
+        marcaId,
+        modelo: vehiculoInput.modelo,
+        horometro: vehiculoInput.horometro ?? null,
+        kilometraje: vehiculoInput.kilometraje ?? null,
+      },
+      include: { marca: true },
+    });
+    return { vehiculo, eraNuevo: false };
+  }
+
+  const vehiculo = await tx.vehiculo.create({
+    data: {
       placa,
       marcaId,
       modelo: vehiculoInput.modelo,
@@ -73,6 +91,7 @@ const upsertVehiculo = async (tx, vehiculoInput) => {
     },
     include: { marca: true },
   });
+  return { vehiculo, eraNuevo: true };
 };
 
 const siguienteNumeroOrden = async (tx) => {
@@ -88,8 +107,8 @@ const siguienteNumeroOrden = async (tx) => {
 /** Crear borrador OT (recepción) → estado EN_ESPERA */
 export const crearBorradorOrden = async (data, req) => {
   const resultado = await prisma.$transaction(async (tx) => {
-    const cliente = await upsertCliente(tx, data.cliente);
-    const vehiculo = await upsertVehiculo(tx, data.vehiculo);
+    const { cliente } = await upsertCliente(tx, data.cliente, { actualizarDatos: true });
+    const { vehiculo } = await upsertVehiculo(tx, data.vehiculo, { actualizarDatos: true });
     const numeroOrden = await siguienteNumeroOrden(tx);
 
     const orden = await tx.ordenTrabajo.create({
@@ -102,6 +121,7 @@ export const crearBorradorOrden = async (data, req) => {
         estadoIngreso: data.estadoIngreso || 'ACEPTADO',
         observacionIngreso: data.observacionIngreso?.trim() || null,
         estado: 'EN_ESPERA',
+        pasoRecepcion: null,
         creadorId: req.user.id,
         responsableId: data.responsableId || null,
         totalFinal: 0,
@@ -116,6 +136,151 @@ export const crearBorradorOrden = async (data, req) => {
     numeroOrden: resultado.numeroOrden,
     placa: resultado.placa,
     cliente: resultado.cliente.nombreRazonSocial,
+    estadoIngreso: resultado.estadoIngreso,
+  }, null, resultado.id);
+
+  return resultado;
+};
+
+/** Paso 1: guardar vehículo y crear/actualizar borrador incompleto */
+export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = false }, req) => {
+  const ordenId = id ? parseInt(id) : null;
+
+  const resultado = await prisma.$transaction(async (tx) => {
+    let ordenPrevia = null;
+    if (ordenId) {
+      ordenPrevia = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } });
+      if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+      if (ordenPrevia.estado !== 'EN_ESPERA') {
+        throw new AppError('Solo se puede editar el vehículo en un borrador de recepción.');
+      }
+      if (ordenPrevia.pasoRecepcion == null) {
+        throw new AppError('La recepción ya está completa. El vehículo ya no se edita aquí.');
+      }
+    }
+
+    const puedeActualizar = actualizarDatos && (
+      !ordenPrevia || ordenPrevia.vehiculoEditableEnBorrador
+    );
+    const { vehiculo: veh, eraNuevo } = await upsertVehiculo(tx, vehiculo, {
+      actualizarDatos: !!puedeActualizar,
+    });
+
+    const editable = eraNuevo
+      || !!puedeActualizar
+      || (!!ordenPrevia && ordenPrevia.placa === veh.placa && ordenPrevia.vehiculoEditableEnBorrador);
+
+    if (!ordenPrevia) {
+      const numeroOrden = await siguienteNumeroOrden(tx);
+      return tx.ordenTrabajo.create({
+        data: {
+          numeroOrden,
+          placa: veh.placa,
+          estado: 'EN_ESPERA',
+          pasoRecepcion: 1,
+          vehiculoEditableEnBorrador: editable,
+          clienteEditableEnBorrador: false,
+          creadorId: req.user.id,
+          totalFinal: 0,
+        },
+        include: includeOrdenDetalle,
+      });
+    }
+
+    return tx.ordenTrabajo.update({
+      where: { id: ordenId },
+      data: {
+        placa: veh.placa,
+        pasoRecepcion: Math.max(ordenPrevia.pasoRecepcion || 1, 1),
+        vehiculoEditableEnBorrador: editable,
+      },
+      include: includeOrdenDetalle,
+    });
+  });
+
+  await registrarLog(req, 'BORRADOR PASO VEHÍCULO', {
+    numeroOrden: resultado.numeroOrden,
+    placa: resultado.placa,
+    pasoRecepcion: resultado.pasoRecepcion,
+  }, null, resultado.id);
+
+  return resultado;
+};
+
+/** Paso 2: asociar cliente al borrador */
+export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false }, req) => {
+  const ordenId = parseInt(id);
+
+  const resultado = await prisma.$transaction(async (tx) => {
+    const ordenPrevia = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } });
+    if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+    if (ordenPrevia.estado !== 'EN_ESPERA') {
+      throw new AppError('Solo se puede editar el cliente en un borrador de recepción.');
+    }
+    if (ordenPrevia.pasoRecepcion == null) {
+      throw new AppError('La recepción ya está completa. El cliente ya no se edita aquí.');
+    }
+    if (!ordenPrevia.placa) throw new AppError('Primero registra el vehículo.');
+
+    const puedeActualizar = actualizarDatos && ordenPrevia.clienteEditableEnBorrador;
+    const { cliente: cli, eraNuevo } = await upsertCliente(tx, cliente, {
+      actualizarDatos: !!puedeActualizar,
+    });
+
+    const editable = eraNuevo
+      || !!puedeActualizar
+      || (ordenPrevia.clienteId === cli.id && ordenPrevia.clienteEditableEnBorrador);
+
+    return tx.ordenTrabajo.update({
+      where: { id: ordenId },
+      data: {
+        clienteId: cli.id,
+        pasoRecepcion: Math.max(ordenPrevia.pasoRecepcion || 1, 2),
+        clienteEditableEnBorrador: editable,
+      },
+      include: includeOrdenDetalle,
+    });
+  });
+
+  await registrarLog(req, 'BORRADOR PASO CLIENTE', {
+    numeroOrden: resultado.numeroOrden,
+    cliente: resultado.cliente?.nombreRazonSocial,
+    pasoRecepcion: resultado.pasoRecepcion,
+  }, null, resultado.id);
+
+  return resultado;
+};
+
+/** Paso 3: completar recepción (queda EN_ESPERA listo para aceptar) */
+export const completarRecepcion = async (id, data, req) => {
+  const ordenId = parseInt(id);
+
+  const resultado = await prisma.$transaction(async (tx) => {
+    const ordenPrevia = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } });
+    if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+    if (ordenPrevia.estado !== 'EN_ESPERA') {
+      throw new AppError('Solo se completa la recepción en borradores EN_ESPERA.');
+    }
+    if (!ordenPrevia.placa) throw new AppError('Falta el vehículo.');
+    if (!ordenPrevia.clienteId) throw new AppError('Falta el cliente.');
+
+    return tx.ordenTrabajo.update({
+      where: { id: ordenId },
+      data: {
+        descripcionInformal: data.descripcionInformal?.trim() || null,
+        trabajoSolicitado: data.trabajoSolicitado?.trim() || null,
+        estadoIngreso: data.estadoIngreso || 'ACEPTADO',
+        observacionIngreso: data.observacionIngreso?.trim() || null,
+        pasoRecepcion: null,
+        vehiculoEditableEnBorrador: false,
+        clienteEditableEnBorrador: false,
+      },
+      include: includeOrdenDetalle,
+    });
+  });
+
+  await registrarLog(req, 'COMPLETAR RECEPCIÓN', {
+    numeroOrden: resultado.numeroOrden,
     estadoIngreso: resultado.estadoIngreso,
   }, null, resultado.id);
 
@@ -145,6 +310,12 @@ export const aceptarOrden = async (id, { responsableId } = {}, req) => {
   if (orden.estaCerrada) throw new AppError('La orden está cerrada.');
   if (orden.estado !== 'EN_ESPERA') {
     throw new AppError('Solo se pueden aceptar órdenes en estado EN_ESPERA.');
+  }
+  if (orden.pasoRecepcion != null) {
+    throw new AppError('La recepción aún no está completa. Termina de rellenar el borrador.');
+  }
+  if (!orden.clienteId) {
+    throw new AppError('La orden no tiene cliente asignado.');
   }
 
   const actualizada = await prisma.ordenTrabajo.update({
@@ -211,7 +382,7 @@ export const actualizarOrden = async (id, data, req) => {
 
   const resultado = await prisma.$transaction(async (tx) => {
     if (data.cliente) {
-      await upsertCliente(tx, { ...ordenPrevia.cliente, ...data.cliente });
+      await upsertCliente(tx, { ...ordenPrevia.cliente, ...data.cliente }, { actualizarDatos: true });
     }
 
     if (data.vehiculo) {
@@ -221,7 +392,7 @@ export const actualizarOrden = async (id, data, req) => {
         modelo: data.vehiculo.modelo ?? ordenPrevia.vehiculo.modelo,
         horometro: data.vehiculo.horometro ?? ordenPrevia.vehiculo.horometro,
         kilometraje: data.vehiculo.kilometraje ?? ordenPrevia.vehiculo.kilometraje,
-      });
+      }, { actualizarDatos: true });
     }
 
     const materiales = data.materiales;
@@ -423,8 +594,11 @@ export const eliminarOrden = async (id, req) => {
   });
 
   if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
-  if (req.user?.rol !== 'ADMIN') {
-    throw new AppError('Solo el administrador puede eliminar órdenes.', 403);
+
+  const esAdmin = req.user?.rol === 'ADMIN';
+  const borradorIncompleto = ordenPrevia.estado === 'EN_ESPERA' && ordenPrevia.pasoRecepcion != null;
+  if (!esAdmin && !borradorIncompleto) {
+    throw new AppError('Solo puedes eliminar borradores pendientes de terminar. Las demás órdenes solo las borra el administrador.', 403);
   }
 
   const ordenId = parseInt(id);

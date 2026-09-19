@@ -6,6 +6,7 @@ import { ordenService } from '../../services/ordenService.js';
 import { catalogoService } from '../../services/catalogoService.js';
 import { usuarioService } from '../../services/usuarioService.js';
 import { notify } from '../../utils/alerts.js';
+import { puedeVerPrecios } from '../../utils/roles.js';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../utils/ordenDisplay.js';
 import EncabezadoOrdenForm from './componentes/EncabezadoOrdenForm.vue';
 import ListaMateriales from './componentes/ListaMateriales.vue';
@@ -18,8 +19,7 @@ import CampoFoto from './componentes/CampoFoto.vue';
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
-
-const verPrecios = computed(() => auth.usuario?.rol !== 'TECNICO');
+const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
 const fotos = ref({ registro: '', desarrollo: '' });
 const subiendoFoto = ref('');

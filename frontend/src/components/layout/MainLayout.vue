@@ -34,9 +34,23 @@ const menuItems = computed(() => {
 watch(() => route.path, () => { sidebarOpen.value = false; });
 
 const logout = () => {
-  localStorage.removeItem('token');
+  auth.logout();
   router.push('/login');
 };
+
+const nombreUsuario = computed(() =>
+  auth.usuario?.nombre || auth.usuario?.username || 'Usuario'
+);
+
+const etiquetaRol = computed(() => {
+  const map = {
+    ADMIN: 'Administrador',
+    SUPERVISOR: 'Supervisor',
+    TECNICO: 'Técnico',
+    RECEPCIONISTA: 'Recepcionista',
+  };
+  return map[auth.usuario?.rol] || auth.usuario?.rol || '';
+});
 
 const routeTitle = (name) => {
   const map = {
@@ -109,8 +123,24 @@ const routeTitle = (name) => {
         </router-link>
       </nav>
 
-      <!-- Logout -->
-      <div class="p-3 border-t border-lyer-accent/20 shrink-0">
+      <!-- Usuario + Logout -->
+      <div class="p-3 border-t border-lyer-accent/20 shrink-0 space-y-2">
+        <div
+          v-if="!isCollapsed || sidebarOpen"
+          class="px-3 py-2 rounded-xl bg-lyer-accent/10"
+        >
+          <p class="text-sm font-black text-white truncate leading-tight">{{ nombreUsuario }}</p>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-lyer-accent mt-0.5">{{ etiquetaRol }}</p>
+        </div>
+        <div
+          v-else
+          class="flex justify-center"
+          :title="`${nombreUsuario} · ${etiquetaRol}`"
+        >
+          <div class="w-9 h-9 rounded-full bg-lyer-accent/20 text-lyer-accent flex items-center justify-center text-xs font-black">
+            {{ (nombreUsuario || '?').charAt(0).toUpperCase() }}
+          </div>
+        </div>
         <button @click="logout"
           class="flex items-center w-full p-3 text-red-300 hover:bg-red-900/20 rounded-xl transition-colors">
           <LogOut class="w-5 h-5 shrink-0" />

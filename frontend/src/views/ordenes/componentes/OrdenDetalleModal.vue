@@ -4,6 +4,7 @@ import { ordenService } from '../../../services/ordenService.js';
 import { generarOrdenPDF } from '../../../utils/ordenPdf.js';
 import { useAuthStore } from '../../../stores/auth.js';
 import { notify } from '../../../utils/alerts.js';
+import { puedeVerPrecios } from '../../../utils/roles.js';
 import CampoFoto from './CampoFoto.vue';
 import ModalFacturaOrden from './ModalFacturaOrden.vue';
 import { facturaPendiente } from '../composables/usePermisosOrden.js';
@@ -18,7 +19,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'actualizada']);
 const auth = useAuthStore();
-const verPrecios = computed(() => auth.usuario?.rol !== 'TECNICO');
+const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
 const fotos = ref({ registro: '', desarrollo: '' });
 const subiendoFoto = ref('');

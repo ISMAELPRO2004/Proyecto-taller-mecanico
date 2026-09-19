@@ -55,7 +55,7 @@ const terceroItemSchema = z.object({
     .transform((v) => (v === null || v === undefined || v === '' ? null : parseFloat(v))),
 });
 
-/** Borrador / recepción: cliente + vehículo + ingreso */
+/** Borrador / recepción: cliente + vehículo + ingreso (flujo legacy completo) */
 export const crearBorradorOrdenSchema = z.object({
   cliente: clienteSchema,
   vehiculo: vehiculoSchema,
@@ -82,6 +82,42 @@ export const crearBorradorOrdenSchema = z.object({
 });
 
 export const actualizarBorradorOrdenSchema = crearBorradorOrdenSchema;
+
+/** Paso 1 recepción: solo vehículo */
+export const pasoVehiculoSchema = z.object({
+  vehiculo: vehiculoSchema,
+  /** Si true, actualiza un vehículo ya existente (solo si el borrador lo permite) */
+  actualizarDatos: z.boolean().optional().default(false),
+});
+
+/** Paso 2 recepción: cliente */
+export const pasoClienteSchema = z.object({
+  cliente: clienteSchema,
+  actualizarDatos: z.boolean().optional().default(false),
+}).superRefine((data, ctx) => {
+  if (data.cliente.tipoDocumento === 'DNI' && data.cliente.numeroDocumento.length !== 8) {
+    ctx.addIssue({ code: 'custom', path: ['cliente', 'numeroDocumento'], message: 'DNI debe tener 8 dígitos' });
+  }
+  if (data.cliente.tipoDocumento === 'RUC' && data.cliente.numeroDocumento.length !== 11) {
+    ctx.addIssue({ code: 'custom', path: ['cliente', 'numeroDocumento'], message: 'RUC debe tener 11 dígitos' });
+  }
+});
+
+/** Paso 3 recepción: trabajo + ingreso */
+export const completarRecepcionSchema = z.object({
+  descripcionInformal: z.string().max(5000).optional().nullable().or(z.literal('')),
+  trabajoSolicitado: z.string().max(5000).optional().nullable().or(z.literal('')),
+  estadoIngreso: z.enum(['ACEPTADO', 'OBSERVADO']).default('ACEPTADO'),
+  observacionIngreso: z.string().max(5000).optional().nullable().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (data.estadoIngreso === 'OBSERVADO' && !data.observacionIngreso?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['observacionIngreso'],
+      message: 'La observación es obligatoria si el ingreso está Observado',
+    });
+  }
+});
 
 export const actualizarOrdenSchema = z.object({
   descripcionInformal: z.string().max(5000).optional().nullable(),

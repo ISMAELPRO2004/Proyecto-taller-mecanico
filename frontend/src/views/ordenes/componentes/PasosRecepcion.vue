@@ -5,7 +5,8 @@ defineProps({
 
 const pasos = [
   { n: 1, label: 'Vehículo' },
-  { n: 2, label: 'Cliente y orden' },
+  { n: 2, label: 'Cliente' },
+  { n: 3, label: 'Trabajo' },
 ];
 </script>
 

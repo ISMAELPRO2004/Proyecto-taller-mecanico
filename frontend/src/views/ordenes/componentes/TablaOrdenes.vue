@@ -8,9 +8,12 @@ import {
   Eye, Trash2, Edit3, Lock, Printer, CheckCircle2, Receipt, Ban
 } from 'lucide-vue-next';
 
+import { puedeVerPrecios, recepcionPendiente } from '../../../utils/roles.js';
+
 const auth = useAuthStore();
 const ROLES_TALLER = ['ADMIN', 'SUPERVISOR', 'TECNICO'];
 const ROLES_ACEPTAR = ['ADMIN', 'SUPERVISOR'];
+const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
 
 const mostrarEditar = (o) => {
   if (!puedeEditar(o)) return false;
@@ -20,7 +23,7 @@ const mostrarEditar = (o) => {
 
 const mostrarAceptar = (o) => puedeAceptar(o) && ROLES_ACEPTAR.includes(auth.usuario?.rol);
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
-const mostrarEliminar = (o) => esAdmin.value && puedeEliminar(o);
+const mostrarEliminar = (o) => puedeEliminar(o, auth.usuario?.rol);
 const mostrarCancelar = (o) => esAdmin.value && puedeCancelarTerminado(o);
 const mostrarFactura = (o) => esAdmin.value && o.estado === 'CANCELADO';
 const ordenBloqueada = (o) => ['TERMINADO', 'CANCELADO'].includes(o.estado);
@@ -60,7 +63,11 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
             v-if="facturaPendiente(o)"
             class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
           >Factura pendiente</span>
-          <span class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
+          <span v-if="verPrecios" class="font-black text-slate-700 text-sm">S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}</span>
+          <span
+            v-if="recepcionPendiente(o)"
+            class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
+          >Pendiente a terminar</span>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2">
@@ -83,7 +90,7 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
         <button v-if="mostrarEditar(o)" @click="$emit('editar', o)"
           class="btn btn-sm h-11 min-h-11 bg-emerald-50 text-lyer-green border border-emerald-100 hover:bg-lyer-green hover:text-white rounded-xl font-bold gap-1.5 px-2">
           <Edit3 class="w-4 h-4 shrink-0" />
-          <span class="text-xs">{{ o.estado === 'EN_ESPERA' ? 'Editar' : 'Completar' }}</span>
+          <span class="text-xs">{{ o.pasoRecepcion != null ? 'Continuar' : (o.estado === 'EN_ESPERA' ? 'Editar' : 'Completar') }}</span>
         </button>
         <button v-if="mostrarFactura(o)" @click="$emit('factura', o)"
           class="btn btn-sm h-11 min-h-11 bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-500 hover:text-white rounded-xl font-bold gap-1.5 px-2">
@@ -117,7 +124,7 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
           <th>Vehículo / Placa</th>
           <th>Cliente</th>
           <th>Estado</th>
-          <th class="text-right">Inversión</th>
+          <th v-if="verPrecios" class="text-right">Inversión</th>
           <th class="text-center pr-8">Acciones</th>
         </tr>
       </thead>
@@ -147,9 +154,13 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
                 v-if="facturaPendiente(o)"
                 class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
               >Factura pendiente</span>
+              <span
+                v-if="recepcionPendiente(o)"
+                class="badge badge-warning badge-sm font-black uppercase text-[9px] animate-pulse"
+              >Pendiente a terminar</span>
             </div>
           </td>
-          <td class="text-right font-black text-slate-800">
+          <td v-if="verPrecios" class="text-right font-black text-slate-800">
             S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}
           </td>
           <td class="text-center pr-8">
@@ -187,7 +198,7 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
           </td>
         </tr>
         <tr v-for="n in filasVacias" :key="'ghost-' + n" class="h-[75px] opacity-0 pointer-events-none">
-          <td colspan="7"></td>
+          <td :colspan="verPrecios ? 7 : 6"></td>
         </tr>
       </tbody>
     </table>

@@ -6,6 +6,9 @@ export {
   actualizarEstadoSchema,
   aceptarOrdenSchema,
   actualizarFacturaSchema,
+  pasoVehiculoSchema,
+  pasoClienteSchema,
+  completarRecepcionSchema,
 } from './orden.schema.js';
 export {
   crearClienteSchema,

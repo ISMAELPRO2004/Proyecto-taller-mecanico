@@ -12,6 +12,9 @@ import {
   subirFoto,
   quitarFoto,
   obtenerFoto,
+  guardarPasoVehiculo,
+  guardarPasoCliente,
+  completarRecepcion,
 } from '../controllers/ordenController.js';
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
@@ -25,6 +28,9 @@ import {
   actualizarFacturaSchema,
   idParamSchema,
   fotoParamSchema,
+  pasoVehiculoSchema,
+  pasoClienteSchema,
+  completarRecepcionSchema,
 } from '../schemas/index.js';
 
 const router = Router();
@@ -49,6 +55,41 @@ router.post('/',
   validateBody(crearBorradorOrdenSchema),
   auditLog('REGISTRO BORRADOR OT'),
   crearOrden
+);
+
+router.post('/borrador/vehiculo',
+  authenticateJWT,
+  authorize(ROLES_CREAR),
+  validateBody(pasoVehiculoSchema),
+  auditLog('BORRADOR PASO VEHÍCULO'),
+  guardarPasoVehiculo
+);
+
+router.put('/:id/borrador/vehiculo',
+  authenticateJWT,
+  authorize(ROLES_CREAR),
+  validateParams(idParamSchema),
+  validateBody(pasoVehiculoSchema),
+  auditLog('BORRADOR PASO VEHÍCULO'),
+  guardarPasoVehiculo
+);
+
+router.put('/:id/borrador/cliente',
+  authenticateJWT,
+  authorize(ROLES_CREAR),
+  validateParams(idParamSchema),
+  validateBody(pasoClienteSchema),
+  auditLog('BORRADOR PASO CLIENTE'),
+  guardarPasoCliente
+);
+
+router.put('/:id/borrador/completar',
+  authenticateJWT,
+  authorize(ROLES_CREAR),
+  validateParams(idParamSchema),
+  validateBody(completarRecepcionSchema),
+  auditLog('COMPLETAR RECEPCIÓN'),
+  completarRecepcion
 );
 
 router.put('/:id',
@@ -97,7 +138,7 @@ router.patch('/:id/cerrar',
 
 router.delete('/:id',
   authenticateJWT,
-  authorize(ROLES_ADMIN),
+  authorize(ROLES_TODOS),
   validateParams(idParamSchema),
   auditLog('ELIMINAR ORDEN'),
   eliminarOrden

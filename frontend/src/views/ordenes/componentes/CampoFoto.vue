@@ -1,6 +1,6 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { Camera, Trash2, Lock } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { Camera, ImagePlus, Trash2, Lock } from 'lucide-vue-next';
 
 const props = defineProps({
   titulo: { type: String, required: true },
@@ -13,10 +13,20 @@ const props = defineProps({
 
 const emit = defineEmits(['seleccionar', 'quitar']);
 
-const inputRef = ref(null);
+const inputGaleriaRef = ref(null);
+const inputCamaraRef = ref(null);
 const localUrl = ref('');
+const esMovil = ref(false);
 
 const vista = computed(() => localUrl.value || props.src);
+
+const detectarMovil = () => {
+  const touch = navigator.maxTouchPoints > 0
+    || window.matchMedia('(pointer: coarse)').matches;
+  const estrecho = window.matchMedia('(max-width: 768px)').matches;
+  const ua = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+  esMovil.value = touch || estrecho || ua;
+};
 
 watch(() => props.src, () => {
   if (!localUrl.value) return;
@@ -24,13 +34,19 @@ watch(() => props.src, () => {
   localUrl.value = '';
 });
 
+onMounted(detectarMovil);
 onBeforeUnmount(() => {
   if (localUrl.value) URL.revokeObjectURL(localUrl.value);
 });
 
-const abrir = () => {
+const abrirGaleria = () => {
   if (!props.puedeCambiar || props.subiendo) return;
-  inputRef.value?.click();
+  inputGaleriaRef.value?.click();
+};
+
+const abrirCamara = () => {
+  if (!props.puedeCambiar || props.subiendo) return;
+  inputCamaraRef.value?.click();
 };
 
 const onArchivo = (event) => {
@@ -57,6 +73,9 @@ const quitar = () => {
       <div>
         <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">{{ titulo }}</p>
         <p v-if="ayuda" class="text-[11px] text-slate-400 mt-0.5">{{ ayuda }}</p>
+        <p v-if="puedeCambiar && esMovil" class="text-[10px] text-emerald-600 font-bold mt-1">
+          En el celular puedes tomar la foto o elegirla de la galería.
+        </p>
       </div>
       <Lock v-if="src && !puedeCambiar" class="w-4 h-4 text-slate-300 shrink-0" />
     </div>
@@ -69,18 +88,41 @@ const quitar = () => {
       </div>
     </div>
 
-    <div v-if="puedeCambiar || puedeQuitar" class="flex gap-2">
+    <div v-if="puedeCambiar || puedeQuitar" class="flex flex-wrap gap-2">
+      <template v-if="puedeCambiar && esMovil">
+        <button
+          type="button"
+          class="btn btn-sm flex-1 min-w-[8rem] bg-lyer-green text-white border-none rounded-xl"
+          :disabled="subiendo"
+          @click="abrirCamara"
+        >
+          <span v-if="subiendo" class="loading loading-spinner loading-xs" />
+          <Camera v-else class="w-4 h-4" />
+          Tomar foto
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm flex-1 min-w-[8rem] bg-white text-lyer-green border border-emerald-100 rounded-xl"
+          :disabled="subiendo"
+          @click="abrirGaleria"
+        >
+          <ImagePlus class="w-4 h-4" />
+          Galería
+        </button>
+      </template>
+
       <button
-        v-if="puedeCambiar"
+        v-else-if="puedeCambiar"
         type="button"
         class="btn btn-sm flex-1 bg-lyer-green text-white border-none rounded-xl"
         :disabled="subiendo"
-        @click="abrir"
+        @click="abrirGaleria"
       >
         <span v-if="subiendo" class="loading loading-spinner loading-xs" />
-        <Camera v-else class="w-4 h-4" />
-        {{ vista ? 'Reemplazar' : 'Tomar o subir' }}
+        <ImagePlus v-else class="w-4 h-4" />
+        {{ vista ? 'Cambiar archivo' : 'Elegir archivo' }}
       </button>
+
       <button
         v-if="puedeQuitar && vista"
         type="button"
@@ -92,8 +134,17 @@ const quitar = () => {
       </button>
     </div>
 
+    <!-- Galería / PC: sin capture → abre selector de archivos -->
     <input
-      ref="inputRef"
+      ref="inputGaleriaRef"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      class="hidden"
+      @change="onArchivo"
+    />
+    <!-- Celular: capture pide la cámara trasera -->
+    <input
+      ref="inputCamaraRef"
       type="file"
       accept="image/jpeg,image/png,image/webp"
       capture="environment"

@@ -17,4 +17,11 @@ export const ordenService = {
   quitarFoto: (id, tipo) => api.delete(`/ordenes/${id}/foto/${tipo}`).then(r => r.data),
   descargarFoto: (id, tipo) => api.get(`/ordenes/${id}/foto/${tipo}`, { responseType: 'blob' }).then(r => r.data),
   actualizarFactura: (id, payload) => api.patch(`/ordenes/${id}/factura`, payload).then(r => r.data),
+  guardarPasoVehiculo: (payload, id = null) => (
+    id
+      ? api.put(`/ordenes/${id}/borrador/vehiculo`, payload).then(r => r.data)
+      : api.post('/ordenes/borrador/vehiculo', payload).then(r => r.data)
+  ),
+  guardarPasoCliente: (id, payload) => api.put(`/ordenes/${id}/borrador/cliente`, payload).then(r => r.data),
+  completarRecepcion: (id, payload) => api.put(`/ordenes/${id}/borrador/completar`, payload).then(r => r.data),
 };

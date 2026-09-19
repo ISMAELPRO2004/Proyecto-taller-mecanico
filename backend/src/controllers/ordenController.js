@@ -7,6 +7,21 @@ export const crearOrden = asyncHandler(async (req, res) => {
   res.status(201).json(orden);
 });
 
+export const guardarPasoVehiculo = asyncHandler(async (req, res) => {
+  const orden = await ordenService.guardarPasoVehiculo(req.params.id, req.body, req);
+  res.status(req.params.id ? 200 : 201).json(orden);
+});
+
+export const guardarPasoCliente = asyncHandler(async (req, res) => {
+  const orden = await ordenService.guardarPasoCliente(req.params.id, req.body, req);
+  res.json(orden);
+});
+
+export const completarRecepcion = asyncHandler(async (req, res) => {
+  const orden = await ordenService.completarRecepcion(req.params.id, req.body, req);
+  res.json(orden);
+});
+
 export const listarOrdenes = asyncHandler(async (req, res) => {
   const ordenes = await ordenService.listarOrdenes();
   res.json(ordenes);

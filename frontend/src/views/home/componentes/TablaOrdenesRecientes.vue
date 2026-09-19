@@ -1,12 +1,18 @@
 <script setup>
+import { computed } from 'vue';
 import StatusBadge from '../../../components/ui/StatusBadge.vue';
 import { Car, ArrowUpRight } from 'lucide-vue-next';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
+import { useAuthStore } from '../../../stores/auth.js';
+import { puedeVerPrecios, recepcionPendiente } from '../../../utils/roles.js';
 
 defineProps({
   ordenesRecientes: { type: Array, default: () => [] },
   cargando: { type: Boolean, default: false },
 });
+
+const auth = useAuthStore();
+const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
 </script>
 
 <template>
@@ -32,12 +38,12 @@ defineProps({
             <th>Placa</th>
             <th class="hidden sm:table-cell">Cliente</th>
             <th>Estado</th>
-            <th class="text-right pr-4">Total</th>
+            <th v-if="verPrecios" class="text-right pr-4">Total</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="cargando">
-            <td colspan="5" class="text-center py-10">
+            <td :colspan="verPrecios ? 5 : 4" class="text-center py-10">
               <span class="loading loading-ring loading-md text-lyer-green" />
             </td>
           </tr>
@@ -56,14 +62,20 @@ defineProps({
             </td>
             <td class="hidden sm:table-cell py-3 text-sm font-medium">{{ nombreClienteOrden(o) }}</td>
             <td class="py-3">
-              <StatusBadge :estado="o.estado" />
+              <div class="flex flex-col items-start gap-1">
+                <StatusBadge :estado="o.estado" />
+                <span
+                  v-if="recepcionPendiente(o)"
+                  class="badge badge-warning badge-sm font-black uppercase text-[8px] animate-pulse"
+                >Pendiente a terminar</span>
+              </div>
             </td>
-            <td class="text-right pr-4 py-3 font-black text-slate-700 text-sm tabular-nums">
+            <td v-if="verPrecios" class="text-right pr-4 py-3 font-black text-slate-700 text-sm tabular-nums">
               S/ {{ parseFloat(o.totalFinal).toFixed(2) }}
             </td>
           </tr>
           <tr v-if="!cargando && ordenesRecientes.length === 0">
-            <td colspan="5" class="text-center py-12 text-slate-400 text-sm">
+            <td :colspan="verPrecios ? 5 : 4" class="text-center py-12 text-slate-400 text-sm">
               No hay órdenes registradas.
             </td>
           </tr>

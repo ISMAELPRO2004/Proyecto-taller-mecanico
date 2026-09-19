@@ -13,29 +13,38 @@ import FormVehiculo from './componentes/FormVehiculo.vue';
 import FormCliente from './componentes/FormCliente.vue';
 import FormIngresoOrden from './componentes/FormIngresoOrden.vue';
 import CampoFoto from './componentes/CampoFoto.vue';
-import { CheckCircle, ClipboardList, ArrowRight, ArrowLeft, Car } from 'lucide-vue-next';
+import { CheckCircle, ClipboardList, ArrowRight, ArrowLeft, Car, User } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const esEdicion = computed(() => !!route.params.id);
+const ordenId = ref(route.params.id ? Number(route.params.id) : null);
 const cargando = ref(false);
 const guardando = ref(false);
-const guardandoVehiculo = ref(false);
+const guardandoPaso = ref(false);
 const marcas = ref([]);
 const historialOrdenes = ref([]);
-const vehiculoRegistrado = ref(false);
 /** Solo tras Buscar placa: muestra datos del vehículo */
 const placaConsultada = ref(false);
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
 const fotoSrc = ref('');
 const archivoRegistro = ref(null);
 const subiendoFoto = ref(false);
-const puedeCambiarRegistro = computed(() => !form.value.fotoRegistro || esAdmin.value);
-const puedeQuitarRegistro = computed(() => !!archivoRegistro.value || (esAdmin.value && !!form.value.fotoRegistro));
 
-/** 1 = vehículo, 2 = cliente + orden */
+/** 1 = vehículo, 2 = cliente, 3 = trabajo */
 const paso = ref(1);
+/** null = recepción completa (EN_ESPERA listo) */
+const pasoRecepcion = ref(null);
+const vehiculoEditable = ref(false);
+const clienteEditable = ref(false);
+const editandoVehiculo = ref(false);
+const editandoCliente = ref(false);
+/** true si la placa no existía al buscar (alta nueva en este flujo) */
+const vehiculoEraNuevo = ref(false);
+/** true si el cliente se está registrando nuevo (no vino de sugerencia) */
+const clienteEraNuevo = ref(true);
+const clienteConfirmado = ref(false);
 
 const form = ref({
   cliente: {
@@ -63,6 +72,40 @@ const form = ref({
 
 const errores = ref({});
 
+const recepcionCompleta = computed(() => pasoRecepcion.value == null && !!ordenId.value);
+const vehiculoBloqueado = computed(() => {
+  if (editandoVehiculo.value) return false;
+  if (recepcionCompleta.value && !esAdmin.value) return true;
+  // Vehículo ya existente: solo selección, sin editar datos maestros
+  if (!vehiculoEraNuevo.value && placaConsultada.value) return true;
+  // Ya guardado en este borrador: bloqueado hasta pulsar Editar
+  if (ordenId.value && placaConsultada.value) return true;
+  if (paso.value > 1) return true;
+  return false;
+});
+const clienteBloqueado = computed(() => {
+  if (editandoCliente.value) return false;
+  if (recepcionCompleta.value && !esAdmin.value) return true;
+  // Cliente ya existente: solo selección
+  if (!clienteEraNuevo.value && form.value.cliente.numeroDocumento) return true;
+  // Ya guardado en este borrador: bloqueado hasta pulsar Editar
+  if (clienteConfirmado.value) return true;
+  if (paso.value > 2) return true;
+  return false;
+});
+const puedeEditarVehiculoUI = computed(() =>
+  !recepcionCompleta.value && vehiculoEditable.value
+);
+const puedeEditarClienteUI = computed(() =>
+  !recepcionCompleta.value && clienteEditable.value
+);
+const puedeCambiarRegistro = computed(() =>
+  !recepcionCompleta.value || !form.value.fotoRegistro || esAdmin.value
+);
+const puedeQuitarRegistro = computed(() =>
+  !!archivoRegistro.value || (esAdmin.value && !!form.value.fotoRegistro)
+);
+
 const resumenVehiculo = computed(() => {
   const v = form.value.vehiculo;
   const marca = marcas.value.find((m) => String(m.id) === String(v.marcaId));
@@ -72,6 +115,8 @@ const resumenVehiculo = computed(() => {
     modelo: v.modelo || '—',
   };
 });
+
+const resumenCliente = computed(() => form.value.cliente.nombreRazonSocial || '—');
 
 const mapCliente = (cliente) => ({
   tipoCliente: cliente.tipoCliente || 'PERSONA',
@@ -107,18 +152,30 @@ const mapOrdenAForm = (orden) => {
     observacionIngreso: orden.observacionIngreso || '',
     fotoRegistro: orden.fotoRegistro || '',
   };
-  vehiculoRegistrado.value = true;
+  ordenId.value = orden.id;
+  pasoRecepcion.value = orden.pasoRecepcion;
+  vehiculoEditable.value = !!orden.vehiculoEditableEnBorrador;
+  clienteEditable.value = !!orden.clienteEditableEnBorrador;
+  vehiculoEraNuevo.value = !!orden.vehiculoEditableEnBorrador;
+  clienteEraNuevo.value = !!orden.clienteEditableEnBorrador;
+  clienteConfirmado.value = !!orden.clienteId;
   placaConsultada.value = true;
-  paso.value = 2;
+  editandoVehiculo.value = false;
+  editandoCliente.value = false;
+
+  if (orden.pasoRecepcion === 1) paso.value = 2;
+  else if (orden.pasoRecepcion === 2) paso.value = 3;
+  else paso.value = 3;
+
   cargarFotoRegistro(orden.id, orden.fotoRegistro);
 };
 
-const cargarFotoRegistro = async (ordenId, ruta) => {
+const cargarFotoRegistro = async (id, ruta) => {
   if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
   fotoSrc.value = '';
-  if (!ruta || !ordenId) return;
+  if (!ruta || !id) return;
   try {
-    const blob = await ordenService.descargarFoto(ordenId, 'registro');
+    const blob = await ordenService.descargarFoto(id, 'registro');
     fotoSrc.value = URL.createObjectURL(blob);
   } catch {
     fotoSrc.value = '';
@@ -127,10 +184,10 @@ const cargarFotoRegistro = async (ordenId, ruta) => {
 
 const quitarRegistro = async () => {
   archivoRegistro.value = null;
-  if (!esEdicion.value || !form.value.fotoRegistro) return;
+  if (!ordenId.value || !form.value.fotoRegistro) return;
   subiendoFoto.value = true;
   try {
-    await ordenService.quitarFoto(route.params.id, 'registro');
+    await ordenService.quitarFoto(ordenId.value, 'registro');
     form.value.fotoRegistro = '';
     if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
     fotoSrc.value = '';
@@ -190,22 +247,25 @@ const buscarPlaca = async (placa) => {
       kilometraje: data.kilometraje,
     };
     historialOrdenes.value = data.ordenes || [];
-    vehiculoRegistrado.value = true;
     placaConsultada.value = true;
+    vehiculoEraNuevo.value = false;
+    editandoVehiculo.value = false;
 
     const ultima = data.ordenes?.[0]?.cliente;
     if (ultima?.numeroDocumento) {
       try {
         const cliente = await clienteService.buscarDocumento(ultima.numeroDocumento);
         form.value.cliente = mapCliente(cliente);
+        clienteEraNuevo.value = false;
       } catch { /* ok */ }
     }
 
     notify.success('Vehículo encontrado', `${data.marca?.nombre || ''} ${data.modelo}`);
   } catch {
     historialOrdenes.value = [];
-    vehiculoRegistrado.value = false;
     placaConsultada.value = true;
+    vehiculoEraNuevo.value = true;
+    editandoVehiculo.value = true;
     form.value.vehiculo = {
       placa: limpia,
       marcaId: '',
@@ -228,6 +288,7 @@ const onCambioPlaca = (valor) => {
 
 const aplicarCliente = (cliente) => {
   form.value.cliente = mapCliente(cliente);
+  clienteEraNuevo.value = false;
   notify.success('Cliente cargado', cliente.nombreRazonSocial);
 };
 
@@ -254,13 +315,20 @@ const validarVehiculo = () => {
   return Object.keys(e).length === 0;
 };
 
-const validarOrden = () => {
+const validarCliente = () => {
   const e = {};
-  const { cliente, estadoIngreso, observacionIngreso } = form.value;
+  const { cliente } = form.value;
   if (!cliente.nombreRazonSocial?.trim()) e.nombreRazonSocial = 'Nombre / razón social obligatorio';
   if (!cliente.numeroDocumento?.trim()) e.numeroDocumento = 'Documento obligatorio';
   if (cliente.tipoDocumento === 'DNI' && cliente.numeroDocumento.length !== 8) e.numeroDocumento = 'DNI: 8 dígitos';
   if (cliente.tipoDocumento === 'RUC' && cliente.numeroDocumento.length !== 11) e.numeroDocumento = 'RUC: 11 dígitos';
+  errores.value = e;
+  return Object.keys(e).length === 0;
+};
+
+const validarTrabajo = () => {
+  const e = {};
+  const { estadoIngreso, observacionIngreso } = form.value;
   if (estadoIngreso === 'OBSERVADO' && !observacionIngreso?.trim()) {
     e.observacionIngreso = 'Describe la observación de ingreso';
   }
@@ -268,79 +336,102 @@ const validarOrden = () => {
   return Object.keys(e).length === 0;
 };
 
-const continuarAOrden = async () => {
+const payloadVehiculo = () => ({
+  placa: form.value.vehiculo.placa,
+  marcaId: Number(form.value.vehiculo.marcaId),
+  modelo: form.value.vehiculo.modelo,
+  horometro: form.value.vehiculo.horometro === '' ? null : form.value.vehiculo.horometro,
+  kilometraje: form.value.vehiculo.kilometraje === '' ? null : form.value.vehiculo.kilometraje,
+});
+
+const payloadCliente = () => ({
+  ...form.value.cliente,
+  representante: form.value.cliente.representante || null,
+  celular: form.value.cliente.celular || null,
+  correo: form.value.cliente.correo || null,
+});
+
+const guardarPasoVehiculo = async () => {
   if (!validarVehiculo()) {
     return notify.error('Completa el vehículo', 'Placa, marca y modelo son obligatorios.');
   }
 
-  guardandoVehiculo.value = true;
+  guardandoPaso.value = true;
   try {
-    await vehiculoService.upsert({
-      placa: form.value.vehiculo.placa,
-      marcaId: Number(form.value.vehiculo.marcaId),
-      modelo: form.value.vehiculo.modelo,
-      horometro: form.value.vehiculo.horometro === '' ? null : form.value.vehiculo.horometro,
-      kilometraje: form.value.vehiculo.kilometraje === '' ? null : form.value.vehiculo.kilometraje,
-    });
-    vehiculoRegistrado.value = true;
+    const actualizarDatos = editandoVehiculo.value && vehiculoEditable.value;
+    const orden = await ordenService.guardarPasoVehiculo({
+      vehiculo: payloadVehiculo(),
+      actualizarDatos,
+    }, ordenId.value);
+
+    ordenId.value = orden.id;
+    pasoRecepcion.value = orden.pasoRecepcion;
+    vehiculoEditable.value = !!orden.vehiculoEditableEnBorrador;
+    editandoVehiculo.value = false;
+    placaConsultada.value = true;
     paso.value = 2;
-    notify.success('Vehículo listo', 'Ahora registra el cliente y la orden.');
+
+    if (!esEdicion.value) {
+      await router.replace(`/ordenes/editar/${orden.id}`);
+    }
+    notify.success('Vehículo guardado', 'Puedes continuar con el cliente. Si sales, el borrador queda pendiente.');
   } catch (e) {
     notify.error('Error', e.response?.data?.message || 'No se pudo guardar el vehículo.');
   } finally {
-    guardandoVehiculo.value = false;
+    guardandoPaso.value = false;
   }
 };
 
-const volverAVehiculo = () => {
-  paso.value = 1;
-  errores.value = {};
+const guardarPasoCliente = async () => {
+  if (!ordenId.value) return notify.error('Falta el vehículo', 'Vuelve al paso 1.');
+  if (!validarCliente()) return notify.error('Revisa el cliente', 'Completa los datos obligatorios.');
+
+  guardandoPaso.value = true;
+  try {
+    const actualizarDatos = editandoCliente.value && clienteEditable.value;
+    const orden = await ordenService.guardarPasoCliente(ordenId.value, {
+      cliente: payloadCliente(),
+      actualizarDatos,
+    });
+
+    pasoRecepcion.value = orden.pasoRecepcion;
+    clienteEditable.value = !!orden.clienteEditableEnBorrador;
+    clienteConfirmado.value = true;
+    editandoCliente.value = false;
+    paso.value = 3;
+    notify.success('Cliente guardado', 'Ahora completa el trabajo a realizar.');
+  } catch (e) {
+    notify.error('Error', e.response?.data?.message || 'No se pudo guardar el cliente.');
+  } finally {
+    guardandoPaso.value = false;
+  }
 };
 
-const payload = () => ({
-  cliente: {
-    ...form.value.cliente,
-    representante: form.value.cliente.representante || null,
-    celular: form.value.cliente.celular || null,
-    correo: form.value.cliente.correo || null,
-  },
-  vehiculo: {
-    ...form.value.vehiculo,
-    marcaId: Number(form.value.vehiculo.marcaId),
-    horometro: form.value.vehiculo.horometro === '' ? null : form.value.vehiculo.horometro,
-    kilometraje: form.value.vehiculo.kilometraje === '' ? null : form.value.vehiculo.kilometraje,
-  },
-  descripcionInformal: form.value.descripcionInformal || null,
-  trabajoSolicitado: form.value.trabajoSolicitado || null,
-  estadoIngreso: form.value.estadoIngreso,
-  observacionIngreso: form.value.observacionIngreso || null,
-});
+const completarBorrador = async () => {
+  if (!ordenId.value) return;
+  if (!validarTrabajo()) return notify.error('Revisa el ingreso', 'Falta la observación.');
 
-const guardar = async () => {
-  if (!validarOrden()) return notify.error('Revisa los campos', 'Faltan datos del cliente o ingreso.');
   guardando.value = true;
   try {
-    let ordenId = route.params.id;
-    if (esEdicion.value) {
-      await ordenService.actualizar(ordenId, payload());
-    } else {
-      const orden = await ordenService.crear(payload());
-      ordenId = orden.id;
-    }
+    await ordenService.completarRecepcion(ordenId.value, {
+      descripcionInformal: form.value.descripcionInformal || null,
+      trabajoSolicitado: form.value.trabajoSolicitado || null,
+      estadoIngreso: form.value.estadoIngreso,
+      observacionIngreso: form.value.observacionIngreso || null,
+    });
+
     if (archivoRegistro.value) {
       subiendoFoto.value = true;
       try {
-        await ordenService.subirFoto(ordenId, 'registro', archivoRegistro.value);
+        await ordenService.subirFoto(ordenId.value, 'registro', archivoRegistro.value);
       } catch (e) {
-        notify.error('La orden se guardó, pero la foto no', e.response?.data?.message || 'Vuelve a subirla en la orden.');
-        router.replace(`/ordenes/editar/${ordenId}`);
+        notify.error('El borrador se guardó, pero la foto no', e.response?.data?.message || 'Vuelve a subirla.');
+        router.replace(`/ordenes/editar/${ordenId.value}`);
         return;
       }
     }
-    notify.success(
-      esEdicion.value ? 'Actualizado' : 'Borrador creado',
-      esEdicion.value ? 'Borrador de orden actualizado.' : 'La orden quedó en espera de validación.'
-    );
+
+    notify.success('Borrador listo', 'La orden quedó en espera de validación.');
     router.push('/ordenes');
   } catch (e) {
     const msg = e.response?.data?.errors?.[0]?.mensaje
@@ -353,6 +444,53 @@ const guardar = async () => {
   }
 };
 
+const irAPaso = (n) => {
+  if (n < 1 || n > 3) return;
+  if (n > 1 && !ordenId.value) return;
+  if (n > 2 && !clienteConfirmado.value) return;
+  paso.value = n;
+  errores.value = {};
+  editandoVehiculo.value = false;
+  editandoCliente.value = false;
+};
+
+const cambiarVehiculo = () => {
+  paso.value = 1;
+  editandoVehiculo.value = false;
+  placaConsultada.value = false;
+  historialOrdenes.value = [];
+  errores.value = {};
+};
+
+const cambiarCliente = () => {
+  paso.value = 2;
+  editandoCliente.value = false;
+  clienteConfirmado.value = false;
+  clienteEditable.value = false;
+  clienteEraNuevo.value = true;
+  form.value.cliente = {
+    tipoCliente: 'PERSONA',
+    tipoDocumento: 'DNI',
+    numeroDocumento: '',
+    nombreRazonSocial: '',
+    representante: '',
+    celular: '',
+    correo: '',
+  };
+  errores.value = {};
+};
+
+const irAEditarCliente = () => {
+  paso.value = 2;
+  editandoCliente.value = true;
+};
+
+const irAEditarVehiculo = () => {
+  paso.value = 1;
+  editandoVehiculo.value = true;
+  placaConsultada.value = true;
+};
+
 onMounted(inicializar);
 onUnmounted(() => {
   if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
@@ -362,12 +500,20 @@ onUnmounted(() => {
 <template>
   <div class="max-w-[1100px] mx-auto space-y-6 animate-fade-in pb-24 px-4">
     <EncabezadoOrdenForm
-      :es-edicion="esEdicion"
+      :es-edicion="!!ordenId"
       modo="recepcion"
       @back="router.back()"
     />
 
     <PasosRecepcion :paso="paso" />
+
+    <div
+      v-if="ordenId && pasoRecepcion != null"
+      class="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 text-amber-800 text-xs font-bold"
+    >
+      Borrador pendiente a terminar de rellenar
+      <span class="font-black">· Paso {{ pasoRecepcion }} de 3 guardado</span>
+    </div>
 
     <div v-if="cargando" class="py-20 text-center">
       <span class="loading loading-ring loading-lg text-lyer-green" />
@@ -377,6 +523,7 @@ onUnmounted(() => {
       <!-- PASO 1: VEHÍCULO -->
       <template v-if="paso === 1">
         <FormBusquedaPlaca
+          v-if="!vehiculoBloqueado || !placaConsultada"
           :placa="form.vehiculo.placa"
           :historial="historialOrdenes"
           :error="errores.placa"
@@ -389,19 +536,30 @@ onUnmounted(() => {
             :vehiculo="form.vehiculo"
             :marcas="marcas"
             :errores="errores"
+            :bloqueado="vehiculoBloqueado"
+            :puede-editar="puedeEditarVehiculoUI"
             @update:vehiculo="form.vehiculo = $event"
             @crear-marca="onNuevaMarca"
+            @editar="editandoVehiculo = true"
           />
 
-          <div class="flex justify-end">
+          <div class="flex justify-end gap-2">
             <button
-              :disabled="guardandoVehiculo"
-              @click="continuarAOrden"
+              v-if="editandoVehiculo && ordenId"
+              type="button"
+              @click="editandoVehiculo = false"
+              class="btn btn-ghost rounded-2xl"
+            >
+              Cancelar
+            </button>
+            <button
+              :disabled="guardandoPaso"
+              @click="guardarPasoVehiculo"
               class="btn btn-lg bg-lyer-green hover:bg-emerald-600 text-white border-none px-10 rounded-2xl shadow-lg"
             >
-              <span v-if="guardandoVehiculo" class="loading loading-spinner" />
+              <span v-if="guardandoPaso" class="loading loading-spinner" />
               <template v-else>
-                Continuar a la orden
+                {{ editandoVehiculo && ordenId ? 'Guardar vehículo' : 'Continuar al cliente' }}
                 <ArrowRight class="w-5 h-5 ml-2" />
               </template>
             </button>
@@ -409,15 +567,15 @@ onUnmounted(() => {
         </template>
       </template>
 
-      <!-- PASO 2: CLIENTE + ORDEN -->
-      <template v-else>
+      <!-- PASO 2: CLIENTE -->
+      <template v-else-if="paso === 2">
         <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-xl bg-lyer-green text-white flex items-center justify-center shrink-0">
               <Car class="w-5 h-5" />
             </div>
             <div class="min-w-0">
-              <p class="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Vehículo seleccionado</p>
+              <p class="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Vehículo</p>
               <p class="font-black text-slate-800 uppercase truncate">
                 {{ resumenVehiculo.placa }}
                 <span class="text-slate-400 font-bold normal-case text-sm">
@@ -426,18 +584,124 @@ onUnmounted(() => {
               </p>
             </div>
           </div>
-          <button type="button" @click="volverAVehiculo"
-            class="btn btn-sm btn-ghost text-lyer-green font-bold gap-1">
-            <ArrowLeft class="w-4 h-4" /> Cambiar vehículo
-          </button>
+          <div class="flex gap-1">
+            <button
+              v-if="puedeEditarVehiculoUI"
+              type="button"
+              @click="irAEditarVehiculo"
+              class="btn btn-sm btn-ghost text-lyer-green font-bold gap-1"
+            >
+              Editar
+            </button>
+            <button type="button" @click="cambiarVehiculo"
+              class="btn btn-sm btn-ghost text-slate-500 font-bold gap-1">
+              <ArrowLeft class="w-4 h-4" /> Cambiar
+            </button>
+          </div>
         </div>
 
         <FormCliente
           :cliente="form.cliente"
           :errores="errores"
+          :bloqueado="clienteBloqueado"
+          :puede-editar="puedeEditarClienteUI"
           @update:cliente="form.cliente = $event"
           @seleccionar-cliente="aplicarCliente"
+          @editar="editandoCliente = true"
         />
+
+        <div v-if="clienteBloqueado && !puedeEditarClienteUI" class="flex justify-end -mt-2">
+          <button type="button" @click="cambiarCliente" class="btn btn-sm btn-ghost text-slate-500 font-bold">
+            Cambiar selección de cliente
+          </button>
+        </div>
+
+        <div v-if="editandoCliente && clienteConfirmado" class="flex justify-end -mt-2 gap-2">
+          <button type="button" @click="editandoCliente = false" class="btn btn-sm btn-ghost text-slate-500 font-bold">
+            Cancelar edición
+          </button>
+        </div>
+
+        <div class="flex justify-between gap-2">
+          <button type="button" @click="irAPaso(1)" class="btn btn-ghost rounded-2xl gap-1">
+            <ArrowLeft class="w-4 h-4" /> Atrás
+          </button>
+          <button
+            :disabled="guardandoPaso"
+            @click="guardarPasoCliente"
+            class="btn btn-lg bg-lyer-green hover:bg-emerald-600 text-white border-none px-10 rounded-2xl shadow-lg"
+          >
+            <span v-if="guardandoPaso" class="loading loading-spinner" />
+            <template v-else>
+              Continuar al trabajo
+              <ArrowRight class="w-5 h-5 ml-2" />
+            </template>
+          </button>
+        </div>
+      </template>
+
+      <!-- PASO 3: TRABAJO -->
+      <template v-else>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-xl bg-lyer-green text-white flex items-center justify-center shrink-0">
+                <Car class="w-5 h-5" />
+              </div>
+              <div class="min-w-0">
+                <p class="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Vehículo</p>
+                <p class="font-black text-slate-800 uppercase truncate text-sm">{{ resumenVehiculo.placa }}</p>
+              </div>
+            </div>
+            <div class="flex gap-1 shrink-0">
+              <button
+                v-if="puedeEditarVehiculoUI"
+                type="button"
+                @click="irAEditarVehiculo"
+                class="btn btn-xs btn-ghost text-lyer-green font-bold"
+              >
+                Editar
+              </button>
+              <button
+                v-if="!recepcionCompleta"
+                type="button"
+                @click="cambiarVehiculo"
+                class="btn btn-xs btn-ghost text-slate-500 font-bold"
+              >
+                Cambiar
+              </button>
+            </div>
+          </div>
+          <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-xl bg-slate-700 text-white flex items-center justify-center shrink-0">
+                <User class="w-5 h-5" />
+              </div>
+              <div class="min-w-0">
+                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Cliente</p>
+                <p class="font-black text-slate-800 truncate text-sm">{{ resumenCliente }}</p>
+              </div>
+            </div>
+            <div class="flex gap-1 shrink-0">
+              <button
+                v-if="puedeEditarClienteUI"
+                type="button"
+                @click="irAEditarCliente"
+                class="btn btn-xs btn-ghost text-lyer-green font-bold"
+              >
+                Editar
+              </button>
+              <button
+                v-if="!recepcionCompleta"
+                type="button"
+                @click="cambiarCliente"
+                class="btn btn-xs btn-ghost text-slate-500 font-bold"
+              >
+                Cambiar
+              </button>
+            </div>
+          </div>
+        </div>
 
         <FormIngresoOrden
           v-model:descripcion-informal="form.descripcionInformal"
@@ -466,17 +730,22 @@ onUnmounted(() => {
             <h2 class="text-2xl font-black text-white tracking-tight">EN ESPERA</h2>
             <p class="text-xs text-slate-400 mt-1">Un supervisor o admin validará la orden para continuar.</p>
           </div>
-          <button
-            :disabled="guardando"
-            @click="guardar"
-            class="z-10 btn btn-lg w-full md:w-auto bg-lyer-green hover:bg-emerald-500 text-white border-none px-12 rounded-2xl shadow-xl"
-          >
-            <span v-if="guardando" class="loading loading-spinner" />
-            <CheckCircle v-else class="w-5 h-5 mr-2" />
-            <span class="font-black uppercase tracking-widest text-sm">
-              {{ esEdicion ? 'Guardar cambios' : 'Crear borrador' }}
-            </span>
-          </button>
+          <div class="z-10 flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <button type="button" @click="irAPaso(2)" class="btn btn-ghost text-slate-300 rounded-2xl">
+              <ArrowLeft class="w-4 h-4" /> Atrás
+            </button>
+            <button
+              :disabled="guardando"
+              @click="completarBorrador"
+              class="btn btn-lg w-full md:w-auto bg-lyer-green hover:bg-emerald-500 text-white border-none px-12 rounded-2xl shadow-xl"
+            >
+              <span v-if="guardando" class="loading loading-spinner" />
+              <CheckCircle v-else class="w-5 h-5 mr-2" />
+              <span class="font-black uppercase tracking-widest text-sm">
+                {{ recepcionCompleta ? 'Guardar cambios' : 'Finalizar borrador' }}
+              </span>
+            </button>
+          </div>
           <div class="absolute -right-6 -bottom-6 opacity-[0.03] rotate-12 pointer-events-none">
             <ClipboardList class="w-48 h-48 text-white" />
           </div>

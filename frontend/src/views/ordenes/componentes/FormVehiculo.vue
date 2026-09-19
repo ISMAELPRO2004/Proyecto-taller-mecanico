@@ -1,23 +1,26 @@
 <script setup>
 import { ref } from 'vue';
-import { Car, Plus } from 'lucide-vue-next';
+import { Car, Plus, Edit3 } from 'lucide-vue-next';
 
 const props = defineProps({
   vehiculo: { type: Object, required: true },
   marcas: { type: Array, default: () => [] },
   errores: { type: Object, default: () => ({}) },
+  bloqueado: { type: Boolean, default: false },
+  puedeEditar: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:vehiculo', 'crear-marca']);
+const emit = defineEmits(['update:vehiculo', 'crear-marca', 'editar']);
 const nuevaMarca = ref('');
 const mostrandoNueva = ref(false);
 
 const patch = (campo, valor) => {
+  if (props.bloqueado) return;
   emit('update:vehiculo', { ...props.vehiculo, [campo]: valor });
 };
 
 const crearMarca = () => {
-  if (!nuevaMarca.value.trim()) return;
+  if (!nuevaMarca.value.trim() || props.bloqueado) return;
   emit('crear-marca', nuevaMarca.value.trim());
   nuevaMarca.value = '';
   mostrandoNueva.value = false;
@@ -26,9 +29,22 @@ const crearMarca = () => {
 
 <template>
   <section class="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100/50 space-y-4">
-          <div class="flex items-center gap-2 text-emerald-700">
-      <Car class="w-4 h-4" />
-      <span class="text-[10px] font-black uppercase tracking-widest">Datos del vehículo</span>
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 text-emerald-700">
+        <Car class="w-4 h-4" />
+        <span class="text-[10px] font-black uppercase tracking-widest">Datos del vehículo</span>
+        <span v-if="bloqueado" class="badge badge-sm bg-white text-emerald-700 border-emerald-100 font-black uppercase text-[8px]">
+          Guardado
+        </span>
+      </div>
+      <button
+        v-if="bloqueado && puedeEditar"
+        type="button"
+        @click="$emit('editar')"
+        class="btn btn-sm btn-ghost text-lyer-green font-bold gap-1"
+      >
+        <Edit3 class="w-3.5 h-3.5" /> Editar
+      </button>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -43,18 +59,19 @@ const crearMarca = () => {
         <div class="flex gap-2">
           <select
             :value="vehiculo.marcaId"
+            :disabled="bloqueado"
             @change="patch('marcaId', $event.target.value)"
-            :class="['select select-bordered w-full rounded-xl font-bold border-none shadow-sm', errores.marcaId ? 'bg-red-50' : '']"
+            :class="['select select-bordered w-full rounded-xl font-bold border-none shadow-sm', errores.marcaId ? 'bg-red-50' : '', bloqueado ? 'bg-white/70 opacity-80' : '']"
           >
             <option value="">Seleccione marca</option>
             <option v-for="m in marcas" :key="m.id" :value="m.id">{{ m.nombre }}</option>
           </select>
-          <button type="button" @click="mostrandoNueva = !mostrandoNueva"
+          <button v-if="!bloqueado" type="button" @click="mostrandoNueva = !mostrandoNueva"
             class="btn btn-square bg-white border-emerald-100 text-emerald-700 rounded-xl">
             <Plus class="w-4 h-4" />
           </button>
         </div>
-        <div v-if="mostrandoNueva" class="flex gap-2 mt-2">
+        <div v-if="mostrandoNueva && !bloqueado" class="flex gap-2 mt-2">
           <input v-model="nuevaMarca" placeholder="Nueva marca"
             class="input input-sm input-bordered flex-1 rounded-lg" @keyup.enter="crearMarca" />
           <button type="button" class="btn btn-sm bg-lyer-green text-white border-none" @click="crearMarca">OK</button>
@@ -63,23 +80,25 @@ const crearMarca = () => {
 
       <div class="col-span-2 md:col-span-1">
         <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Modelo</label>
-        <input :value="vehiculo.modelo" @input="patch('modelo', $event.target.value)"
-          :class="['input input-bordered w-full rounded-xl text-xs font-bold border-none shadow-sm', errores.modelo ? 'bg-red-50' : '']" />
+        <input :value="vehiculo.modelo" :disabled="bloqueado" @input="patch('modelo', $event.target.value)"
+          :class="['input input-bordered w-full rounded-xl text-xs font-bold border-none shadow-sm', errores.modelo ? 'bg-red-50' : '', bloqueado ? 'bg-white/70 opacity-80' : '']" />
       </div>
 
       <div>
         <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Kilometraje</label>
-        <input :value="vehiculo.kilometraje ?? ''" type="number"
+        <input :value="vehiculo.kilometraje ?? ''" type="number" :disabled="bloqueado"
           @input="patch('kilometraje', $event.target.value === '' ? null : $event.target.value)"
           class="input input-bordered w-full rounded-xl text-xs font-bold border-none shadow-sm text-center"
+          :class="bloqueado ? 'bg-white/70 opacity-80' : ''"
           placeholder="Opcional" />
       </div>
 
       <div>
         <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Horómetro</label>
-        <input :value="vehiculo.horometro ?? ''" type="number"
+        <input :value="vehiculo.horometro ?? ''" type="number" :disabled="bloqueado"
           @input="patch('horometro', $event.target.value === '' ? null : $event.target.value)"
           class="input input-bordered w-full rounded-xl text-xs font-bold border-none shadow-sm text-center"
+          :class="bloqueado ? 'bg-white/70 opacity-80' : ''"
           placeholder="Opcional" />
       </div>
     </div>

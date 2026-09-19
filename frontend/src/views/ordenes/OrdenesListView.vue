@@ -102,17 +102,20 @@ const guardarFactura = async (payload) => {
 };
 
 const eliminarOrden = async (o) => {
+  const incompleto = o.estado === 'EN_ESPERA' && o.pasoRecepcion != null;
   const ok = await notify.confirm(
-    '¿Eliminar orden?',
-    `Se borrará ${o.numeroOrden} de forma definitiva.`
+    incompleto ? '¿Eliminar borrador pendiente?' : '¿Eliminar orden?',
+    incompleto
+      ? `Se borrará ${o.numeroOrden}. Podrás empezar de nuevo si hace falta.`
+      : `Se borrará ${o.numeroOrden} de forma definitiva.`
   );
   if (!ok) return;
   try {
     await ordenService.eliminar(o.id);
-    notify.success('Orden Eliminada', 'El registro ha sido borrado.');
+    notify.success('Eliminado', incompleto ? 'Borrador eliminado.' : 'El registro ha sido borrado.');
     obtenerOrdenes();
-  } catch {
-    notify.error('Error', 'No se pudo eliminar la orden.');
+  } catch (e) {
+    notify.error('Error', e.response?.data?.message || 'No se pudo eliminar la orden.');
   }
 };
 
@@ -122,7 +125,7 @@ const imprimirOrden = async (o) => {
   imprimiendoId.value = o.id;
   try {
     const detalle = await ordenService.obtener(o.id);
-    generarOrdenPDF(detalle, { verPrecios: auth.usuario?.rol !== 'TECNICO' });
+    generarOrdenPDF(detalle, { verPrecios: ['ADMIN', 'SUPERVISOR'].includes(auth.usuario?.rol) });
   } catch {
     notify.error('Error', 'No se pudo generar el PDF de la orden.');
   } finally {

@@ -95,8 +95,8 @@ model OrdenTrabajo {
   fechaCreacion DateTime @default(now())
 
   // Relaciones Principales
-  clienteId Int
-  cliente   Cliente @relation(fields: [clienteId], references: [id])
+  clienteId Int?
+  cliente   Cliente? @relation(fields: [clienteId], references: [id])
   placa     String
   vehiculo  Vehiculo @relation(fields: [placa], references: [placa])
 
@@ -115,6 +115,10 @@ model OrdenTrabajo {
   // Estado y Flujo
   estado      EstadoOrden @default(EN_ESPERA)
   estaCerrada Boolean     @default(false)
+  /** 1 = solo vehículo, 2 = vehículo+cliente, null = recepción completa */
+  pasoRecepcion Int?
+  vehiculoEditableEnBorrador Boolean @default(false)
+  clienteEditableEnBorrador  Boolean @default(false)
 
   // Facturación y Cierre
   requiereFactura Boolean  @default(false)
