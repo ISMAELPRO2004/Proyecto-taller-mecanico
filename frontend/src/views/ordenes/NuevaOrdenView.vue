@@ -40,6 +40,8 @@ const vehiculoEditable = ref(false);
 const clienteEditable = ref(false);
 const editandoVehiculo = ref(false);
 const editandoCliente = ref(false);
+/** Paso desde el que se abrió Editar (para volver sin reiniciar el wizard) */
+const pasoOrigenEdicion = ref(null);
 /** true si la placa no existía al buscar (alta nueva en este flujo) */
 const vehiculoEraNuevo = ref(false);
 /** true si el cliente se está registrando nuevo (no vino de sugerencia) */
@@ -356,6 +358,9 @@ const guardarPasoVehiculo = async () => {
     return notify.error('Completa el vehículo', 'Placa, marca y modelo son obligatorios.');
   }
 
+  const origen = pasoOrigenEdicion.value;
+  const eraEdicion = editandoVehiculo.value && !!ordenId.value;
+
   guardandoPaso.value = true;
   try {
     const actualizarDatos = editandoVehiculo.value && vehiculoEditable.value;
@@ -369,12 +374,28 @@ const guardarPasoVehiculo = async () => {
     vehiculoEditable.value = !!orden.vehiculoEditableEnBorrador;
     editandoVehiculo.value = false;
     placaConsultada.value = true;
-    paso.value = 2;
+    pasoOrigenEdicion.value = null;
 
     if (!esEdicion.value) {
       await router.replace(`/ordenes/editar/${orden.id}`);
     }
-    notify.success('Vehículo guardado', 'Puedes continuar con el cliente. Si sales, el borrador queda pendiente.');
+
+    // Si editó desde un paso posterior, vuelve ahí (sin rehacer cliente)
+    if (eraEdicion && origen != null) {
+      if (origen >= 3 && clienteConfirmado.value) {
+        paso.value = 3;
+        notify.success('Vehículo actualizado', 'Volviste al detalle del trabajo.');
+      } else if (origen >= 2) {
+        paso.value = 2;
+        notify.success('Vehículo actualizado', 'Puedes seguir con el cliente.');
+      } else {
+        paso.value = clienteConfirmado.value ? 3 : 2;
+        notify.success('Vehículo actualizado');
+      }
+    } else {
+      paso.value = 2;
+      notify.success('Vehículo guardado', 'Puedes continuar con el cliente. Si sales, el borrador queda pendiente.');
+    }
   } catch (e) {
     notify.error('Error', e.response?.data?.message || 'No se pudo guardar el vehículo.');
   } finally {
@@ -385,6 +406,9 @@ const guardarPasoVehiculo = async () => {
 const guardarPasoCliente = async () => {
   if (!ordenId.value) return notify.error('Falta el vehículo', 'Vuelve al paso 1.');
   if (!validarCliente()) return notify.error('Revisa el cliente', 'Completa los datos obligatorios.');
+
+  const origen = pasoOrigenEdicion.value;
+  const eraEdicion = editandoCliente.value && clienteConfirmado.value;
 
   guardandoPaso.value = true;
   try {
@@ -398,8 +422,12 @@ const guardarPasoCliente = async () => {
     clienteEditable.value = !!orden.clienteEditableEnBorrador;
     clienteConfirmado.value = true;
     editandoCliente.value = false;
+    pasoOrigenEdicion.value = null;
     paso.value = 3;
-    notify.success('Cliente guardado', 'Ahora completa el trabajo a realizar.');
+    notify.success(
+      eraEdicion ? 'Cliente actualizado' : 'Cliente guardado',
+      eraEdicion ? 'Volviste al detalle del trabajo.' : 'Ahora completa el trabajo a realizar.'
+    );
   } catch (e) {
     notify.error('Error', e.response?.data?.message || 'No se pudo guardar el cliente.');
   } finally {
@@ -452,9 +480,11 @@ const irAPaso = (n) => {
   errores.value = {};
   editandoVehiculo.value = false;
   editandoCliente.value = false;
+  pasoOrigenEdicion.value = null;
 };
 
 const cambiarVehiculo = () => {
+  pasoOrigenEdicion.value = null;
   paso.value = 1;
   editandoVehiculo.value = false;
   placaConsultada.value = false;
@@ -463,6 +493,7 @@ const cambiarVehiculo = () => {
 };
 
 const cambiarCliente = () => {
+  pasoOrigenEdicion.value = null;
   paso.value = 2;
   editandoCliente.value = false;
   clienteConfirmado.value = false;
@@ -481,14 +512,48 @@ const cambiarCliente = () => {
 };
 
 const irAEditarCliente = () => {
+  pasoOrigenEdicion.value = paso.value;
   paso.value = 2;
   editandoCliente.value = true;
 };
 
 const irAEditarVehiculo = () => {
+  pasoOrigenEdicion.value = paso.value;
   paso.value = 1;
   editandoVehiculo.value = true;
   placaConsultada.value = true;
+};
+
+/** Editar sin cambiar de paso (ya estás en el formulario bloqueado) */
+const empezarEditarVehiculoEnPaso = () => {
+  if (pasoOrigenEdicion.value == null) {
+    pasoOrigenEdicion.value = clienteConfirmado.value ? 3 : (ordenId.value ? 2 : 1);
+  }
+  editandoVehiculo.value = true;
+};
+
+const empezarEditarClienteEnPaso = () => {
+  if (pasoOrigenEdicion.value == null) {
+    pasoOrigenEdicion.value = clienteConfirmado.value ? 3 : 2;
+  }
+  editandoCliente.value = true;
+};
+
+const cancelarEdicionVehiculo = () => {
+  const origen = pasoOrigenEdicion.value;
+  editandoVehiculo.value = false;
+  pasoOrigenEdicion.value = null;
+  if (origen != null && origen > 1) {
+    if (origen >= 3 && clienteConfirmado.value) paso.value = 3;
+    else if (origen >= 2) paso.value = 2;
+  }
+};
+
+const cancelarEdicionCliente = () => {
+  const origen = pasoOrigenEdicion.value;
+  editandoCliente.value = false;
+  pasoOrigenEdicion.value = null;
+  if (origen != null && origen >= 3 && clienteConfirmado.value) paso.value = 3;
 };
 
 onMounted(inicializar);
@@ -540,14 +605,14 @@ onUnmounted(() => {
             :puede-editar="puedeEditarVehiculoUI"
             @update:vehiculo="form.vehiculo = $event"
             @crear-marca="onNuevaMarca"
-            @editar="editandoVehiculo = true"
+            @editar="empezarEditarVehiculoEnPaso"
           />
 
           <div class="flex justify-end gap-2">
             <button
               v-if="editandoVehiculo && ordenId"
               type="button"
-              @click="editandoVehiculo = false"
+              @click="cancelarEdicionVehiculo"
               class="btn btn-ghost rounded-2xl"
             >
               Cancelar
@@ -559,7 +624,9 @@ onUnmounted(() => {
             >
               <span v-if="guardandoPaso" class="loading loading-spinner" />
               <template v-else>
-                {{ editandoVehiculo && ordenId ? 'Guardar vehículo' : 'Continuar al cliente' }}
+              {{ editandoVehiculo && ordenId
+                ? (pasoOrigenEdicion >= 3 ? 'Guardar y volver' : 'Guardar vehículo')
+                : 'Continuar al cliente' }}
                 <ArrowRight class="w-5 h-5 ml-2" />
               </template>
             </button>
@@ -607,7 +674,7 @@ onUnmounted(() => {
           :puede-editar="puedeEditarClienteUI"
           @update:cliente="form.cliente = $event"
           @seleccionar-cliente="aplicarCliente"
-          @editar="editandoCliente = true"
+          @editar="empezarEditarClienteEnPaso"
         />
 
         <div v-if="clienteBloqueado && !puedeEditarClienteUI" class="flex justify-end -mt-2">
@@ -617,7 +684,7 @@ onUnmounted(() => {
         </div>
 
         <div v-if="editandoCliente && clienteConfirmado" class="flex justify-end -mt-2 gap-2">
-          <button type="button" @click="editandoCliente = false" class="btn btn-sm btn-ghost text-slate-500 font-bold">
+          <button type="button" @click="cancelarEdicionCliente" class="btn btn-sm btn-ghost text-slate-500 font-bold">
             Cancelar edición
           </button>
         </div>

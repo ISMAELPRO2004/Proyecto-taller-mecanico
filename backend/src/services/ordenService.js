@@ -602,20 +602,45 @@ export const eliminarOrden = async (id, req) => {
   }
 
   const ordenId = parseInt(id);
-  await prisma.$transaction([
-    prisma.logActividad.updateMany({ where: { ordenId }, data: { ordenId: null } }),
-    prisma.oTMaterial.deleteMany({ where: { ordenId } }),
-    prisma.oTServicio.deleteMany({ where: { ordenId } }),
-    prisma.oTTercero.deleteMany({ where: { ordenId } }),
-    prisma.ordenTrabajo.delete({ where: { id: ordenId } }),
-  ]);
+  // Solo en borrador incompleto: limpiar vehículo/cliente nacidos en ese borrador
+  const placaABorrar = borradorIncompleto && ordenPrevia.vehiculoEditableEnBorrador
+    ? ordenPrevia.placa
+    : null;
+  const clienteABorrar = borradorIncompleto && ordenPrevia.clienteEditableEnBorrador
+    ? ordenPrevia.clienteId
+    : null;
 
+  await prisma.$transaction(async (tx) => {
+    await tx.logActividad.updateMany({ where: { ordenId }, data: { ordenId: null } });
+    await tx.oTMaterial.deleteMany({ where: { ordenId } });
+    await tx.oTServicio.deleteMany({ where: { ordenId } });
+    await tx.oTTercero.deleteMany({ where: { ordenId } });
+    await tx.ordenTrabajo.delete({ where: { id: ordenId } });
+
+    if (placaABorrar) {
+      const otras = await tx.ordenTrabajo.count({ where: { placa: placaABorrar } });
+      if (otras === 0) {
+        await tx.vehiculo.delete({ where: { placa: placaABorrar } }).catch(() => null);
+      }
+    }
+
+    if (clienteABorrar) {
+      const otras = await tx.ordenTrabajo.count({ where: { clienteId: clienteABorrar } });
+      if (otras === 0) {
+        await tx.cliente.delete({ where: { id: clienteABorrar } }).catch(() => null);
+      }
+    }
+  });
+
+  // Siempre borrar fotos de la orden (registro + desarrollo) para no dejar basura en disco
   await borrarCarpetaOrden(id);
 
   await registrarLog(req, 'ELIMINAR ORDEN', null, {
     numeroOrden: ordenPrevia.numeroOrden,
     cliente: ordenPrevia.cliente?.nombreRazonSocial,
     placa: ordenPrevia.placa,
+    limpioVehiculoNuevo: !!placaABorrar,
+    limpioClienteNuevo: !!clienteABorrar,
   }, null);
 
   return { message: 'Orden eliminada exitosamente' };

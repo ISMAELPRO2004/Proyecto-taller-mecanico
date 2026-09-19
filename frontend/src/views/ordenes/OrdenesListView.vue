@@ -106,13 +106,13 @@ const eliminarOrden = async (o) => {
   const ok = await notify.confirm(
     incompleto ? '¿Eliminar borrador pendiente?' : '¿Eliminar orden?',
     incompleto
-      ? `Se borrará ${o.numeroOrden}. Podrás empezar de nuevo si hace falta.`
-      : `Se borrará ${o.numeroOrden} de forma definitiva.`
+      ? `Se borrará ${o.numeroOrden}, sus fotos y el vehículo/cliente nuevos creados solo en este borrador.`
+      : `Se borrará ${o.numeroOrden} y sus fotos. El cliente y el vehículo se conservan.`
   );
   if (!ok) return;
   try {
     await ordenService.eliminar(o.id);
-    notify.success('Eliminado', incompleto ? 'Borrador eliminado.' : 'El registro ha sido borrado.');
+    notify.success('Eliminado', incompleto ? 'Borrador y datos temporales eliminados.' : 'Orden y fotos eliminadas.');
     obtenerOrdenes();
   } catch (e) {
     notify.error('Error', e.response?.data?.message || 'No se pudo eliminar la orden.');
