@@ -23,7 +23,6 @@ const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
 const puedeVerImprimir = computed(() => puedeImprimir(auth.usuario?.rol));
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
 const fotos = ref({ registro: '', desarrollo: '' });
-const subiendoFoto = ref('');
 const orden   = ref(null);
 const loading = ref(false);
 const facturaAbierta = ref(false);
@@ -31,6 +30,18 @@ const guardandoFactura = ref(false);
 const pendienteFactura = computed(() =>
   esAdmin.value && facturaPendiente(orden.value)
 );
+
+const totalDetalle = computed(() => {
+  const actual = orden.value;
+  if (!actual) return 0;
+  const materiales = (actual.materiales || []).reduce(
+    (acc, m) => acc + Number(m.cantidad || 0) * Number(m.precioAplicado || 0),
+    0
+  );
+  const servicios = (actual.servicios || []).reduce((acc, s) => acc + Number(s.monto || 0), 0);
+  const terceros = (actual.terceros || []).reduce((acc, t) => acc + Number(t.monto || 0), 0);
+  return Math.round((materiales + servicios + terceros) * 100) / 100;
+});
 
 const revocarFotos = () => {
   if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
@@ -62,33 +73,6 @@ const cargarDetalle = async () => {
     console.error('Error al cargar detalle:', error);
   } finally {
     loading.value = false;
-  }
-};
-
-const cambiarRegistro = async (file) => {
-  subiendoFoto.value = 'registro';
-  try {
-    const actualizada = await ordenService.subirFoto(props.ordenId, 'registro', file);
-    orden.value = actualizada;
-    await cargarFoto('registro', actualizada.fotoRegistro);
-  } catch (error) {
-    notify.error('No se pudo cambiar la foto', error.response?.data?.message);
-  } finally {
-    subiendoFoto.value = '';
-  }
-};
-
-const quitarRegistro = async () => {
-  subiendoFoto.value = 'registro';
-  try {
-    const actualizada = await ordenService.quitarFoto(props.ordenId, 'registro');
-    orden.value = actualizada;
-    if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
-    fotos.value.registro = '';
-  } catch (error) {
-    notify.error('No se pudo quitar', error.response?.data?.message);
-  } finally {
-    subiendoFoto.value = '';
   }
 };
 
@@ -256,16 +240,12 @@ const imprimir = async () => {
           <section class="grid md:grid-cols-2 gap-4">
             <CampoFoto
               titulo="Foto de registro"
+              ayuda="Solo se cambia desde la orden de trabajo, y únicamente el administrador si hace falta."
               :src="fotos.registro"
-              :puede-cambiar="esAdmin && !['TERMINADO', 'CANCELADO'].includes(orden.estado)"
-              :puede-quitar="esAdmin && !!fotos.registro && !['TERMINADO', 'CANCELADO'].includes(orden.estado)"
-              :subiendo="subiendoFoto === 'registro'"
-              @seleccionar="cambiarRegistro"
-              @quitar="quitarRegistro"
             />
             <CampoFoto
               titulo="Foto de desarrollo"
-              ayuda="Se reemplaza durante el trabajo."
+              ayuda="Se reemplaza en la orden de trabajo mientras está en proceso."
               :src="fotos.desarrollo"
             />
           </section>
@@ -342,7 +322,7 @@ const imprimir = async () => {
             </div>
             <div class="z-10 bg-white/5 px-6 sm:px-10 py-4 sm:py-6 rounded-2xl border border-white/10 shadow-2xl">
               <span class="text-3xl sm:text-5xl font-black tracking-tighter tabular-nums">
-                S/ {{ parseFloat(orden.totalFinal).toFixed(2) }}
+                S/ {{ totalDetalle.toFixed(2) }}
               </span>
             </div>
           </div>

@@ -54,6 +54,39 @@ export const guardarFotoArchivo = async (ordenId, tipo, file) => {
   return `ordenes/${ordenId}/${archivo}`;
 };
 
+/** Copia una foto vigente para el historial de auditoría (no se sobrescribe). */
+export const copiarFotoAuditoria = async (ordenId, tipo, origenRelativo, sufijo = 'antes') => {
+  const origen = resolver(origenRelativo);
+  if (!origen) return null;
+  try {
+    await fs.access(origen);
+  } catch {
+    return null;
+  }
+  const ext = path.extname(origen).slice(1).toLowerCase() || 'jpg';
+  const dir = path.join(uploadsRoot, 'auditoria', 'fotos', String(ordenId));
+  await fs.mkdir(dir, { recursive: true });
+  const nombre = `${Date.now()}-${tipo}-${sufijo}.${ext}`;
+  const destino = path.join(dir, nombre);
+  await fs.copyFile(origen, destino);
+  return `auditoria/fotos/${ordenId}/${nombre}`;
+};
+
+export const copiarBufferAuditoria = async (ordenId, tipo, file, sufijo = 'nueva') => {
+  const ext = MIME_EXT[file?.mimetype];
+  if (!ext || !file.buffer?.length) return null;
+  const dir = path.join(uploadsRoot, 'auditoria', 'fotos', String(ordenId));
+  await fs.mkdir(dir, { recursive: true });
+  const nombre = `${Date.now()}-${tipo}-${sufijo}.${ext}`;
+  await fs.writeFile(path.join(dir, nombre), file.buffer);
+  return `auditoria/fotos/${ordenId}/${nombre}`;
+};
+
+export const esRutaAuditoria = (rutaRelativa) => {
+  const normalizada = String(rutaRelativa || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  return normalizada.startsWith('auditoria/fotos/');
+};
+
 export const leerFotoArchivo = async (rutaRelativa) => {
   const abs = resolver(rutaRelativa);
   if (!abs) throw new AppError('Imagen no encontrada', 404);

@@ -8,6 +8,8 @@ import {
   leerFotoArchivo,
   borrarFotoArchivo,
   borrarCarpetaOrden,
+  copiarFotoAuditoria,
+  copiarBufferAuditoria,
 } from './fotoOrdenService.js';
 
 const includeOrdenLista = {
@@ -699,6 +701,11 @@ const campoFoto = {
   desarrollo: 'fotoDesarrollo',
 };
 
+const etiquetaFoto = {
+  registro: 'Foto de registro (ingreso)',
+  desarrollo: 'Foto de desarrollo (rotativa)',
+};
+
 const puedeEditarDesarrollo = (orden) =>
   !orden.estaCerrada && !['TERMINADO', 'CANCELADO', 'EN_ESPERA'].includes(orden.estado);
 
@@ -733,18 +740,34 @@ export const subirFotoOrden = async (id, tipo, file, req) => {
     );
   }
 
+  const snapshotAnterior = previa
+    ? await copiarFotoAuditoria(orden.id, tipo, previa)
+    : null;
+
   const ruta = await guardarFotoArchivo(orden.id, tipo, file);
+  const snapshotNuevo = await copiarBufferAuditoria(orden.id, tipo, file);
+
   const actualizada = await prisma.ordenTrabajo.update({
     where: { id: orden.id },
     data: { [campo]: ruta },
     include: includeOrdenDetalle,
   });
 
+  const operacion = previa ? 'REEMPLAZAR' : 'SUBIR';
   await registrarLog(
     req,
-    previa ? `REEMPLAZAR FOTO ${tipo.toUpperCase()}` : `SUBIR FOTO ${tipo.toUpperCase()}`,
-    { [campo]: ruta },
-    { [campo]: previa },
+    `${operacion} FOTO ${tipo.toUpperCase()}`,
+    {
+      operacion,
+      tipoFoto: tipo,
+      imagen: etiquetaFoto[tipo],
+      archivoNuevo: ruta,
+      archivoAnterior: previa || null,
+      snapshotNuevo,
+      snapshotAnterior,
+      numeroOrden: orden.numeroOrden,
+    },
+    previa ? { archivo: previa, tipoFoto: tipo } : null,
     orden.id
   );
 
@@ -772,6 +795,9 @@ export const quitarFotoOrden = async (id, tipo, req) => {
 
   const campo = campoFoto[tipo];
   const previa = orden[campo];
+  const snapshotAnterior = previa
+    ? await copiarFotoAuditoria(orden.id, tipo, previa)
+    : null;
   if (previa) await borrarFotoArchivo(previa);
 
   const actualizada = await prisma.ordenTrabajo.update({
@@ -780,7 +806,21 @@ export const quitarFotoOrden = async (id, tipo, req) => {
     include: includeOrdenDetalle,
   });
 
-  await registrarLog(req, `QUITAR FOTO ${tipo.toUpperCase()}`, { [campo]: null }, { [campo]: previa }, orden.id);
+  await registrarLog(
+    req,
+    `QUITAR FOTO ${tipo.toUpperCase()}`,
+    {
+      operacion: 'QUITAR',
+      tipoFoto: tipo,
+      imagen: etiquetaFoto[tipo],
+      archivoNuevo: null,
+      archivoAnterior: previa || null,
+      snapshotAnterior,
+      snapshotNuevo: null,
+    },
+    previa ? { archivo: previa, tipoFoto: tipo } : { archivo: null, tipoFoto: tipo },
+    orden.id
+  );
   return actualizada;
 };
 

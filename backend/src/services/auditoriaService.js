@@ -1,4 +1,6 @@
 import prisma from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { leerFotoArchivo, esRutaAuditoria } from './fotoOrdenService.js';
 
 export const listarLogs = async (query = {}) => {
   const {
@@ -50,4 +52,11 @@ export const listarLogs = async (query = {}) => {
     page: parseInt(page),
     totalPages: Math.ceil(total / take),
   };
+};
+
+export const obtenerFotoAuditoria = async (ruta) => {
+  if (!esRutaAuditoria(ruta)) {
+    throw new AppError('Ruta de auditoría inválida', 400);
+  }
+  return leerFotoArchivo(ruta);
 };

@@ -105,8 +105,22 @@ export const registrarLog = async (
 
     let detallesFinales = null;
 
+    if (accion.includes('FOTO')) {
+      const datos = nuevos || anteriores || {};
+      detallesFinales = {
+        tipo: 'FOTO',
+        operacion: datos.operacion || (accion.startsWith('QUITAR') ? 'QUITAR' : (accion.startsWith('REEMPLAZAR') ? 'REEMPLAZAR' : 'SUBIR')),
+        imagen: datos.imagen || (accion.includes('REGISTRO') ? 'Foto de registro (ingreso)' : 'Foto de desarrollo (rotativa)'),
+        tipoFoto: datos.tipoFoto || (accion.includes('REGISTRO') ? 'registro' : 'desarrollo'),
+        archivoAnterior: datos.archivoAnterior ?? anteriores?.archivo ?? null,
+        archivoNuevo: datos.archivoNuevo ?? nuevos?.archivo ?? null,
+        snapshotAnterior: datos.snapshotAnterior || null,
+        snapshotNuevo: datos.snapshotNuevo || null,
+        numeroOrden: datos.numeroOrden || null,
+      };
+    }
     // ── CASO 1: CREACIÓN ──────────────────────────────────────────────────────
-    if (nuevos && !anteriores) {
+    else if (nuevos && !anteriores) {
       detallesFinales = {
         tipo:  'CREACION',
         datos: nuevos,

@@ -7,4 +7,5 @@ export const usuarioService = {
   toggleActivo: (id)          => api.patch(`/usuarios/${id}/toggle-activo`).then(r => r.data),
   eliminar:     (id)          => api.delete(`/usuarios/${id}`),
   listarLogs:   (params)      => api.get('/auditoria/logs', { params }).then(r => r.data),
+  descargarFotoLog: (ruta)    => api.get('/auditoria/foto', { params: { ruta }, responseType: 'blob' }).then(r => r.data),
 };

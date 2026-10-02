@@ -112,7 +112,14 @@ async function construirDocumento(orden, verPrecios) {
   if (verPrecios) {
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text(`INVERSIÓN TOTAL: S/ ${Number(orden.totalFinal).toFixed(2)}`, 130, currentY);
+    const totalMateriales = (orden.materiales || []).reduce(
+      (acc, m) => acc + Number(m.cantidad || 0) * Number(m.precioAplicado || 0),
+      0
+    );
+    const totalServicios = (orden.servicios || []).reduce((acc, s) => acc + Number(s.monto || 0), 0);
+    const totalTerceros = (orden.terceros || []).reduce((acc, t) => acc + Number(t.monto || 0), 0);
+    const total = Math.round((totalMateriales + totalServicios + totalTerceros) * 100) / 100;
+    doc.text(`INVERSIÓN TOTAL: S/ ${total.toFixed(2)}`, 130, currentY);
   }
 
   return doc;

@@ -1,11 +1,12 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { 
   X, PlusCircle, Trash2, RefreshCcw, ArrowRight,
   Package, Wrench, ExternalLink, Activity, Info,
-  User, Monitor
+  User, Monitor, Camera
 } from 'lucide-vue-next';
 import { labelEstadoOrden } from '../../../constants/estadosOrden.js';
+import { usuarioService } from '../../../services/usuarioService.js';
 
 const props = defineProps({ isOpen: Boolean, log: Object });
 const emit = defineEmits(['close']);
@@ -19,7 +20,64 @@ const data = computed(() => {
   } catch { return null; }
 });
 
-const estadoLabel = (val) => labelEstadoOrden(val);
+const vistaAnterior = ref('');
+const vistaNueva = ref('');
+const vistaAmpliada = ref('');
+const cargandoFotos = ref(false);
+let cargaSeq = 0;
+
+const revocarVistas = () => {
+  if (vistaAnterior.value) URL.revokeObjectURL(vistaAnterior.value);
+  if (vistaNueva.value) URL.revokeObjectURL(vistaNueva.value);
+  vistaAnterior.value = '';
+  vistaNueva.value = '';
+  vistaAmpliada.value = '';
+};
+
+const cargarVista = async (ruta) => {
+  if (!ruta) return '';
+  try {
+    const blob = await usuarioService.descargarFotoLog(ruta);
+    if (!blob || !(blob.type || '').startsWith('image/')) return '';
+    return URL.createObjectURL(blob);
+  } catch {
+    return '';
+  }
+};
+
+watch(
+  () => [props.isOpen, props.log?.id],
+  async ([abierto]) => {
+    const seq = ++cargaSeq;
+    revocarVistas();
+    if (!abierto || data.value?.tipo !== 'FOTO') return;
+    cargandoFotos.value = true;
+    try {
+      const [antes, despues] = await Promise.all([
+        cargarVista(data.value.snapshotAnterior),
+        cargarVista(data.value.snapshotNuevo),
+      ]);
+      if (seq !== cargaSeq) {
+        if (antes) URL.revokeObjectURL(antes);
+        if (despues) URL.revokeObjectURL(despues);
+        return;
+      }
+      vistaAnterior.value = antes;
+      vistaNueva.value = despues;
+    } finally {
+      if (seq === cargaSeq) cargandoFotos.value = false;
+    }
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(revocarVistas);
+
+const etiquetaOperacionFoto = (op) => {
+  if (op === 'REEMPLAZAR') return 'Se reemplazó la imagen';
+  if (op === 'QUITAR') return 'Se quitó la imagen';
+  return 'Se subió la imagen';
+};
 const ROL_LABELS  = {
   ADMIN: 'Administrador', SUPERVISOR: 'Supervisor', TECNICO: 'Técnico', RECEPCIONISTA: 'Recepcionista'
 };
@@ -46,7 +104,7 @@ const formatFecha = (val) => {
 const formatVal = (key, val) => {
   if (val === null || val === undefined) return '—';
   if (typeof val === 'object') return '—';
-  if (key === 'estado')  return estadoLabel(val);
+  if (key === 'estado')  return labelEstadoOrden(val);
   if (key === 'rol')     return rolLabel(val);
   if (key === 'activo')  return val ? 'Activo' : 'Inactivo';
   if (['totalFinal', 'precioBase', 'monto'].includes(key))
@@ -65,6 +123,7 @@ const accionConfig = (accion) => {
 // ── Tipo de acción ────────────────────────────────────────────────────────────
 const tipoAccion = computed(() => {
   const a = props.log?.accion || '';
+  if (a.includes('FOTO'))      return 'foto';
   if (a.includes('MATERIAL'))  return 'material';
   if (a.includes('SERVICIO'))  return 'servicio';
   if (a.includes('TERCERO'))   return 'tercero';
@@ -75,7 +134,7 @@ const tipoAccion = computed(() => {
 
 const labelTipo = computed(() => ({
   material: 'Material', servicio: 'Servicio', tercero: 'Tercero',
-  orden: 'Orden', usuario: 'Usuario', otro: 'Registro'
+  orden: 'Orden', usuario: 'Usuario', foto: 'Foto', otro: 'Registro'
 })[tipoAccion.value]);
 
 // ── Título contextual del ítem afectado ───────────────────────────────────────
@@ -84,7 +143,7 @@ const tituloItem = computed(() => {
   if (!data.value) return null;
   const d = data.value;
 
-  // Edición — nombre del ítem guardado por el backend
+  if (d.tipo === 'FOTO' && d.imagen) return d.imagen;
   if (d.tipo === 'EDICION' && d.nombreItem) return d.nombreItem;
 
   // Creación de orden — número de orden desde el log
@@ -271,8 +330,62 @@ const listas = computed(() => {
 
         <div class="p-8 space-y-6">
 
+          <!-- ── FOTO ────────────────────────────────────────────────────── -->
+          <template v-if="data?.tipo === 'FOTO'">
+            <div class="flex items-center gap-2" :class="data.operacion === 'QUITAR' ? 'text-red-500' : 'text-lyer-green'">
+              <Camera class="w-4 h-4" />
+              <span class="text-[10px] font-black uppercase tracking-widest">{{ etiquetaOperacionFoto(data.operacion) }}</span>
+            </div>
+            <div class="p-5 rounded-2xl border border-slate-100 bg-slate-50 space-y-4">
+              <p class="text-sm font-black text-slate-800 uppercase">{{ data.imagen }}</p>
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {{ data.tipoFoto === 'registro' ? 'Foto inicial de ingreso' : 'Foto rotativa de desarrollo' }}
+              </p>
+
+              <div v-if="cargandoFotos" class="py-8 text-center">
+                <span class="loading loading-ring loading-md text-lyer-green" />
+              </div>
+
+              <div v-else-if="data.operacion === 'REEMPLAZAR'" class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                  <p class="text-[9px] font-black text-slate-400 uppercase">Anterior</p>
+                  <button type="button" class="aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center"
+                    :disabled="!vistaAnterior" @click="vistaAmpliada = vistaAnterior">
+                    <img v-if="vistaAnterior" :src="vistaAnterior" alt="Foto anterior" class="w-full h-full object-contain" />
+                    <p v-else class="text-[10px] font-bold text-slate-300 uppercase px-2 text-center">Sin copia anterior</p>
+                  </button>
+                </div>
+                <div class="space-y-1.5">
+                  <p class="text-[9px] font-black text-lyer-green uppercase">Nueva</p>
+                  <button type="button" class="aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-emerald-100 flex items-center justify-center"
+                    :disabled="!vistaNueva" @click="vistaAmpliada = vistaNueva">
+                    <img v-if="vistaNueva" :src="vistaNueva" alt="Foto nueva" class="w-full h-full object-contain" />
+                    <p v-else class="text-[10px] font-bold text-slate-300 uppercase px-2 text-center">Sin copia nueva</p>
+                  </button>
+                </div>
+              </div>
+
+              <div v-else-if="data.operacion === 'QUITAR'">
+                <p class="text-[9px] font-black text-red-400 uppercase mb-1.5">Imagen quitada</p>
+                <button type="button" class="aspect-[4/3] max-w-xs w-full rounded-xl overflow-hidden bg-white border border-red-100 flex items-center justify-center"
+                  :disabled="!vistaAnterior" @click="vistaAmpliada = vistaAnterior">
+                  <img v-if="vistaAnterior" :src="vistaAnterior" alt="Foto quitada" class="w-full h-full object-contain" />
+                  <p v-else class="text-[10px] font-bold text-slate-300 uppercase">No hay copia de la imagen</p>
+                </button>
+              </div>
+
+              <div v-else>
+                <button type="button" class="aspect-[4/3] max-w-xs w-full rounded-xl overflow-hidden bg-white border border-emerald-100 flex items-center justify-center"
+                  :disabled="!vistaNueva" @click="vistaAmpliada = vistaNueva">
+                  <img v-if="vistaNueva" :src="vistaNueva" alt="Foto subida" class="w-full h-full object-contain" />
+                  <p v-else class="text-[10px] font-bold text-slate-300 uppercase">No hay copia de la imagen</p>
+                </button>
+              </div>
+            </div>
+          </template>
+
           <!-- ── CREACIÓN ────────────────────────────────────────────────── -->
-          <template v-if="data?.tipo === 'CREACION'">
+          <template v-else-if="data?.tipo === 'CREACION'">
             <div class="flex items-center gap-2 text-emerald-600">
               <PlusCircle class="w-4 h-4" />
               <span class="text-[10px] font-black uppercase tracking-widest">Datos Registrados</span>
@@ -487,6 +600,12 @@ const listas = computed(() => {
         </button>
       </div>
     </div>
+    <Teleport to="body">
+      <div v-if="vistaAmpliada" class="fixed inset-0 z-[2000] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+        @click="vistaAmpliada = ''">
+        <img :src="vistaAmpliada" alt="Foto ampliada" class="max-w-full max-h-[90vh] rounded-xl object-contain shadow-2xl" />
+      </div>
+    </Teleport>
   </div>
 </template>
 
