@@ -1,7 +1,15 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { calcularTotalOrden } from '../utils/money.js';
-import { registrarLog } from '../utils/logger.js';
+import { registrarLog, registrarEventos } from '../utils/logger.js';
+import {
+  eventosPasoVehiculo,
+  eventosPasoCliente,
+  eventosTrabajoBorrador,
+  eventosEliminarBorrador,
+  eventosActualizarTaller,
+  eventoEstado,
+} from '../utils/eventosAuditoria.js';
 import {
   TIPOS_FOTO,
   guardarFotoArchivo,
@@ -40,7 +48,7 @@ const upsertCliente = async (tx, clienteInput, { actualizarDatos = false } = {})
   const data = normalizarClienteInput(clienteInput);
   const existente = await tx.cliente.findUnique({ where: { numeroDocumento: data.numeroDocumento } });
   if (existente) {
-    if (!actualizarDatos) return { cliente: existente, eraNuevo: false };
+    if (!actualizarDatos) return { cliente: existente, eraNuevo: false, seActualizo: false, anterior: null };
     const cliente = await tx.cliente.update({
       where: { id: existente.id },
       data: {
@@ -52,10 +60,10 @@ const upsertCliente = async (tx, clienteInput, { actualizarDatos = false } = {})
         correo: data.correo,
       },
     });
-    return { cliente, eraNuevo: false };
+    return { cliente, eraNuevo: false, seActualizo: true, anterior: existente };
   }
   const cliente = await tx.cliente.create({ data });
-  return { cliente, eraNuevo: true };
+  return { cliente, eraNuevo: true, seActualizo: false, anterior: null };
 };
 
 const upsertVehiculo = async (tx, vehiculoInput, { actualizarDatos = false } = {}) => {
@@ -69,7 +77,7 @@ const upsertVehiculo = async (tx, vehiculoInput, { actualizarDatos = false } = {
     include: { marca: true },
   });
   if (existente) {
-    if (!actualizarDatos) return { vehiculo: existente, eraNuevo: false };
+    if (!actualizarDatos) return { vehiculo: existente, eraNuevo: false, seActualizo: false, anterior: null };
     const vehiculo = await tx.vehiculo.update({
       where: { placa },
       data: {
@@ -80,7 +88,7 @@ const upsertVehiculo = async (tx, vehiculoInput, { actualizarDatos = false } = {
       },
       include: { marca: true },
     });
-    return { vehiculo, eraNuevo: false };
+    return { vehiculo, eraNuevo: false, seActualizo: true, anterior: existente };
   }
 
   const vehiculo = await tx.vehiculo.create({
@@ -93,7 +101,7 @@ const upsertVehiculo = async (tx, vehiculoInput, { actualizarDatos = false } = {
     },
     include: { marca: true },
   });
-  return { vehiculo, eraNuevo: true };
+  return { vehiculo, eraNuevo: true, seActualizo: false, anterior: null };
 };
 
 const siguienteNumeroOrden = async (tx) => {
@@ -108,16 +116,16 @@ const siguienteNumeroOrden = async (tx) => {
 
 /** Crear borrador OT (recepción) → estado EN_ESPERA */
 export const crearBorradorOrden = async (data, req) => {
-  const resultado = await prisma.$transaction(async (tx) => {
-    const { cliente } = await upsertCliente(tx, data.cliente, { actualizarDatos: true });
-    const { vehiculo } = await upsertVehiculo(tx, data.vehiculo, { actualizarDatos: true });
+  const { orden, eventos } = await prisma.$transaction(async (tx) => {
+    const vehiculoGuardado = await upsertVehiculo(tx, data.vehiculo, { actualizarDatos: true });
+    const clienteGuardado = await upsertCliente(tx, data.cliente, { actualizarDatos: true });
     const numeroOrden = await siguienteNumeroOrden(tx);
 
     const orden = await tx.ordenTrabajo.create({
       data: {
         numeroOrden,
-        clienteId: cliente.id,
-        placa: vehiculo.placa,
+        clienteId: clienteGuardado.cliente.id,
+        placa: vehiculoGuardado.vehiculo.placa,
         descripcionInformal: data.descripcionInformal?.trim() || null,
         trabajoSolicitado: data.trabajoSolicitado?.trim() || null,
         estadoIngreso: data.estadoIngreso || 'ACEPTADO',
@@ -131,27 +139,45 @@ export const crearBorradorOrden = async (data, req) => {
       include: includeOrdenDetalle,
     });
 
-    return orden;
+    const ordenVacia = { clienteId: null, cliente: null, pasoRecepcion: 1 };
+    const eventos = [
+      ...eventosPasoVehiculo({
+        ordenPrevia: null,
+        orden,
+        vehiculo: vehiculoGuardado.vehiculo,
+        eraNuevo: vehiculoGuardado.eraNuevo,
+        seActualizo: vehiculoGuardado.seActualizo,
+        anterior: vehiculoGuardado.anterior,
+      }),
+      ...eventosPasoCliente({
+        ordenPrevia: ordenVacia,
+        orden,
+        cliente: clienteGuardado.cliente,
+        eraNuevo: clienteGuardado.eraNuevo,
+        seActualizo: clienteGuardado.seActualizo,
+        anterior: clienteGuardado.anterior,
+      }),
+      ...eventosTrabajoBorrador({ ordenPrevia: ordenVacia, orden, data }),
+    ];
+
+    return { orden, eventos };
   });
 
-  await registrarLog(req, 'CREAR BORRADOR ORDEN', {
-    numeroOrden: resultado.numeroOrden,
-    placa: resultado.placa,
-    cliente: resultado.cliente.nombreRazonSocial,
-    estadoIngreso: resultado.estadoIngreso,
-  }, null, resultado.id);
-
-  return resultado;
+  await registrarEventos(req, eventos, orden.id);
+  return orden;
 };
 
 /** Paso 1: guardar vehículo y crear/actualizar borrador incompleto */
 export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = false }, req) => {
   const ordenId = id ? parseInt(id) : null;
 
-  const resultado = await prisma.$transaction(async (tx) => {
+  const { orden, eventos } = await prisma.$transaction(async (tx) => {
     let ordenPrevia = null;
     if (ordenId) {
-      ordenPrevia = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } });
+      ordenPrevia = await tx.ordenTrabajo.findUnique({
+        where: { id: ordenId },
+        include: { vehiculo: { include: { marca: true } } },
+      });
       if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
       if (ordenPrevia.estado !== 'EN_ESPERA') {
         throw new AppError('Solo se puede editar el vehículo en un borrador de recepción.');
@@ -164,19 +190,19 @@ export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = fals
     const puedeActualizar = actualizarDatos && (
       !ordenPrevia || ordenPrevia.vehiculoEditableEnBorrador
     );
-    const { vehiculo: veh, eraNuevo } = await upsertVehiculo(tx, vehiculo, {
+    const guardado = await upsertVehiculo(tx, vehiculo, {
       actualizarDatos: !!puedeActualizar,
     });
+    const veh = guardado.vehiculo;
 
-    const editable = eraNuevo
+    const editable = guardado.eraNuevo
       || !!puedeActualizar
       || (!!ordenPrevia && ordenPrevia.placa === veh.placa && ordenPrevia.vehiculoEditableEnBorrador);
 
-    if (!ordenPrevia) {
-      const numeroOrden = await siguienteNumeroOrden(tx);
-      return tx.ordenTrabajo.create({
+    const orden = !ordenPrevia
+      ? await tx.ordenTrabajo.create({
         data: {
-          numeroOrden,
+          numeroOrden: await siguienteNumeroOrden(tx),
           placa: veh.placa,
           estado: 'EN_ESPERA',
           pasoRecepcion: 1,
@@ -186,35 +212,43 @@ export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = fals
           totalFinal: 0,
         },
         include: includeOrdenDetalle,
+      })
+      : await tx.ordenTrabajo.update({
+        where: { id: ordenId },
+        data: {
+          placa: veh.placa,
+          pasoRecepcion: Math.max(ordenPrevia.pasoRecepcion || 1, 1),
+          vehiculoEditableEnBorrador: editable,
+        },
+        include: includeOrdenDetalle,
       });
-    }
 
-    return tx.ordenTrabajo.update({
-      where: { id: ordenId },
-      data: {
-        placa: veh.placa,
-        pasoRecepcion: Math.max(ordenPrevia.pasoRecepcion || 1, 1),
-        vehiculoEditableEnBorrador: editable,
-      },
-      include: includeOrdenDetalle,
-    });
+    return {
+      orden,
+      eventos: eventosPasoVehiculo({
+        ordenPrevia,
+        orden,
+        vehiculo: veh,
+        eraNuevo: guardado.eraNuevo,
+        seActualizo: guardado.seActualizo,
+        anterior: guardado.anterior,
+      }),
+    };
   });
 
-  await registrarLog(req, 'BORRADOR PASO VEHÍCULO', {
-    numeroOrden: resultado.numeroOrden,
-    placa: resultado.placa,
-    pasoRecepcion: resultado.pasoRecepcion,
-  }, null, resultado.id);
-
-  return resultado;
+  await registrarEventos(req, eventos, orden.id);
+  return orden;
 };
 
 /** Paso 2: asociar cliente al borrador */
 export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false }, req) => {
   const ordenId = parseInt(id);
 
-  const resultado = await prisma.$transaction(async (tx) => {
-    const ordenPrevia = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } });
+  const { orden, eventos } = await prisma.$transaction(async (tx) => {
+    const ordenPrevia = await tx.ordenTrabajo.findUnique({
+      where: { id: ordenId },
+      include: { cliente: true },
+    });
     if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
     if (ordenPrevia.estado !== 'EN_ESPERA') {
       throw new AppError('Solo se puede editar el cliente en un borrador de recepción.');
@@ -225,15 +259,16 @@ export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false 
     if (!ordenPrevia.placa) throw new AppError('Primero registra el vehículo.');
 
     const puedeActualizar = actualizarDatos && ordenPrevia.clienteEditableEnBorrador;
-    const { cliente: cli, eraNuevo } = await upsertCliente(tx, cliente, {
+    const guardado = await upsertCliente(tx, cliente, {
       actualizarDatos: !!puedeActualizar,
     });
+    const cli = guardado.cliente;
 
-    const editable = eraNuevo
+    const editable = guardado.eraNuevo
       || !!puedeActualizar
       || (ordenPrevia.clienteId === cli.id && ordenPrevia.clienteEditableEnBorrador);
 
-    return tx.ordenTrabajo.update({
+    const orden = await tx.ordenTrabajo.update({
       where: { id: ordenId },
       data: {
         clienteId: cli.id,
@@ -242,22 +277,29 @@ export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false 
       },
       include: includeOrdenDetalle,
     });
+
+    return {
+      orden,
+      eventos: eventosPasoCliente({
+        ordenPrevia,
+        orden,
+        cliente: cli,
+        eraNuevo: guardado.eraNuevo,
+        seActualizo: guardado.seActualizo,
+        anterior: guardado.anterior,
+      }),
+    };
   });
 
-  await registrarLog(req, 'BORRADOR PASO CLIENTE', {
-    numeroOrden: resultado.numeroOrden,
-    cliente: resultado.cliente?.nombreRazonSocial,
-    pasoRecepcion: resultado.pasoRecepcion,
-  }, null, resultado.id);
-
-  return resultado;
+  await registrarEventos(req, eventos, orden.id);
+  return orden;
 };
 
 /** Paso 3: completar recepción (queda EN_ESPERA listo para aceptar) */
 export const completarRecepcion = async (id, data, req) => {
   const ordenId = parseInt(id);
 
-  const resultado = await prisma.$transaction(async (tx) => {
+  const { orden, eventos } = await prisma.$transaction(async (tx) => {
     const ordenPrevia = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } });
     if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
     if (ordenPrevia.estado !== 'EN_ESPERA') {
@@ -266,7 +308,7 @@ export const completarRecepcion = async (id, data, req) => {
     if (!ordenPrevia.placa) throw new AppError('Falta el vehículo.');
     if (!ordenPrevia.clienteId) throw new AppError('Falta el cliente.');
 
-    return tx.ordenTrabajo.update({
+    const orden = await tx.ordenTrabajo.update({
       where: { id: ordenId },
       data: {
         descripcionInformal: data.descripcionInformal?.trim() || null,
@@ -279,14 +321,15 @@ export const completarRecepcion = async (id, data, req) => {
       },
       include: includeOrdenDetalle,
     });
+
+    return {
+      orden,
+      eventos: eventosTrabajoBorrador({ ordenPrevia, orden, data }),
+    };
   });
 
-  await registrarLog(req, 'COMPLETAR RECEPCIÓN', {
-    numeroOrden: resultado.numeroOrden,
-    estadoIngreso: resultado.estadoIngreso,
-  }, null, resultado.id);
-
-  return resultado;
+  await registrarEventos(req, eventos, orden.id);
+  return orden;
 };
 
 export const listarOrdenes = async () => {
@@ -515,17 +558,11 @@ export const actualizarOrden = async (id, data, req) => {
     });
   });
 
-  await registrarLog(req, 'ACTUALIZAR ORDEN', {
-    estado: resultado.estado,
-    cliente: resultado.cliente.nombreRazonSocial,
-    placa: resultado.placa,
-    totalFinal: resultado.totalFinal,
-  }, {
-    estado: ordenPrevia.estado,
-    cliente: ordenPrevia.cliente.nombreRazonSocial,
-    placa: ordenPrevia.placa,
-    totalFinal: ordenPrevia.totalFinal,
-  }, id);
+  await registrarEventos(
+    req,
+    eventosActualizarTaller({ antes: ordenPrevia, despues: resultado }),
+    id
+  );
 
   return resultado;
 };
@@ -574,13 +611,9 @@ export const actualizarEstadoOrden = async (id, payload, req) => {
     include: includeOrdenLista,
   });
 
-  await registrarLog(
-    req,
-    'CAMBIO DE ESTADO',
-    { estado, requiereFactura, numeroFactura, montoFactura },
-    { estado: ordenPrevia.estado },
-    id
-  );
+  await registrarEventos(req, [
+    eventoEstado(ordenPrevia.estado, actualizada.estado),
+  ], id);
 
   return actualizada;
 };
@@ -637,13 +670,21 @@ export const eliminarOrden = async (id, req) => {
   // Siempre borrar fotos de la orden (registro + desarrollo) para no dejar basura en disco
   await borrarCarpetaOrden(id);
 
-  await registrarLog(req, 'ELIMINAR ORDEN', null, {
-    numeroOrden: ordenPrevia.numeroOrden,
-    cliente: ordenPrevia.cliente?.nombreRazonSocial,
-    placa: ordenPrevia.placa,
-    limpioVehiculoNuevo: !!placaABorrar,
-    limpioClienteNuevo: !!clienteABorrar,
-  }, null);
+  if (ordenPrevia.estado === 'EN_ESPERA') {
+    await registrarEventos(req, eventosEliminarBorrador({
+      orden: ordenPrevia,
+      eliminoVehiculo: !!placaABorrar,
+      eliminoCliente: !!clienteABorrar,
+    }), null);
+  } else {
+    await registrarLog(req, 'ELIMINAR ORDEN', null, {
+      numeroOrden: ordenPrevia.numeroOrden,
+      cliente: ordenPrevia.cliente?.nombreRazonSocial,
+      placa: ordenPrevia.placa,
+      limpioVehiculoNuevo: !!placaABorrar,
+      limpioClienteNuevo: !!clienteABorrar,
+    }, null);
+  }
 
   return { message: 'Orden eliminada exitosamente' };
 };

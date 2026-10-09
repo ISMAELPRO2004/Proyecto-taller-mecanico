@@ -40,7 +40,7 @@ export const listarLogs = async (query = {}) => {
           },
         },
       },
-      orderBy: { fecha: 'desc' },
+      orderBy: [{ fecha: 'desc' }, { id: 'desc' }],
       skip,
       take,
     }),

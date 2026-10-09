@@ -1,6 +1,13 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
-import { registrarLog } from '../utils/logger.js';
+import { registrarEventos } from '../utils/logger.js';
+import {
+  eventoNuevo,
+  eventoCambio,
+  eventoBorrado,
+  filasDeCliente,
+  cambiosDeCliente,
+} from '../utils/eventosAuditoria.js';
 
 export const listarClientes = async (q, { todos = false } = {}) => {
   const where = q
@@ -40,7 +47,9 @@ export const actualizarCliente = async (id, data, req) => {
       where: { id: parseInt(id) },
       data: payload,
     });
-    await registrarLog(req, 'EDITAR CLIENTE', payload, existente);
+    await registrarEventos(req, [
+      eventoCambio('EDITAR CLIENTE', cliente.nombreRazonSocial, cambiosDeCliente(existente, cliente)),
+    ]);
     return cliente;
   } catch {
     throw new AppError('No se pudo actualizar. El documento puede estar en uso.');
@@ -58,7 +67,9 @@ export const eliminarCliente = async (id, req) => {
   }
 
   await prisma.cliente.delete({ where: { id: cliente.id } });
-  await registrarLog(req, 'ELIMINAR CLIENTE', null, cliente);
+  await registrarEventos(req, [
+    eventoBorrado('ELIMINAR CLIENTE', cliente.nombreRazonSocial, filasDeCliente(cliente)),
+  ]);
   return { message: 'Cliente eliminado' };
 };
 
@@ -81,12 +92,20 @@ export const crearOActualizarCliente = async (data, req) => {
     correo: data.correo?.trim() || null,
   };
 
+  const anterior = await prisma.cliente.findUnique({
+    where: { numeroDocumento: payload.numeroDocumento },
+  });
+
   const cliente = await prisma.cliente.upsert({
     where: { numeroDocumento: payload.numeroDocumento },
     update: payload,
     create: payload,
   });
 
-  await registrarLog(req, 'UPSERT CLIENTE', payload);
+  await registrarEventos(req, [
+    anterior
+      ? eventoCambio('EDITAR CLIENTE', cliente.nombreRazonSocial, cambiosDeCliente(anterior, cliente))
+      : eventoNuevo('CREAR CLIENTE', cliente.nombreRazonSocial, filasDeCliente(cliente)),
+  ]);
   return cliente;
 };

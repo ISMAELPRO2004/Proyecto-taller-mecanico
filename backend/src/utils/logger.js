@@ -187,3 +187,36 @@ export const registrarLog = async (
     console.error('❌ Error en auditoría:', error.message);
   }
 };
+
+/**
+ * Guarda varios logs de una misma acción (por ejemplo crear vehículo y crear borrador).
+ * Cada evento ya trae sus filas: datos nuevos, o antes y después.
+ */
+export const registrarEventos = async (req, eventos = [], ordenId = null) => {
+  req.logManualRealizado = true;
+  const userId = req.user?.id;
+  const lista = (eventos || []).filter(Boolean);
+  if (!userId || lista.length === 0) return;
+
+  try {
+    for (const evento of lista) {
+      await prisma.logActividad.create({
+        data: {
+          usuarioId: userId,
+          accion: evento.accion,
+          ordenId: ordenId ? parseInt(ordenId) : null,
+          detalles: {
+            tipo: 'DETALLE',
+            modo: evento.modo,
+            resumen: evento.resumen || null,
+            filas: evento.filas || [],
+          },
+          ipCliente: obtenerIp(req),
+          userAgent: req.headers['user-agent'] ?? null,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error en auditoría:', error.message);
+  }
+};

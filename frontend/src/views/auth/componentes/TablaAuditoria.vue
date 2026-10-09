@@ -1,5 +1,6 @@
 <script setup>
 import { Clock, Eye } from 'lucide-vue-next';
+import { fechaHora } from '../../../utils/fecha.js';
 
 defineProps({
   logs: { type: Array, default: () => [] },
@@ -7,6 +8,13 @@ defineProps({
 });
 
 defineEmits(['verDetalle']);
+
+const resumenLog = (log) => {
+  const detalles = typeof log?.detalles === 'string'
+    ? (() => { try { return JSON.parse(log.detalles); } catch { return null; } })()
+    : log?.detalles;
+  return detalles?.resumen || '';
+};
 </script>
 
 <template>
@@ -27,7 +35,7 @@ defineEmits(['verDetalle']);
             <div class="flex items-center gap-2 mb-1.5">
               <Clock class="w-3.5 h-3.5 text-slate-300" />
               <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                {{ new Date(l.fecha).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }) }}
+                {{ fechaHora(l.fecha) }}
               </span>
             </div>
 
@@ -42,6 +50,7 @@ defineEmits(['verDetalle']);
               <span class="px-2 py-1 bg-white rounded-lg text-[9px] font-black text-lyer-green border border-slate-200 uppercase tracking-tighter shadow-sm">
                 {{ l.accion }}
               </span>
+              <span v-if="resumenLog(l)" class="text-[10px] font-bold text-slate-500">{{ resumenLog(l) }}</span>
               <span v-if="l.orden" class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
                 OT: {{ l.orden.numeroOrden }}
               </span>
@@ -84,7 +93,7 @@ defineEmits(['verDetalle']);
               <td class="pl-8 text-[11px] font-bold py-4">
                 <div class="flex items-center gap-2">
                   <Clock class="w-3.5 h-3.5 text-slate-300" />
-                  {{ new Date(l.fecha).toLocaleString('es-PE') }}
+                  {{ fechaHora(l.fecha) }}
                 </div>
               </td>
               <td class="py-4">
@@ -95,6 +104,7 @@ defineEmits(['verDetalle']);
                 <span class="px-3 py-1.5 bg-white rounded-lg text-[10px] font-black text-lyer-green border border-slate-200 uppercase tracking-tighter shadow-sm">
                   {{ l.accion }}
                 </span>
+                <p v-if="resumenLog(l)" class="mt-1 text-[10px] font-bold text-slate-500">{{ resumenLog(l) }}</p>
               </td>
               <td class="py-4 text-[10px] font-bold text-slate-400">
                 <span v-if="l.orden" class="bg-slate-100 px-2 py-1 rounded-md">{{ l.orden.numeroOrden }}</span>

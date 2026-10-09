@@ -7,6 +7,7 @@ import {
 } from 'lucide-vue-next';
 import { labelEstadoOrden } from '../../../constants/estadosOrden.js';
 import { usuarioService } from '../../../services/usuarioService.js';
+import { fechaHora } from '../../../utils/fecha.js';
 
 const props = defineProps({ isOpen: Boolean, log: Object });
 const emit = defineEmits(['close']);
@@ -92,6 +93,10 @@ const CAMPO_LABELS = {
   nombreCompleto: 'Nombre Completo', username: 'Usuario',
   rol: 'Rol', activo: 'Estado de Cuenta',
   descripcion: 'Descripción', precioBase: 'Precio Base',
+  nombre: 'Nombre', nombreRazonSocial: 'Nombre',
+  tipoCliente: 'Tipo', tipoDocumento: 'Tipo de documento',
+  numeroDocumento: 'Número de documento', representante: 'Representante',
+  celular: 'Celular', correo: 'Correo',
 };
 const campoLabel = (key) => CAMPO_LABELS[key] || key;
 
@@ -103,6 +108,8 @@ const formatFecha = (val) => {
 
 const formatVal = (key, val) => {
   if (val === null || val === undefined) return '—';
+  if (key === 'marca' && typeof val === 'object') return val.nombre || '—';
+  if (key === 'tipoCliente') return val === 'EMPRESA' ? 'Empresa' : val === 'PERSONA' ? 'Persona' : String(val);
   if (typeof val === 'object') return '—';
   if (key === 'estado')  return labelEstadoOrden(val);
   if (key === 'rol')     return rolLabel(val);
@@ -124,6 +131,9 @@ const accionConfig = (accion) => {
 const tipoAccion = computed(() => {
   const a = props.log?.accion || '';
   if (a.includes('FOTO'))      return 'foto';
+  if (a.includes('MARCA'))     return 'marca';
+  if (a.includes('CLIENTE'))   return 'cliente';
+  if (a.includes('VEHICUL'))   return 'vehiculo';
   if (a.includes('MATERIAL'))  return 'material';
   if (a.includes('SERVICIO'))  return 'servicio';
   if (a.includes('TERCERO'))   return 'tercero';
@@ -134,7 +144,8 @@ const tipoAccion = computed(() => {
 
 const labelTipo = computed(() => ({
   material: 'Material', servicio: 'Servicio', tercero: 'Tercero',
-  orden: 'Orden', usuario: 'Usuario', foto: 'Foto', otro: 'Registro'
+  orden: 'Orden', usuario: 'Usuario', foto: 'Foto',
+  marca: 'Marca', cliente: 'Cliente', vehiculo: 'Vehículo', otro: 'Registro'
 })[tipoAccion.value]);
 
 // ── Título contextual del ítem afectado ───────────────────────────────────────
@@ -143,6 +154,7 @@ const tituloItem = computed(() => {
   if (!data.value) return null;
   const d = data.value;
 
+  if (d.tipo === 'DETALLE' && d.resumen) return d.resumen;
   if (d.tipo === 'FOTO' && d.imagen) return d.imagen;
   if (d.tipo === 'EDICION' && d.nombreItem) return d.nombreItem;
 
@@ -151,6 +163,9 @@ const tituloItem = computed(() => {
     return props.log.orden.numeroOrden;
 
   // Creación de catálogo — descripcion
+  if (d.tipo === 'CREACION' && (d.datos?.nombre || d.datos?.nombreRazonSocial || d.datos?.placa))
+    return d.datos.nombre || d.datos.nombreRazonSocial || d.datos.placa;
+
   if (d.tipo === 'CREACION' && d.datos?.descripcion)
     return d.datos.descripcion;
 
@@ -159,6 +174,9 @@ const tituloItem = computed(() => {
     return d.datos.nombreCompleto;
 
   // Eliminación
+  if (d.tipo === 'ELIMINACION' && (d.datos_borrados?.nombre || d.datos_borrados?.nombreRazonSocial || d.datos_borrados?.placa))
+    return d.datos_borrados.nombre || d.datos_borrados.nombreRazonSocial || d.datos_borrados.placa;
+
   if (d.tipo === 'ELIMINACION' && d.datos_borrados?.descripcion)
     return d.datos_borrados.descripcion;
   if (d.tipo === 'ELIMINACION' && d.datos_borrados?.clienteNombre)
@@ -173,6 +191,17 @@ const CAMPOS_ORDEN     = ['clienteNombre', 'clienteCelular', 'trabajoSolicitado'
                           'placa', 'marca', 'modelo', 'horometro', 'kilometraje',
                           'estado', 'responsable'];
 const CAMPOS_USUARIO   = ['nombreCompleto', 'username', 'rol'];
+const CAMPOS_MARCA     = ['nombre'];
+const CAMPOS_CLIENTE   = ['tipoCliente', 'tipoDocumento', 'numeroDocumento', 'nombreRazonSocial', 'representante', 'celular', 'correo'];
+const CAMPOS_VEHICULO  = ['placa', 'marca', 'modelo', 'horometro', 'kilometraje'];
+
+const camposSegunTipo = (tipo) => ({
+  orden: CAMPOS_ORDEN,
+  usuario: CAMPOS_USUARIO,
+  marca: CAMPOS_MARCA,
+  cliente: CAMPOS_CLIENTE,
+  vehiculo: CAMPOS_VEHICULO,
+}[tipo] || CAMPOS_CATALOGO);
 
 const datosCreacion = computed(() => {
   if (data.value?.tipo !== 'CREACION')
@@ -180,13 +209,7 @@ const datosCreacion = computed(() => {
 
   const datos = data.value.datos || {};
   const tipo  = tipoAccion.value;
-
-  // Seleccionar qué campos mostrar según tipo
-  let lista = tipo === 'orden'
-    ? CAMPOS_ORDEN
-    : tipo === 'usuario'
-      ? CAMPOS_USUARIO
-      : CAMPOS_CATALOGO;
+  const lista = camposSegunTipo(tipo);
 
   const campos = lista
     .filter(k => datos[k] !== undefined && datos[k] !== null && datos[k] !== '')
@@ -225,12 +248,7 @@ const datosEliminacion = computed(() => {
 
   const datos = data.value.datos_borrados || {};
   const tipo  = tipoAccion.value;
-
-  let lista = tipo === 'orden'
-    ? CAMPOS_ORDEN
-    : tipo === 'usuario'
-      ? CAMPOS_USUARIO
-      : CAMPOS_CATALOGO;
+  const lista = camposSegunTipo(tipo);
 
   const campos = lista
     .filter(k => datos[k] !== undefined && datos[k] !== null && datos[k] !== '')
@@ -300,7 +318,7 @@ const listas = computed(() => {
               {{ tituloItem }}
             </p>
             <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-              {{ log ? new Date(log.fecha).toLocaleString('es-PE') : '' }}
+              {{ log ? fechaHora(log.fecha) : '' }}
             </p>
           </div>
         </div>
@@ -330,8 +348,45 @@ const listas = computed(() => {
 
         <div class="p-8 space-y-6">
 
+          <!-- ── DETALLE (borrador y registros sueltos) ─────────────────── -->
+          <template v-if="data?.tipo === 'DETALLE'">
+            <div class="flex items-center gap-2" :class="data.modo === 'borrado' ? 'text-red-500' : data.modo === 'cambio' ? 'text-amber-600' : 'text-emerald-600'">
+              <PlusCircle v-if="data.modo === 'nuevo'" class="w-4 h-4" />
+              <Trash2 v-else-if="data.modo === 'borrado'" class="w-4 h-4" />
+              <RefreshCcw v-else class="w-4 h-4" />
+              <span class="text-[10px] font-black uppercase tracking-widest">
+                {{ data.modo === 'nuevo' ? 'Registro nuevo' : data.modo === 'borrado' ? 'Se eliminó' : 'Antes y después' }}
+              </span>
+            </div>
+
+            <div v-if="data.modo === 'cambio'" class="space-y-3">
+              <div v-for="fila in data.filas" :key="fila.etiqueta"
+                class="flex items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <span class="text-[9px] font-black text-slate-400 uppercase w-36 shrink-0">{{ fila.etiqueta }}</span>
+                <div class="flex items-center gap-3 text-xs font-bold min-w-0">
+                  <span class="opacity-40 line-through truncate">{{ fila.de }}</span>
+                  <ArrowRight class="w-3 h-3 text-lyer-green shrink-0" />
+                  <span class="text-lyer-green truncate">{{ fila.a }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div v-for="fila in data.filas" :key="fila.etiqueta"
+                :class="['p-4 rounded-2xl border', data.modo === 'borrado' ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100']">
+                <span class="block text-[8px] font-black uppercase opacity-60 mb-1"
+                  :class="data.modo === 'borrado' ? 'text-red-500' : 'text-emerald-700'">
+                  {{ fila.etiqueta }}
+                </span>
+                <span class="text-xs font-bold" :class="data.modo === 'borrado' ? 'text-red-800' : 'text-slate-700'">
+                  {{ fila.valor }}
+                </span>
+              </div>
+            </div>
+          </template>
+
           <!-- ── FOTO ────────────────────────────────────────────────────── -->
-          <template v-if="data?.tipo === 'FOTO'">
+          <template v-else-if="data?.tipo === 'FOTO'">
             <div class="flex items-center gap-2" :class="data.operacion === 'QUITAR' ? 'text-red-500' : 'text-lyer-green'">
               <Camera class="w-4 h-4" />
               <span class="text-[10px] font-black uppercase tracking-widest">{{ etiquetaOperacionFoto(data.operacion) }}</span>

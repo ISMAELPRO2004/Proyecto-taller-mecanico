@@ -1,6 +1,14 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
-import { registrarLog } from '../utils/logger.js';
+import { registrarEventos } from '../utils/logger.js';
+import {
+  eventoNuevo,
+  eventoCambio,
+  eventoBorrado,
+  filasPresentes,
+  filasDeVehiculo,
+  cambiosDeVehiculo,
+} from '../utils/eventosAuditoria.js';
 
 export const listarMarcas = async () => {
   return prisma.marcaVehiculo.findMany({
@@ -18,7 +26,9 @@ export const actualizarMarca = async (id, { nombre }, req) => {
       where: { id: parseInt(id) },
       data: { nombre: nombre.trim() },
     });
-    await registrarLog(req, 'EDITAR MARCA', marca, anterior);
+    await registrarEventos(req, [
+      eventoCambio('EDITAR MARCA', marca.nombre, cambiosDeMarca(anterior, marca)),
+    ]);
     return marca;
   } catch {
     throw new AppError('Ya existe una marca con ese nombre.');
@@ -36,7 +46,9 @@ export const eliminarMarca = async (id, req) => {
   }
 
   await prisma.marcaVehiculo.delete({ where: { id: marca.id } });
-  await registrarLog(req, 'ELIMINAR MARCA', null, marca);
+  await registrarEventos(req, [
+    eventoBorrado('ELIMINAR MARCA', marca.nombre, filasPresentes([['Nombre', marca.nombre]])),
+  ]);
   return { message: 'Marca eliminada' };
 };
 
@@ -52,7 +64,10 @@ export const listarVehiculos = async () => {
 
 export const actualizarVehiculo = async (placa, data, req) => {
   const placaNorm = decodeURIComponent(placa).trim().toUpperCase();
-  const anterior = await prisma.vehiculo.findUnique({ where: { placa: placaNorm } });
+  const anterior = await prisma.vehiculo.findUnique({
+    where: { placa: placaNorm },
+    include: { marca: true },
+  });
   if (!anterior) throw new AppError('Vehículo no encontrado', 404);
 
   const marca = await prisma.marcaVehiculo.findUnique({ where: { id: parseInt(data.marcaId) } });
@@ -69,7 +84,9 @@ export const actualizarVehiculo = async (placa, data, req) => {
     include: { marca: true },
   });
 
-  await registrarLog(req, 'EDITAR VEHICULO', vehiculo, anterior);
+  await registrarEventos(req, [
+    eventoCambio('EDITAR VEHÍCULO', vehiculo.placa, cambiosDeVehiculo(anterior, vehiculo)),
+  ]);
   return vehiculo;
 };
 
@@ -85,7 +102,9 @@ export const eliminarVehiculo = async (placa, req) => {
   }
 
   await prisma.vehiculo.delete({ where: { placa: placaNorm } });
-  await registrarLog(req, 'ELIMINAR VEHICULO', null, vehiculo);
+  await registrarEventos(req, [
+    eventoBorrado('ELIMINAR VEHÍCULO', vehiculo.placa, filasDeVehiculo(vehiculo)),
+  ]);
   return { message: 'Vehículo eliminado' };
 };
 
@@ -93,7 +112,9 @@ export const crearMarca = async ({ nombre }, req) => {
   const marca = await prisma.marcaVehiculo.create({
     data: { nombre: nombre.trim() },
   });
-  await registrarLog(req, 'CREAR MARCA VEHICULO', marca);
+  await registrarEventos(req, [
+    eventoNuevo('CREAR MARCA', marca.nombre, filasPresentes([['Nombre', marca.nombre]])),
+  ]);
   return marca;
 };
 
@@ -122,6 +143,11 @@ export const upsertVehiculo = async (data, req) => {
   const marca = await prisma.marcaVehiculo.findUnique({ where: { id: parseInt(data.marcaId) } });
   if (!marca) throw new AppError('Marca no encontrada', 404);
 
+  const anterior = await prisma.vehiculo.findUnique({
+    where: { placa },
+    include: { marca: true },
+  });
+
   const vehiculo = await prisma.vehiculo.upsert({
     where: { placa },
     update: {
@@ -140,11 +166,16 @@ export const upsertVehiculo = async (data, req) => {
     include: { marca: true },
   });
 
-  await registrarLog(req, 'UPSERT VEHICULO', {
-    placa: vehiculo.placa,
-    marca: vehiculo.marca.nombre,
-    modelo: vehiculo.modelo,
-  });
+  await registrarEventos(req, [
+    anterior
+      ? eventoCambio('EDITAR VEHÍCULO', vehiculo.placa, cambiosDeVehiculo(anterior, vehiculo))
+      : eventoNuevo('CREAR VEHÍCULO', vehiculo.placa, filasDeVehiculo(vehiculo)),
+  ]);
 
   return vehiculo;
+};
+
+const cambiosDeMarca = (antes, despues) => {
+  if (antes.nombre === despues.nombre) return [];
+  return [{ etiqueta: 'Nombre', de: antes.nombre, a: despues.nombre }];
 };
