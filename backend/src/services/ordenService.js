@@ -1,7 +1,7 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { calcularTotalOrden } from '../utils/money.js';
-import { registrarLog, registrarEventos } from '../utils/logger.js';
+import { registrarLog, registrarGrupo } from '../utils/logger.js';
 import {
   eventosPasoVehiculo,
   eventosPasoCliente,
@@ -9,7 +9,14 @@ import {
   eventosEliminarBorrador,
   eventosActualizarTaller,
   eventoEstado,
+  grupoDeEventos,
 } from '../utils/eventosAuditoria.js';
+
+const guardarGrupo = (req, eventos, { contexto, resumen, ordenId }) => registrarGrupo(
+  req,
+  grupoDeEventos(eventos, { contexto, resumen }),
+  ordenId
+);
 import {
   TIPOS_FOTO,
   guardarFotoArchivo,
@@ -163,7 +170,7 @@ export const crearBorradorOrden = async (data, req) => {
     return { orden, eventos };
   });
 
-  await registrarEventos(req, eventos, orden.id);
+  await guardarGrupo(req, eventos, { contexto: 'BORRADOR', resumen: orden.numeroOrden, ordenId: orden.id });
   return orden;
 };
 
@@ -236,7 +243,7 @@ export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = fals
     };
   });
 
-  await registrarEventos(req, eventos, orden.id);
+  await guardarGrupo(req, eventos, { contexto: 'BORRADOR', resumen: orden.numeroOrden, ordenId: orden.id });
   return orden;
 };
 
@@ -291,7 +298,7 @@ export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false 
     };
   });
 
-  await registrarEventos(req, eventos, orden.id);
+  await guardarGrupo(req, eventos, { contexto: 'BORRADOR', resumen: orden.numeroOrden, ordenId: orden.id });
   return orden;
 };
 
@@ -328,7 +335,7 @@ export const completarRecepcion = async (id, data, req) => {
     };
   });
 
-  await registrarEventos(req, eventos, orden.id);
+  await guardarGrupo(req, eventos, { contexto: 'BORRADOR', resumen: orden.numeroOrden, ordenId: orden.id });
   return orden;
 };
 
@@ -558,11 +565,11 @@ export const actualizarOrden = async (id, data, req) => {
     });
   });
 
-  await registrarEventos(
-    req,
-    eventosActualizarTaller({ antes: ordenPrevia, despues: resultado }),
-    id
-  );
+  await guardarGrupo(req, eventosActualizarTaller({ antes: ordenPrevia, despues: resultado }), {
+    contexto: 'ORDEN',
+    resumen: resultado.numeroOrden,
+    ordenId: id,
+  });
 
   return resultado;
 };
@@ -611,9 +618,9 @@ export const actualizarEstadoOrden = async (id, payload, req) => {
     include: includeOrdenLista,
   });
 
-  await registrarEventos(req, [
+  await guardarGrupo(req, [
     eventoEstado(ordenPrevia.estado, actualizada.estado),
-  ], id);
+  ], { contexto: 'ORDEN', resumen: actualizada.numeroOrden, ordenId: id });
 
   return actualizada;
 };
@@ -671,11 +678,11 @@ export const eliminarOrden = async (id, req) => {
   await borrarCarpetaOrden(id);
 
   if (ordenPrevia.estado === 'EN_ESPERA') {
-    await registrarEventos(req, eventosEliminarBorrador({
+    await guardarGrupo(req, eventosEliminarBorrador({
       orden: ordenPrevia,
       eliminoVehiculo: !!placaABorrar,
       eliminoCliente: !!clienteABorrar,
-    }), null);
+    }), { contexto: 'BORRADOR', resumen: ordenPrevia.numeroOrden, ordenId: null });
   } else {
     await registrarLog(req, 'ELIMINAR ORDEN', null, {
       numeroOrden: ordenPrevia.numeroOrden,

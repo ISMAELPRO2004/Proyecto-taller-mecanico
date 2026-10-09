@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { 
-  X, PlusCircle, Trash2, RefreshCcw, ArrowRight,
+  X, PlusCircle, Trash2, RefreshCcw, ArrowRight, ChevronDown,
   Package, Wrench, ExternalLink, Activity, Info,
   User, Monitor, Camera
 } from 'lucide-vue-next';
@@ -19,6 +19,19 @@ const data = computed(() => {
       ? JSON.parse(props.log.detalles)
       : props.log.detalles;
   } catch { return null; }
+});
+
+const seccionesAbiertas = ref([]);
+const alternarSeccion = (indice) => {
+  const abiertas = new Set(seccionesAbiertas.value);
+  if (abiertas.has(indice)) abiertas.delete(indice);
+  else abiertas.add(indice);
+  seccionesAbiertas.value = [...abiertas];
+};
+const seccionAbierta = (indice) => seccionesAbiertas.value.includes(indice);
+
+watch(() => props.log?.id, () => {
+  seccionesAbiertas.value = [];
 });
 
 const vistaAnterior = ref('');
@@ -154,6 +167,7 @@ const tituloItem = computed(() => {
   if (!data.value) return null;
   const d = data.value;
 
+  if (d.tipo === 'GRUPO' && d.resumen) return d.resumen;
   if (d.tipo === 'DETALLE' && d.resumen) return d.resumen;
   if (d.tipo === 'FOTO' && d.imagen) return d.imagen;
   if (d.tipo === 'EDICION' && d.nombreItem) return d.nombreItem;
@@ -348,8 +362,50 @@ const listas = computed(() => {
 
         <div class="p-8 space-y-6">
 
+          <!-- ── GRUPO: un guardado, varias secciones contraídas ───────── -->
+          <template v-if="data?.tipo === 'GRUPO'">
+            <p class="text-[10px] font-black uppercase tracking-widest" :class="data.contexto === 'ORDEN' ? 'text-lyer-green' : 'text-slate-400'">
+              {{ data.contexto === 'ORDEN' ? 'Orden en trabajo' : 'Recepción / borrador' }}
+            </p>
+            <div v-for="(seccion, indice) in data.secciones" :key="seccion.titulo" class="rounded-2xl border border-slate-100 overflow-hidden">
+              <button type="button" class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 text-left"
+                @click="alternarSeccion(indice)">
+                <span class="text-[11px] font-black uppercase tracking-wide text-slate-700">{{ seccion.titulo }}</span>
+                <span class="flex items-center gap-2 text-[10px] font-bold text-slate-400 shrink-0">
+                  {{ seccion.items.length }}
+                  <ChevronDown :class="['w-4 h-4 transition-transform', seccionAbierta(indice) ? 'rotate-180' : '']" />
+                </span>
+              </button>
+              <div v-if="seccionAbierta(indice)" class="p-4 space-y-4 border-t border-slate-100 bg-white">
+                <div v-for="(item, itemIndice) in seccion.items" :key="itemIndice" class="space-y-2">
+                  <p class="text-xs font-black uppercase" :class="item.modo === 'borrado' ? 'text-red-500' : item.modo === 'cambio' ? 'text-amber-600' : 'text-emerald-600'">
+                    {{ item.resumen }}
+                  </p>
+                  <div v-if="item.modo === 'cambio'" class="space-y-2">
+                    <div v-for="fila in item.filas" :key="fila.etiqueta"
+                      class="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span class="text-[9px] font-black text-slate-400 uppercase w-32 shrink-0">{{ fila.etiqueta }}</span>
+                      <div class="flex items-center gap-2 text-xs font-bold min-w-0">
+                        <span class="opacity-40 line-through truncate">{{ fila.de }}</span>
+                        <ArrowRight class="w-3 h-3 text-lyer-green shrink-0" />
+                        <span class="text-lyer-green truncate">{{ fila.a }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div v-for="fila in item.filas" :key="fila.etiqueta"
+                      :class="['p-3 rounded-xl border', item.modo === 'borrado' ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100']">
+                      <span class="block text-[8px] font-black uppercase opacity-60 mb-1" :class="item.modo === 'borrado' ? 'text-red-500' : 'text-emerald-700'">{{ fila.etiqueta }}</span>
+                      <span class="text-xs font-bold" :class="item.modo === 'borrado' ? 'text-red-800' : 'text-slate-700'">{{ fila.valor }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
           <!-- ── DETALLE (borrador y registros sueltos) ─────────────────── -->
-          <template v-if="data?.tipo === 'DETALLE'">
+          <template v-else-if="data?.tipo === 'DETALLE'">
             <div class="flex items-center gap-2" :class="data.modo === 'borrado' ? 'text-red-500' : data.modo === 'cambio' ? 'text-amber-600' : 'text-emerald-600'">
               <PlusCircle v-if="data.modo === 'nuevo'" class="w-4 h-4" />
               <Trash2 v-else-if="data.modo === 'borrado'" class="w-4 h-4" />

@@ -189,7 +189,37 @@ export const registrarLog = async (
 };
 
 /**
- * Guarda varios logs de una misma acción (por ejemplo crear vehículo y crear borrador).
+ * Un solo log con secciones (borrador o orden en trabajo).
+ * Cada sección llega contraída en pantalla y se abre con un clic.
+ */
+export const registrarGrupo = async (req, grupo, ordenId = null) => {
+  req.logManualRealizado = true;
+  const userId = req.user?.id;
+  if (!userId || !grupo?.secciones?.length) return;
+
+  try {
+    await prisma.logActividad.create({
+      data: {
+        usuarioId: userId,
+        accion: grupo.accion,
+        ordenId: ordenId ? parseInt(ordenId) : null,
+        detalles: {
+          tipo: 'GRUPO',
+          contexto: grupo.contexto,
+          resumen: grupo.resumen || null,
+          secciones: grupo.secciones,
+        },
+        ipCliente: obtenerIp(req),
+        userAgent: req.headers['user-agent'] ?? null,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error en auditoría:', error.message);
+  }
+};
+
+/**
+ * Guarda varios logs sueltos (marca, cliente o vehículo de Registros).
  * Cada evento ya trae sus filas: datos nuevos, o antes y después.
  */
 export const registrarEventos = async (req, eventos = [], ordenId = null) => {

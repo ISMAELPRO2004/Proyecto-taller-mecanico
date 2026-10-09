@@ -426,3 +426,45 @@ export const eventosActualizarTaller = ({ antes, despues }) => {
       ])),
   ].filter(Boolean);
 };
+
+const tituloSeccion = (accion = '') => {
+  if (accion.includes('ESTADO')) return 'Estado';
+  if (accion.includes('RESPONSABLE')) return 'Responsable';
+  if (accion.includes('SUBTOTAL') || accion.includes('TOTAL')) return 'Totales';
+  if (accion.includes('INSUMO')) return 'Insumos';
+  if (accion.includes('MANO DE OBRA')) return 'Mano de obra';
+  if (accion.includes('TRABAJO EXTERNO')) return 'Trabajos externos';
+  if (accion.includes('VEHICUL')) return 'Vehículo';
+  if (accion.includes('CLIENTE')) return 'Cliente';
+  if (accion.includes('TRABAJO')) return 'Trabajo';
+  if (accion.includes('BORRADOR')) return 'Borrador';
+  if (accion.includes('FOTO')) return 'Foto';
+  return 'Detalle';
+};
+
+/** Varios cambios de un mismo guardado, listos para un solo log con secciones. */
+export const grupoDeEventos = (eventos = [], { contexto, resumen } = {}) => {
+  const secciones = [];
+  const indice = new Map();
+
+  eventos.filter(Boolean).forEach((evento) => {
+    const titulo = tituloSeccion(evento.accion);
+    if (!indice.has(titulo)) {
+      const seccion = { titulo, items: [] };
+      indice.set(titulo, seccion);
+      secciones.push(seccion);
+    }
+    indice.get(titulo).items.push({
+      modo: evento.modo,
+      resumen: evento.resumen || null,
+      filas: evento.filas || [],
+    });
+  });
+
+  return {
+    accion: contexto === 'ORDEN' ? 'ORDEN EN TRABAJO' : 'BORRADOR',
+    contexto: contexto === 'ORDEN' ? 'ORDEN' : 'BORRADOR',
+    resumen: resumen || null,
+    secciones,
+  };
+};

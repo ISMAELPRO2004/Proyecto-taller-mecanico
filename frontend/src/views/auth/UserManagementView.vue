@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { agruparLogs } from '../../utils/agruparLogs.js';
 import { usuarioService } from '../../services/usuarioService.js';
 import { notify } from '../../utils/alerts.js';
 import LogDetalleModal from './componentes/LogDetalleModal.vue';
@@ -25,6 +26,7 @@ const form = ref({
 
 // ── LOGS ──────────────────────────────────────────────────────────────────────
 const logs = ref([]);
+const logsVisibles = computed(() => agruparLogs(logs.value));
 const logSeleccionado = ref(null);
 const modalLogOpen = ref(false);
 
@@ -211,7 +213,7 @@ const paginasVisibles = computed(() => {
       />
 
       <TablaAuditoria
-        :logs="logs"
+        :logs="logsVisibles"
         :loading="loading"
         @ver-detalle="verDetalleLog"
       />
