@@ -1,18 +1,17 @@
 <script setup>
 import { useTallerOrden } from './composables/useTallerOrden.js';
 import EncabezadoOrdenForm from './componentes/EncabezadoOrdenForm.vue';
-import ListaMateriales from './componentes/ListaMateriales.vue';
-import ListaServicios from './componentes/ListaServicios.vue';
-import ListaTerceros from './componentes/ListaTerceros.vue';
+import ListaItemsOrden from './componentes/ListaItemsOrden.vue';
 import SelectorCatalogoModal from './componentes/SelectorCatalogoModal.vue';
 import FooterResumenOrden from './componentes/FooterResumenOrden.vue';
 import CampoFoto from './componentes/CampoFoto.vue';
+import ModalFacturaOrden from './componentes/ModalFacturaOrden.vue';
 
 const {
   router, cargando, form, cambiarEstado, facturaPendiente, fotos, esAdmin, subiendoFoto,
   subirRegistroAdmin, quitarRegistroAdmin, subirDesarrollo, quitarDesarrollo, verPrecios,
   abrirSelector, responsables, totalFinal, guardar, selector, itemsSelector, idsSeleccionados,
-  confirmarCatalogo, modalFactura, facturaBorrador, cancelarFactura, confirmarFactura, guardando,
+  confirmarCatalogo, modalFactura, cancelarFactura, aplicarFactura, guardando,
 } = useTallerOrden();
 </script>
 
@@ -84,20 +83,33 @@ const {
       </section>
 
       <section class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-6 space-y-8">
-        <ListaMateriales
-          :materiales="form.materiales"
+        <ListaItemsOrden
+          titulo="Insumos"
+          icono="package"
+          texto-boton="+ Añadir"
+          solido
+          con-cantidad
+          campo-monto="precioAlMomento"
+          :items="form.materiales"
           :ver-precios="verPrecios"
           @add="abrirSelector('materiales')"
           @remove="form.materiales.splice($event, 1)"
         />
-        <ListaServicios
-          :servicios="form.servicios"
+        <ListaItemsOrden
+          titulo="Mano de Obra"
+          icono="wrench"
+          texto-boton="+ Catálogo"
+          :items="form.servicios"
           :ver-precios="verPrecios"
           @add="abrirSelector('servicios')"
           @remove="form.servicios.splice($event, 1)"
         />
-        <ListaTerceros
-          :terceros="form.terceros"
+        <ListaItemsOrden
+          titulo="Trabajos Externos"
+          icono="external"
+          texto-boton="+ Terceros"
+          azul
+          :items="form.terceros"
           :ver-precios="verPrecios"
           @add="abrirSelector('terceros')"
           @remove="form.terceros.splice($event, 1)"
@@ -126,43 +138,18 @@ const {
       @confirmar="confirmarCatalogo"
     />
 
-    <div v-if="modalFactura" class="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4">
-      <div class="bg-white w-full max-w-md rounded-[2rem] p-6 space-y-4 shadow-2xl">
-        <div>
-          <h3 class="font-black text-slate-800 uppercase italic">Cancelar orden</h3>
-          <p class="text-xs text-slate-500">¿Habrá factura de esta orden?</p>
-        </div>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            class="btn flex-1 rounded-xl"
-            :class="facturaBorrador.decision === 'si' ? 'bg-lyer-green text-white border-none' : 'btn-outline'"
-            @click="facturaBorrador.decision = 'si'"
-          >Sí</button>
-          <button
-            type="button"
-            class="btn flex-1 rounded-xl"
-            :class="facturaBorrador.decision === 'no' ? 'bg-slate-800 text-white border-none' : 'btn-outline'"
-            @click="facturaBorrador.decision = 'no'"
-          >No</button>
-        </div>
-        <div v-if="facturaBorrador.decision === 'si'" class="space-y-3">
-          <label class="form-control">
-            <span class="label-text text-[10px] font-black text-slate-400 uppercase">Número de factura</span>
-            <input v-model="facturaBorrador.numero" type="text" class="input input-bordered rounded-xl" placeholder="Opcional, se puede completar después" />
-          </label>
-          <label class="form-control">
-            <span class="label-text text-[10px] font-black text-slate-400 uppercase">Monto</span>
-            <input v-model="facturaBorrador.monto" type="number" step="0.01" min="0" class="input input-bordered rounded-xl" />
-          </label>
-          <p class="text-[10px] text-amber-600 font-bold">Si no hay número, la factura queda pendiente.</p>
-        </div>
-        <div class="flex gap-2 pt-2">
-          <button type="button" class="btn btn-ghost flex-1 rounded-xl" @click="cancelarFactura">Volver</button>
-          <button type="button" class="btn flex-1 bg-lyer-green text-white border-none rounded-xl" @click="confirmarFactura">Confirmar</button>
-        </div>
-      </div>
-    </div>
+    <ModalFacturaOrden
+      :is-open="modalFactura"
+      intencion="cancelar"
+      :orden="{
+        numeroOrden: form.numeroOrden,
+        requiereFactura: form.requiereFactura,
+        numeroFactura: form.numeroFactura,
+        montoFactura: form.montoFactura,
+      }"
+      @close="cancelarFactura"
+      @guardar="aplicarFactura"
+    />
 
     <div v-if="guardando" class="fixed inset-0 z-40 bg-white/40 flex items-center justify-center">
       <span class="loading loading-spinner loading-lg text-lyer-green" />

@@ -1,12 +1,15 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { X } from 'lucide-vue-next';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
   orden: { type: Object, default: null },
   guardando: { type: Boolean, default: false },
+  intencion: { type: String, default: '' },
 });
+
+const cancelando = computed(() => props.intencion === 'cancelar' || props.orden?.estado === 'TERMINADO');
 
 const emit = defineEmits(['close', 'guardar']);
 
@@ -38,10 +41,10 @@ const confirmar = () => {
       <div class="p-5 border-b flex items-start justify-between gap-3">
         <div>
           <h3 class="font-black text-slate-800 uppercase italic">
-            {{ orden?.estado === 'TERMINADO' ? 'Cancelar orden' : 'Factura' }}
+            {{ cancelando ? 'Cancelar orden' : 'Factura' }}
           </h3>
           <p class="text-xs text-slate-500">
-            {{ orden?.estado === 'TERMINADO'
+            {{ cancelando
               ? 'Al cancelar se pide la factura. Después solo se podrá editar esa información.'
               : `${orden?.numeroOrden} · solo el administrador puede cambiar la factura` }}
           </p>
@@ -53,7 +56,7 @@ const confirmar = () => {
 
       <div class="p-5 space-y-4">
         <p class="text-sm text-slate-600">
-          {{ orden?.estado === 'TERMINADO' ? '¿Esta cancelación lleva factura?' : '¿Esta orden cancelada lleva factura?' }}
+          {{ cancelando ? '¿Esta cancelación lleva factura?' : '¿Esta orden cancelada lleva factura?' }}
         </p>
         <div class="flex gap-2">
           <button
@@ -94,7 +97,7 @@ const confirmar = () => {
           @click="confirmar"
         >
           <span v-if="guardando" class="loading loading-spinner loading-xs" />
-          {{ orden?.estado === 'TERMINADO' ? 'Cancelar orden' : 'Guardar' }}
+          {{ cancelando ? 'Cancelar orden' : 'Guardar' }}
         </button>
       </div>
     </div>

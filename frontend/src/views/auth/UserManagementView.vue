@@ -4,13 +4,18 @@ import { agruparLogs } from '../../utils/agruparLogs.js';
 import { usuarioService } from '../../services/usuarioService.js';
 import { notify } from '../../utils/alerts.js';
 import LogDetalleModal from './componentes/LogDetalleModal.vue';
-import TabsSeguridad from './componentes/TabsSeguridad.vue';
+import Tabs from '../../components/ui/Tabs.vue';
 import GridUsuarios from './componentes/GridUsuarios.vue';
 import FiltrosAuditoria from './componentes/FiltrosAuditoria.vue';
 import TablaAuditoria from './componentes/TablaAuditoria.vue';
 import ModalUsuarioForm from './componentes/ModalUsuarioForm.vue';
 import Paginador from '../../components/ui/Paginador.vue';
-import { ShieldCheck, UserPlus } from 'lucide-vue-next';
+import { ShieldCheck, UserPlus, Users, History } from 'lucide-vue-next';
+
+const tabsSeguridad = [
+  { id: 'usuarios', label: 'Usuarios', icon: Users },
+  { id: 'logs', label: 'Auditoría', icon: History },
+];
 
 // ── ESTADO GENERAL ────────────────────────────────────────────────────────────
 const tabActiva = ref('usuarios');
@@ -195,7 +200,7 @@ const paginasVisibles = computed(() => {
       </button>
     </div>
 
-    <TabsSeguridad v-model="tabActiva" />
+    <Tabs v-model="tabActiva" :items="tabsSeguridad" />
 
     <GridUsuarios
       v-if="tabActiva === 'usuarios'"

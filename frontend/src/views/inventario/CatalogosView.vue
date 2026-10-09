@@ -4,11 +4,16 @@ import { catalogoService, endpoints } from '../../services/catalogoService.js';
 import { usePaginacion } from '../../composables/usePaginacion.js';
 import { notify } from '../../utils/alerts.js';
 import Paginador from '../../components/ui/Paginador.vue';
-import TabsCatalogos from './componentes/TabsCatalogos.vue';
+import Tabs from '../../components/ui/Tabs.vue';
 import TablaCatalogo from './componentes/TablaCatalogo.vue';
 import ModalCatalogoForm from './componentes/ModalCatalogoForm.vue';
 import { Layers, Plus } from 'lucide-vue-next';
 
+const tabsCatalogo = [
+  { id: 'materiales', label: 'Repuestos' },
+  { id: 'servicios', label: 'Servicios' },
+  { id: 'terceros', label: 'Terceros' },
+];
 const tabActiva = ref('materiales');
 const lista = ref([]);
 const loading = ref(false);
@@ -118,7 +123,14 @@ onMounted(cargarDatos);
     </div>
 
     <div class="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
-      <TabsCatalogos v-model="tabActiva" v-model:busqueda="busqueda" @change="cargarDatos" />
+      <Tabs v-model="tabActiva" :items="tabsCatalogo" @change="cargarDatos">
+        <input
+          v-model="busqueda"
+          type="text"
+          placeholder="Buscar..."
+          class="input input-bordered w-full lg:w-96 bg-slate-50 border-slate-100 rounded-xl text-sm"
+        />
+      </Tabs>
 
       <TablaCatalogo
         :items="listaPaginada"

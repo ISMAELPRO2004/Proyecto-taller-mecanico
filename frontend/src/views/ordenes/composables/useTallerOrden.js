@@ -40,10 +40,9 @@ export function useTallerOrden() {
     montoFactura: '',
   });
 
-  const selector = ref({ abierto: false, tipo: 'materiales', titulo: '' });
-  const modalFactura = ref(false);
-  const estadoAntes = ref('ACEPTADO');
-  const facturaBorrador = ref({ decision: '', numero: '', monto: '' });
+const selector = ref({ abierto: false, tipo: 'materiales', titulo: '' });
+const modalFactura = ref(false);
+const estadoAntes = ref('ACEPTADO');
 
   const titulosCatalogo = {
     materiales: 'Repuestos e insumos',
@@ -175,31 +174,21 @@ export function useTallerOrden() {
 
   const cambiarEstado = (nuevo) => {
     if (nuevo === 'CANCELADO' && form.value.estado !== 'CANCELADO') {
-      estadoAntes.value = form.value.estado;
-      facturaBorrador.value = {
-        decision: form.value.requiereFactura ? 'si' : '',
-        numero: form.value.numeroFactura || '',
-        monto: form.value.montoFactura ?? '',
-      };
-      form.value.estado = 'CANCELADO';
+    estadoAntes.value = form.value.estado;
+    form.value.estado = 'CANCELADO';
       modalFactura.value = true;
       return;
     }
     form.value.estado = nuevo;
   };
 
-  const confirmarFactura = () => {
-    if (!facturaBorrador.value.decision) {
-      notify.error('Factura', 'Indique si habrá factura.');
-      return;
-    }
-    const pideFactura = facturaBorrador.value.decision === 'si';
-    form.value.requiereFactura = pideFactura;
-    form.value.numeroFactura = pideFactura ? String(facturaBorrador.value.numero || '').trim() : '';
-    form.value.montoFactura = pideFactura ? facturaBorrador.value.monto : '';
-    form.value.estado = 'CANCELADO';
-    modalFactura.value = false;
-  };
+const aplicarFactura = ({ requiereFactura, numeroFactura, montoFactura }) => {
+  form.value.requiereFactura = requiereFactura;
+  form.value.numeroFactura = numeroFactura || '';
+  form.value.montoFactura = montoFactura ?? '';
+  form.value.estado = 'CANCELADO';
+  modalFactura.value = false;
+};
 
   const cancelarFactura = () => {
     form.value.estado = estadoAntes.value;
@@ -345,6 +334,6 @@ export function useTallerOrden() {
     router, cargando, form, cambiarEstado, facturaPendiente, fotos, esAdmin, subiendoFoto,
     subirRegistroAdmin, quitarRegistroAdmin, subirDesarrollo, quitarDesarrollo, verPrecios,
     abrirSelector, responsables, totalFinal, guardar, selector, itemsSelector, idsSeleccionados,
-    confirmarCatalogo, modalFactura, facturaBorrador, cancelarFactura, confirmarFactura, guardando,
+    confirmarCatalogo, modalFactura, cancelarFactura, aplicarFactura, guardando,
   };
 }

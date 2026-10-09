@@ -6,10 +6,15 @@ import { vehiculoService } from '../../services/vehiculoService.js';
 import { notify } from '../../utils/alerts.js';
 import { usePaginacion } from '../../composables/usePaginacion.js';
 import Paginador from '../../components/ui/Paginador.vue';
-import TabsRegistros from './componentes/TabsRegistros.vue';
+import Tabs from '../../components/ui/Tabs.vue';
 import TablaRegistros from './componentes/TablaRegistros.vue';
 import ModalRegistroForm from './componentes/ModalRegistroForm.vue';
 
+const tabsRegistro = [
+  { id: 'clientes', label: 'Clientes' },
+  { id: 'vehiculos', label: 'Vehículos' },
+  { id: 'marcas', label: 'Marcas' },
+];
 const tab = ref('clientes');
 const busqueda = ref('');
 const loading = ref(false);
@@ -138,7 +143,7 @@ onMounted(cargar);
       </div>
     </div>
 
-    <TabsRegistros v-model="tab" />
+    <Tabs v-model="tab" :items="tabsRegistro" />
 
     <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
       <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3">
