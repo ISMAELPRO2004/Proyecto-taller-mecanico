@@ -1,86 +1,107 @@
 <script setup>
 import { computed } from 'vue';
 import StatusBadge from '../../../components/ui/StatusBadge.vue';
-import { Car, ArrowUpRight } from 'lucide-vue-next';
+import { Car, ArrowUpRight, Eye } from 'lucide-vue-next';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
 import { useAuthStore } from '../../../stores/auth.js';
 import { puedeVerPrecios, recepcionPendiente } from '../../../utils/roles.js';
 
-defineProps({
+const props = defineProps({
   ordenesRecientes: { type: Array, default: () => [] },
+  total: { type: Number, default: 0 },
   cargando: { type: Boolean, default: false },
 });
 
 const auth = useAuthStore();
 const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
+const columnas = computed(() => (verPrecios.value ? 6 : 5));
+const vehiculo = (orden) => [marcaVehiculoOrden(orden), modeloVehiculoOrden(orden)].filter(Boolean).join(' ');
 </script>
 
 <template>
-  <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center">
-      <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
-        <Car class="w-4 h-4 text-lyer-green" />
-        Últimas Unidades en Taller
+  <div class="flex h-full flex-col overflow-hidden rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+    <div class="flex items-center justify-between border-b border-[#4a2870]/40 bg-black/15 px-5 py-4">
+      <h3 class="flex items-center gap-2.5 font-display text-sm font-bold tracking-wide text-white sm:text-base">
+        <Car class="h-5 w-5 text-lyer-cyan" />
+        Últimas unidades en taller
       </h3>
-      <button
-        @click="$router.push('/ordenes')"
-        class="text-xs font-bold text-lyer-accent hover:underline flex items-center gap-1"
+      <router-link
+        to="/ordenes"
+        class="inline-flex items-center gap-1 text-xs font-semibold text-lyer-accent hover:text-lyer-soft"
       >
-        Ver todas <ArrowUpRight class="w-3 h-3" />
-      </button>
+        Ver todas
+        <ArrowUpRight class="h-3.5 w-3.5" />
+      </router-link>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="table w-full">
-        <thead class="bg-slate-50">
-          <tr class="text-slate-500 uppercase text-[9px] tracking-widest">
-            <th class="py-3 pl-4">OT #</th>
-            <th>Placa</th>
-            <th class="hidden sm:table-cell">Cliente</th>
-            <th>Estado</th>
-            <th v-if="verPrecios" class="text-right pr-4">Total</th>
+    <div class="flex-1 overflow-x-auto">
+      <table class="w-full border-collapse text-left text-xs">
+        <thead>
+          <tr class="border-b border-[#4a2870]/40 bg-black/20 text-[11px] uppercase tracking-wider text-slate-400">
+            <th class="px-4 py-3 font-semibold">OT #</th>
+            <th class="px-3 py-3 font-semibold">Placa y vehículo</th>
+            <th class="hidden px-3 py-3 font-semibold sm:table-cell">Cliente</th>
+            <th class="px-3 py-3 font-semibold">Estado</th>
+            <th v-if="verPrecios" class="px-4 py-3 text-right font-semibold">Total</th>
+            <th class="px-3 py-3 text-center font-semibold">Acción</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-[#4a2870]/35 text-slate-200">
           <tr v-if="cargando">
-            <td :colspan="verPrecios ? 5 : 4" class="text-center py-10">
-              <span class="loading loading-ring loading-md text-lyer-green" />
+            <td :colspan="columnas" class="py-10 text-center">
+              <span class="loading loading-ring loading-md text-lyer-accent" />
             </td>
           </tr>
           <tr
             v-for="o in ordenesRecientes"
             :key="o.id"
-            class="hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0"
+            class="cursor-pointer transition-colors hover:bg-white/5"
             @click="$router.push('/ordenes')"
           >
-            <td class="pl-4 py-3 font-black text-lyer-green italic text-xs">{{ o.numeroOrden }}</td>
-            <td class="py-3">
+            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs font-bold italic text-sky-400">
+              {{ o.numeroOrden }}
+            </td>
+            <td class="px-3 py-3">
               <div class="flex flex-col">
-                <span class="font-black text-slate-700 uppercase text-sm">{{ o.placa }}</span>
-                <span class="text-[10px] text-slate-400">{{ marcaVehiculoOrden(o) }} {{ modeloVehiculoOrden(o) }}</span>
+                <span class="font-mono text-sm font-bold tracking-wider text-white">{{ o.placa }}</span>
+                <span class="text-[11px] text-slate-400">{{ vehiculo(o) || '—' }}</span>
               </div>
             </td>
-            <td class="hidden sm:table-cell py-3 text-sm font-medium">{{ nombreClienteOrden(o) }}</td>
-            <td class="py-3">
+            <td class="hidden px-3 py-3 text-slate-300 sm:table-cell">{{ nombreClienteOrden(o) }}</td>
+            <td class="px-3 py-3">
               <div class="flex flex-col items-start gap-1">
-                <StatusBadge :estado="o.estado" />
+                <StatusBadge :estado="o.estado" oscuro />
                 <span
                   v-if="recepcionPendiente(o)"
-                  class="badge badge-warning badge-sm font-black uppercase text-[8px] animate-pulse"
+                  class="badge badge-warning badge-sm text-[8px] font-black uppercase"
                 >Pendiente a terminar</span>
               </div>
             </td>
-            <td v-if="verPrecios" class="text-right pr-4 py-3 font-black text-slate-700 text-sm tabular-nums">
-              S/ {{ parseFloat(o.totalFinal).toFixed(2) }}
+            <td v-if="verPrecios" class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-white">
+              S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}
+            </td>
+            <td class="px-3 py-3 text-center">
+              <button
+                type="button"
+                class="mx-auto flex h-7 w-7 items-center justify-center rounded-lg bg-[#321c4c] text-slate-300 transition-colors hover:bg-[#3d2460] hover:text-white"
+                title="Ver en el listado"
+                @click.stop="$router.push('/ordenes')"
+              >
+                <Eye class="h-4 w-4" />
+              </button>
             </td>
           </tr>
           <tr v-if="!cargando && ordenesRecientes.length === 0">
-            <td :colspan="verPrecios ? 5 : 4" class="text-center py-12 text-slate-400 text-sm">
+            <td :colspan="columnas" class="py-12 text-center text-sm text-slate-400">
               No hay órdenes registradas.
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="mt-auto border-t border-[#4a2870]/40 bg-black/15 px-5 py-3 text-[11px] text-slate-400">
+      Mostrando {{ ordenesRecientes.length }} de {{ props.total }} órdenes
     </div>
   </div>
 </template>

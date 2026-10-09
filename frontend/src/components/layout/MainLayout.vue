@@ -54,6 +54,9 @@ const etiquetaRol = computed(() => {
   return map[auth.usuario?.rol] || auth.usuario?.rol || '';
 });
 
+const activo = (path) =>
+  route.path === path || (path !== '/home' && route.path.startsWith(path));
+
 const routeTitle = (name) => {
   const map = {
     'dashboard':       'Dashboard',
@@ -70,131 +73,130 @@ const routeTitle = (name) => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-slate-50 overflow-hidden" data-theme="lyer">
+  <div class="app-shell flex h-screen overflow-hidden bg-[#140a22] text-slate-100" data-theme="lyer">
 
-    <!-- ── OVERLAY móvil ─────────────────────────────────────────────────── -->
     <Transition name="fade">
-      <div v-if="sidebarOpen"
-        class="fixed inset-0 bg-black/50 z-30 lg:hidden"
-        @click="sidebarOpen = false" />
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 z-30 bg-black/60 lg:hidden"
+        @click="sidebarOpen = false"
+      />
     </Transition>
 
-    <!-- ── SIDEBAR ────────────────────────────────────────────────────────── -->
     <aside :class="[
-      'fixed lg:relative inset-y-0 left-0 z-40',
-      'bg-lyer-green text-white flex flex-col shadow-xl',
-      'transition-all duration-300',
-      // Desktop: expandido o colapsado
+      'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-[#3d1570]/70 bg-[#160428] text-white shadow-[4px_0_24px_rgba(0,0,0,0.45)] transition-all duration-300 lg:relative',
       'lg:translate-x-0',
-      isCollapsed ? 'lg:w-20' : 'lg:w-64',
-      // Móvil: drawer fuera/dentro de pantalla
-      sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72 lg:translate-x-0',
+      isCollapsed ? 'lg:w-20' : 'lg:w-72',
+      sidebarOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full lg:translate-x-0',
     ]">
-
-      <!-- Logo + toggle -->
-      <div class="p-4 flex items-center justify-between gap-2 shrink-0">
-        <div
+      <div
+        :class="[
+          'flex shrink-0 items-center border-b border-[#3d1570]/60 bg-[#10041f]',
+          isCollapsed && !sidebarOpen ? 'h-auto flex-col gap-2 px-2 py-3 lg:flex' : 'h-20 justify-between gap-2 px-4',
+        ]"
+      >
+        <img
           v-if="!isCollapsed || sidebarOpen"
-          class="min-w-0 flex-1 rounded-xl bg-black/90 px-2 py-1.5"
-        >
-          <img
-            :src="logoEmpresa"
-            alt="Taller Mecánica LYER"
-            class="h-11 w-auto max-w-full object-contain object-left"
-          />
-        </div>
-        <div
+          :src="logoEmpresa"
+          alt="Taller Mecánica LYER"
+          class="h-16 w-auto max-w-[220px] object-contain object-left"
+        />
+        <img
           v-else
-          class="rounded-xl bg-black/90 p-1.5 mx-auto"
+          :src="iconCamion"
+          alt="LYER"
+          class="logo-colapsado mx-auto h-9 w-9 object-contain"
+        />
+        <button
+          class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lyer-cyan/80 transition-colors hover:bg-white/10 hover:text-white lg:flex"
+          :title="isCollapsed ? 'Expandir menú' : 'Colapsar menú'"
+          @click="isCollapsed = !isCollapsed"
         >
-          <img
-            :src="iconCamion"
-            alt="LYER"
-            class="h-8 w-8 object-contain invert"
-          />
-        </div>
-        <!-- En desktop: colapsar sidebar -->
-        <button @click="isCollapsed = !isCollapsed"
-          class="hidden lg:flex w-8 h-8 rounded hover:bg-lyer-accent/20 transition-colors items-center justify-center shrink-0">
-          <Menu class="w-5 h-5" />
+          <Menu class="h-5 w-5" />
         </button>
-        <!-- En móvil: cerrar drawer -->
-        <button @click="sidebarOpen = false"
-          class="lg:hidden w-8 h-8 rounded hover:bg-lyer-accent/20 transition-colors flex items-center justify-center shrink-0">
-          <X class="w-5 h-5" />
+        <button
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lyer-cyan/80 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+          title="Cerrar menú"
+          @click="sidebarOpen = false"
+        >
+          <X class="h-5 w-5" />
         </button>
       </div>
 
-      <!-- Nav -->
-      <nav class="flex-1 mt-2 px-3 space-y-1 overflow-y-auto">
-        <router-link v-for="item in menuItems" :key="item.path" :to="item.path"
+      <nav class="flex-1 space-y-1.5 overflow-y-auto px-3.5 py-6">
+        <router-link
+          v-for="item in menuItems"
+          :key="item.path"
+          :to="item.path"
+          :title="isCollapsed && !sidebarOpen ? item.name : undefined"
           :class="[
-            'flex items-center p-3 rounded-xl transition-colors',
-            'hover:bg-lyer-accent/20',
-            route.path === item.path || (item.path !== '/home' && route.path.startsWith(item.path))
-              ? 'bg-lyer-accent text-lyer-green font-bold'
-              : 'text-slate-200',
-          ]">
-          <component :is="item.icon" class="w-5 h-5 shrink-0" />
-          <span v-if="!isCollapsed || sidebarOpen"
-            class="ml-3 text-sm truncate">{{ item.name }}</span>
+            'group flex items-center gap-3.5 px-4 py-3 transition-all',
+            activo(item.path)
+              ? 'rounded-full bg-lyer-accent font-semibold text-[#1a0633] shadow-[0_0_20px_-3px_rgba(255,96,128,0.45)]'
+              : 'rounded-xl font-medium text-slate-300 hover:bg-[#2a0a4a] hover:text-white',
+            isCollapsed && !sidebarOpen ? 'lg:justify-center lg:px-3' : '',
+          ]"
+        >
+          <component
+            :is="item.icon"
+            :class="['h-5 w-5 shrink-0', activo(item.path) ? '' : 'text-lyer-cyan/80 group-hover:text-lyer-cyan']"
+          />
+          <span v-if="!isCollapsed || sidebarOpen" class="truncate text-sm">{{ item.name }}</span>
         </router-link>
       </nav>
 
-      <!-- Usuario + Logout -->
-      <div class="p-3 border-t border-lyer-accent/20 shrink-0 space-y-2">
-        <div
-          v-if="!isCollapsed || sidebarOpen"
-          class="px-3 py-2 rounded-xl bg-lyer-accent/10"
-        >
-          <p class="text-sm font-black text-white truncate leading-tight">{{ nombreUsuario }}</p>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-lyer-accent mt-0.5">{{ etiquetaRol }}</p>
+      <div class="shrink-0 border-t border-[#3d1570]/70 bg-[#10041f]/95 p-4">
+        <div v-if="!isCollapsed || sidebarOpen" class="mb-2 px-2 py-2">
+          <p class="truncate text-sm font-semibold tracking-wide text-white">{{ nombreUsuario }}</p>
+          <p class="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-lyer-cyan">{{ etiquetaRol }}</p>
         </div>
-        <div
-          v-else
-          class="flex justify-center"
-          :title="`${nombreUsuario} · ${etiquetaRol}`"
-        >
-          <div class="w-9 h-9 rounded-full bg-lyer-accent/20 text-lyer-accent flex items-center justify-center text-xs font-black">
+        <div v-else class="mb-2 flex justify-center" :title="`${nombreUsuario} · ${etiquetaRol}`">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-lyer-accent/20 text-xs font-black text-lyer-accent">
             {{ (nombreUsuario || '?').charAt(0).toUpperCase() }}
           </div>
         </div>
-        <button @click="logout"
-          class="flex items-center w-full p-3 text-red-300 hover:bg-red-900/20 rounded-xl transition-colors">
-          <LogOut class="w-5 h-5 shrink-0" />
-          <span v-if="!isCollapsed || sidebarOpen" class="ml-3 text-sm">Cerrar Sesión</span>
+        <button
+          class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
+          :class="isCollapsed && !sidebarOpen ? 'lg:justify-center' : ''"
+          @click="logout"
+        >
+          <LogOut class="h-4 w-4 shrink-0" />
+          <span v-if="!isCollapsed || sidebarOpen">Cerrar sesión</span>
         </button>
       </div>
     </aside>
 
-    <!-- ── CONTENIDO PRINCIPAL ─────────────────────────────────────────── -->
-    <main class="flex-1 flex flex-col overflow-hidden min-w-0">
-
-      <!-- Header -->
-      <header class="h-14 bg-white border-b flex items-center justify-between px-4 shadow-sm shrink-0">
-        <div class="flex items-center gap-3">
-          <!-- Hamburguesa — solo móvil -->
-          <button @click="sidebarOpen = true"
-            class="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
-            <Menu class="w-5 h-5 text-lyer-green" />
+    <main class="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <header class="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-[#4a2870]/50 bg-[#160c24]/95 px-4 backdrop-blur-md lg:px-6">
+        <div class="flex min-w-0 items-center gap-3">
+          <button
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 transition-colors hover:text-white lg:hidden"
+            title="Abrir menú"
+            @click="sidebarOpen = true"
+          >
+            <Menu class="h-5 w-5" />
           </button>
-          <!-- Volver — si no es home -->
-          <button v-if="route.path !== '/home'"
+          <button
+            v-if="route.path !== '/home'"
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 transition-colors hover:text-white"
+            title="Volver"
             @click="router.back()"
-            class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
-            <ChevronLeft class="w-5 h-5 text-lyer-green" />
+          >
+            <ChevronLeft class="h-5 w-5" />
           </button>
-          <h2 class="text-sm font-bold text-slate-700 capitalize truncate max-w-[160px] sm:max-w-none">
+          <h2 class="truncate text-base font-semibold tracking-wide text-white">
             {{ routeTitle(route.name) }}
           </h2>
         </div>
-        <div class="bg-lyer-green text-white px-3 py-1.5 rounded-lg font-bold text-xs shrink-0">
+        <div class="shrink-0 rounded-md border border-lyer-accent/40 bg-[#2a0a4a] px-3.5 py-1.5 text-xs font-semibold tracking-wider text-lyer-soft">
           {{ new Date().toLocaleDateString('es-PE') }}
         </div>
       </header>
 
-      <!-- Vista -->
-      <section class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+      <section
+        :class="route.name === 'dashboard' ? 'bg-[#140a22] text-slate-100' : 'bg-slate-50 text-slate-800'"
+        class="flex-1 overflow-y-auto p-4 md:p-5 lg:px-6 lg:py-6"
+      >
         <router-view />
       </section>
     </main>
@@ -202,6 +204,12 @@ const routeTitle = (name) => {
 </template>
 
 <style scoped>
+.app-shell {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.logo-colapsado {
+  filter: brightness(0) invert(1);
+}
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to       { opacity: 0; }
 </style>

@@ -1,8 +1,9 @@
 <script setup>
-defineProps({
+const props = defineProps({
   estado: { type: String, required: true },
   cerrada: { type: Boolean, default: false },
   size: { type: String, default: 'sm' },
+  oscuro: { type: Boolean, default: false },
 });
 
 const ESTADO_CONFIG = {
@@ -15,7 +16,10 @@ const ESTADO_CONFIG = {
   CANCELADO: { label: 'Cancelado', badge: 'badge-error text-error-content' },
 };
 
-const badgeClass = (estado) => ESTADO_CONFIG[estado]?.badge || 'badge-ghost';
+const badgeClass = (estado) => {
+  if (props.oscuro && estado === 'EN_ESPERA') return 'bg-slate-700 text-slate-100 border border-slate-500';
+  return ESTADO_CONFIG[estado]?.badge || 'badge-ghost';
+};
 const label = (estado) => ESTADO_CONFIG[estado]?.label || estado;
 </script>
 

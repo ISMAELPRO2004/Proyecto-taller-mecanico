@@ -1,21 +1,23 @@
-<script setup>
-import { Car } from 'lucide-vue-next';
-</script>
-
 <template>
-  <div class="bg-lyer-green text-white p-4 sm:p-5 rounded-2xl shadow-lg relative overflow-hidden group flex items-center gap-4">
-    <div class="relative z-10 min-w-0 flex-1">
-      <h4 class="text-base sm:text-lg font-black leading-tight">¿Nueva Entrada?</h4>
-      <p class="text-emerald-100 text-xs mt-0.5 leading-relaxed hidden sm:block">
-        Registra un nuevo vehículo y genera su orden de trabajo.
-      </p>
+  <section class="relative overflow-hidden rounded-2xl border border-lyer-accent/25 bg-gradient-to-r from-lyer-green via-[#301050] to-lyer-ink p-6 shadow-xl sm:p-7">
+    <div class="mesh-pattern pointer-events-none absolute inset-0 opacity-40" />
+    <div class="pointer-events-none absolute -bottom-10 -right-10 h-72 w-72 rounded-full bg-lyer-accent/10 blur-3xl" />
+    <div class="relative z-10 flex flex-col justify-between gap-5 md:flex-row md:items-center">
+      <div class="max-w-2xl space-y-1.5">
+        <h2 class="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
+          ¿Nueva entrada?
+        </h2>
+        <p class="text-sm leading-relaxed text-lyer-soft/90">
+          Registra un vehículo y genera su orden de trabajo.
+        </p>
+      </div>
+      <button
+        class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 font-display text-sm font-bold tracking-wide text-slate-900 shadow-lg transition-transform hover:bg-lyer-soft active:scale-95"
+        @click="$router.push('/ordenes/nueva')"
+      >
+        <span class="text-base font-black leading-none text-lyer-green">+</span>
+        Crear orden
+      </button>
     </div>
-    <button
-      @click="$router.push('/ordenes/nueva')"
-      class="relative z-10 btn btn-sm sm:btn-md bg-white text-lyer-green border-none hover:bg-emerald-50 shrink-0 font-bold text-xs sm:text-sm"
-    >
-      + Crear Orden
-    </button>
-    <Car class="absolute -bottom-4 -right-4 w-24 h-24 sm:w-28 sm:h-28 opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none" />
-  </div>
+  </section>
 </template>

@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { ordenService } from '../../services/ordenService.js';
-import { RefreshCcw } from 'lucide-vue-next';
 import CtaNuevaOrden from './componentes/CtaNuevaOrden.vue';
 import StatsGrid from './componentes/StatsGrid.vue';
 import TablaOrdenesRecientes from './componentes/TablaOrdenesRecientes.vue';
@@ -48,29 +47,28 @@ onMounted(cargar);
 </script>
 
 <template>
-  <div class="space-y-6 animate-fade-in">
-
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Panel General</h2>
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mecánica LYER Motors</p>
-      </div>
-      <button
-        @click="cargar"
-        class="btn btn-sm bg-white border-slate-200 text-slate-500 hover:bg-slate-50 rounded-xl gap-2"
-      >
-        <RefreshCcw :class="['w-4 h-4', cargando ? 'animate-spin' : '']" />
-        <span class="hidden sm:inline text-xs font-bold">Actualizar</span>
-      </button>
+  <div class="w-full space-y-5 animate-fade-in">
+    <div>
+      <h2 class="font-display text-xl font-extrabold uppercase tracking-tight text-white sm:text-2xl">
+        Panel general
+      </h2>
+      <p class="mt-0.5 text-xs uppercase tracking-wider text-slate-400">
+        Mecánica LYER Motors · Gestión de taller
+      </p>
     </div>
 
     <CtaNuevaOrden />
 
     <StatsGrid :stats="stats" :cargando="cargando" />
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <TablaOrdenesRecientes :ordenes-recientes="ordenesRecientes" :cargando="cargando" />
-      <PanelAccesosRapidos />
+    <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-12 lg:items-stretch">
+      <TablaOrdenesRecientes
+        class="lg:col-span-8 lg:h-full"
+        :ordenes-recientes="ordenesRecientes"
+        :total="ordenes.length"
+        :cargando="cargando"
+      />
+      <PanelAccesosRapidos class="lg:col-span-4 lg:h-full" />
     </div>
   </div>
 </template>
