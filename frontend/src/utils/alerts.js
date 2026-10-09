@@ -38,7 +38,7 @@ export const notify = {
       text,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#064e3b',
+      confirmButtonColor: '#480078',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, continuar',
       cancelButtonText: 'Cancelar'

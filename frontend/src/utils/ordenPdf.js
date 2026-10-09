@@ -24,11 +24,11 @@ const cargarLogoDataUrl = () => {
  */
 async function construirDocumento(orden, verPrecios) {
   const doc = new jsPDF();
-  const verdeLyer = [6, 78, 59];
-  const verdeAccent = [16, 185, 129];
+  const verdeLyer = [72, 0, 120];
+  const verdeAccent = [0, 24, 96];
   const logoDataUrl = await cargarLogoDataUrl();
 
-  doc.setFillColor(0, 0, 0);
+  doc.setFillColor(0, 24, 96);
   doc.rect(0, 0, 210, 42, 'F');
 
   if (logoDataUrl) {

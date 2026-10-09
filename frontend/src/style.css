@@ -1,43 +1,51 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* Configuración de colores para Tailwind v4 */
+/* Paleta: violeta profundo, rosa vivo, cian pálido y azul ftalo. */
 @theme {
-  --color-primary: #064e3b;   /* Verde Bosque LYER */
-  --color-secondary: #10b981; /* Verde Esmeralda */
-  --color-accent: #34d399;
-  --color-lyer-green: #064e3b;
-  --color-lyer-accent: #10b981;
+  --color-primary: #480078;
+  --color-secondary: #ff6080;
+  --color-accent: #80ffff;
+  --color-lyer-green: #480078;
+  --color-lyer-accent: #ff6080;
+  --color-lyer-cyan: #80ffff;
+  --color-lyer-ink: #001860;
+  --color-lyer-soft: #f0a8c0;
+
+  --color-emerald-50: #fff4f7;
+  --color-emerald-100: #f0a8c0;
+  --color-emerald-400: #ff6080;
+  --color-emerald-500: #7040b0;
+  --color-emerald-600: #601848;
+  --color-emerald-700: #a83080;
+  --color-emerald-900: #001860;
+  --color-emerald-950: #001860;
 }
 
-/* Forzar colores del tema lyer */
-[data-theme="lyer"] {
-  --p: #064e3b;     /* Primary - Verde Bosque */
-  --pc: #ffffff;    /* Primary Content */
-  --s: #10b981;     /* Secondary - Verde Esmeralda */
-  --sc: #064e3b;    /* Secondary Content */
-  --a: #34d399;     /* Accent */
-  --ac: #064e3b;    /* Accent Content */
-  --n: #1f2937;     /* Neutral */
-  --nc: #ffffff;    /* Neutral Content */
-  --b1: #ffffff;    /* Base 100 */
-  --bc: #1f2937;    /* Base Content */
+@plugin "daisyui/theme" {
+  name: "lyer";
+  --color-primary: #480078;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff6080;
+  --color-secondary-content: #480078;
+  --color-accent: #80ffff;
+  --color-accent-content: #001860;
+  --color-neutral: #001860;
+  --color-neutral-content: #ffffff;
 }
 
 .custom-scroll-sm::-webkit-scrollbar {
-  display: none; /* Oculta scroll en móviles para estética limpia */
+  display: none;
 }
 .custom-scroll-sm {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Evita que DaisyUI rompa las líneas de los tabs */
 .tabs-boxed {
   flex-wrap: nowrap !important;
 }
 
-/* Animación global fade-in para vistas */
 .animate-fade-in {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }

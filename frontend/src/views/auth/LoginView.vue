@@ -27,9 +27,9 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-slate-900 overflow-hidden font-sans">
+  <div class="flex min-h-screen bg-lyer-ink overflow-hidden font-sans" data-theme="lyer">
     
-    <div class="w-full lg:w-[500px] bg-slate-900 relative z-10 flex flex-col justify-center p-6 sm:p-10 lg:p-16 xl:p-20 border-white/5 shadow-2xl">
+    <div class="w-full lg:w-[500px] bg-lyer-ink relative z-10 flex flex-col justify-center p-6 sm:p-10 lg:p-16 xl:p-20 border-white/5 shadow-2xl">
       
       <div class="absolute top-[-10%] left-[-10%] w-64 h-64 bg-lyer-green/20 blur-[120px] rounded-full"></div>
       
@@ -53,17 +53,17 @@ const handleLogin = async () => {
         <div class="space-y-4 pt-4">
           <div class="form-control">
             <div class="relative group">
-              <User class="absolute left-4 top-4 w-5 h-5 text-slate-500 group-focus-within:text-lyer-green transition-colors" />
+              <User class="absolute left-4 top-4 w-5 h-5 text-slate-500 group-focus-within:text-lyer-cyan transition-colors" />
               <input v-model="username" type="text" placeholder="Usuario" 
-                class="input input-bordered w-full pl-12 h-14 bg-slate-800/50 border-slate-700 text-white rounded-2xl focus:border-lyer-green focus:ring-0 transition-all font-bold" required />
+                class="input input-bordered w-full pl-12 h-14 bg-slate-800/50 border-slate-700 text-white rounded-2xl focus:border-lyer-cyan focus:ring-0 transition-all font-bold" required />
             </div>
           </div>
 
           <div class="form-control">
             <div class="relative group">
-              <Lock class="absolute left-4 top-4 w-5 h-5 text-slate-500 group-focus-within:text-lyer-green transition-colors" />
+              <Lock class="absolute left-4 top-4 w-5 h-5 text-slate-500 group-focus-within:text-lyer-cyan transition-colors" />
               <input v-model="password" type="password" placeholder="Contraseña" 
-                class="input input-bordered w-full pl-12 h-14 bg-slate-800/50 border-slate-700 text-white rounded-2xl focus:border-lyer-green focus:ring-0 transition-all font-bold" required />
+                class="input input-bordered w-full pl-12 h-14 bg-slate-800/50 border-slate-700 text-white rounded-2xl focus:border-lyer-cyan focus:ring-0 transition-all font-bold" required />
             </div>
           </div>
         </div>
@@ -82,12 +82,12 @@ const handleLogin = async () => {
 
     <div class="hidden lg:block relative flex-1">
       <div class="absolute inset-0 bg-cover bg-center" :style="`background-image: url('${fondoLogin}')`">
-        <div class="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/40 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-lyer-ink via-lyer-ink/40 to-transparent"></div>
         
         <div class="absolute bottom-20 left-20 text-white max-w-md animate-fade-in">
-          <div class="h-1 w-20 bg-lyer-green mb-6"></div>
+          <div class="h-1 w-20 bg-lyer-accent mb-6"></div>
           <h3 class="text-4xl font-black uppercase italic tracking-tighter leading-tight mb-4">
-            Mantenimiento <br/> de Alto <span class="text-lyer-green">Rendimiento</span>
+            Mantenimiento <br/> de Alto <span class="text-lyer-accent">Rendimiento</span>
           </h3>
           <p class="text-slate-300 text-sm font-medium leading-relaxed">
             Optimiza tu flota con herramientas de precisión. LYER Motors: Potencia y control en cada pieza.
@@ -120,6 +120,6 @@ const handleLogin = async () => {
 /* Efecto de foco en inputs */
 input:focus {
   background-color: rgba(15, 23, 42, 0.8) !important;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 2px rgba(255, 96, 128, 0.35);
 }
 </style>
