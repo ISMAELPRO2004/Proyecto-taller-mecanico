@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
-import { registrarLog } from '../utils/logger.js';
+import { registrarLog } from '../auditoria/index.js';
 
 /**
  * Factory CRUD para catálogos (materiales, servicios, terceros).

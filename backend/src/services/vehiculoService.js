@@ -1,14 +1,6 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
-import { registrarEventos } from '../utils/logger.js';
-import {
-  eventoNuevo,
-  eventoCambio,
-  eventoBorrado,
-  filasPresentes,
-  filasDeVehiculo,
-  cambiosDeVehiculo,
-} from '../utils/eventosAuditoria.js';
+import { auditarMarca, auditarVehiculo } from '../auditoria/index.js';
 
 export const listarMarcas = async () => {
   return prisma.marcaVehiculo.findMany({
@@ -26,9 +18,7 @@ export const actualizarMarca = async (id, { nombre }, req) => {
       where: { id: parseInt(id) },
       data: { nombre: nombre.trim() },
     });
-    await registrarEventos(req, [
-      eventoCambio('EDITAR MARCA', marca.nombre, cambiosDeMarca(anterior, marca)),
-    ]);
+    await auditarMarca.editar(req, anterior, marca);
     return marca;
   } catch {
     throw new AppError('Ya existe una marca con ese nombre.');
@@ -46,9 +36,7 @@ export const eliminarMarca = async (id, req) => {
   }
 
   await prisma.marcaVehiculo.delete({ where: { id: marca.id } });
-  await registrarEventos(req, [
-    eventoBorrado('ELIMINAR MARCA', marca.nombre, filasPresentes([['Nombre', marca.nombre]])),
-  ]);
+  await auditarMarca.eliminar(req, marca);
   return { message: 'Marca eliminada' };
 };
 
@@ -84,9 +72,7 @@ export const actualizarVehiculo = async (placa, data, req) => {
     include: { marca: true },
   });
 
-  await registrarEventos(req, [
-    eventoCambio('EDITAR VEHÍCULO', vehiculo.placa, cambiosDeVehiculo(anterior, vehiculo)),
-  ]);
+  await auditarVehiculo.editar(req, anterior, vehiculo);
   return vehiculo;
 };
 
@@ -102,9 +88,7 @@ export const eliminarVehiculo = async (placa, req) => {
   }
 
   await prisma.vehiculo.delete({ where: { placa: placaNorm } });
-  await registrarEventos(req, [
-    eventoBorrado('ELIMINAR VEHÍCULO', vehiculo.placa, filasDeVehiculo(vehiculo)),
-  ]);
+  await auditarVehiculo.eliminar(req, vehiculo);
   return { message: 'Vehículo eliminado' };
 };
 
@@ -112,9 +96,7 @@ export const crearMarca = async ({ nombre }, req) => {
   const marca = await prisma.marcaVehiculo.create({
     data: { nombre: nombre.trim() },
   });
-  await registrarEventos(req, [
-    eventoNuevo('CREAR MARCA', marca.nombre, filasPresentes([['Nombre', marca.nombre]])),
-  ]);
+  await auditarMarca.crear(req, marca);
   return marca;
 };
 
@@ -166,16 +148,7 @@ export const upsertVehiculo = async (data, req) => {
     include: { marca: true },
   });
 
-  await registrarEventos(req, [
-    anterior
-      ? eventoCambio('EDITAR VEHÍCULO', vehiculo.placa, cambiosDeVehiculo(anterior, vehiculo))
-      : eventoNuevo('CREAR VEHÍCULO', vehiculo.placa, filasDeVehiculo(vehiculo)),
-  ]);
+  await auditarVehiculo.guardar(req, { anterior, vehiculo });
 
   return vehiculo;
-};
-
-const cambiosDeMarca = (antes, despues) => {
-  if (antes.nombre === despues.nombre) return [];
-  return [{ etiqueta: 'Nombre', de: antes.nombre, a: despues.nombre }];
 };

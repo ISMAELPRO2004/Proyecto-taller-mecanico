@@ -1,7 +1,6 @@
 /**
- * Arma los logs del borrador como eventos sueltos.
- * Cada función devuelve una lista: un log por vehículo, otro por cliente, otro por la orden.
- * Si no hubo cambio real, la lista viene vacía y no se guarda nada.
+ * Arma los cambios del borrador y de la orden en trabajo.
+ * Si no hubo cambio real, la lista vuelve vacía y no se guarda nada.
  */
 
 const texto = (valor) => {

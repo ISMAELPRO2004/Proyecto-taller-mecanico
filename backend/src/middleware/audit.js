@@ -2,7 +2,7 @@ export const auditLog = (accionDescripcion) => {
   return async (req, res, next) => {
     res.on('finish', async () => {
       if (res.statusCode >= 200 && res.statusCode < 300 && req.user && !req.logManualRealizado) {
-        // Si llegamos aquí, un controller mutó datos sin llamar a registrarLog.
+        // El servicio cambió datos sin llamar a src/auditoria.
         // Solo loguear en consola para detectarlo durante desarrollo.
         console.warn(
           `⚠️  [AUDIT] Acción sin log manual detectada: ${accionDescripcion} | ` +

@@ -1,3 +1,7 @@
+/**
+ * Capas: ruta (permisos y validación) → controlador (HTTP) → servicio (reglas) → Prisma.
+ * La orden está en services/orden: recepción, consulta, trabajo y fotos.
+ */
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';

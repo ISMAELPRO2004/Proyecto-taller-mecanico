@@ -1,13 +1,6 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
-import { registrarEventos } from '../utils/logger.js';
-import {
-  eventoNuevo,
-  eventoCambio,
-  eventoBorrado,
-  filasDeCliente,
-  cambiosDeCliente,
-} from '../utils/eventosAuditoria.js';
+import { auditarCliente } from '../auditoria/index.js';
 
 export const listarClientes = async (q, { todos = false } = {}) => {
   const where = q
@@ -47,9 +40,7 @@ export const actualizarCliente = async (id, data, req) => {
       where: { id: parseInt(id) },
       data: payload,
     });
-    await registrarEventos(req, [
-      eventoCambio('EDITAR CLIENTE', cliente.nombreRazonSocial, cambiosDeCliente(existente, cliente)),
-    ]);
+    await auditarCliente.editar(req, existente, cliente);
     return cliente;
   } catch {
     throw new AppError('No se pudo actualizar. El documento puede estar en uso.');
@@ -67,9 +58,7 @@ export const eliminarCliente = async (id, req) => {
   }
 
   await prisma.cliente.delete({ where: { id: cliente.id } });
-  await registrarEventos(req, [
-    eventoBorrado('ELIMINAR CLIENTE', cliente.nombreRazonSocial, filasDeCliente(cliente)),
-  ]);
+  await auditarCliente.eliminar(req, cliente);
   return { message: 'Cliente eliminado' };
 };
 
@@ -102,10 +91,6 @@ export const crearOActualizarCliente = async (data, req) => {
     create: payload,
   });
 
-  await registrarEventos(req, [
-    anterior
-      ? eventoCambio('EDITAR CLIENTE', cliente.nombreRazonSocial, cambiosDeCliente(anterior, cliente))
-      : eventoNuevo('CREAR CLIENTE', cliente.nombreRazonSocial, filasDeCliente(cliente)),
-  ]);
+  await auditarCliente.guardar(req, { anterior, cliente });
   return cliente;
 };

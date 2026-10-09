@@ -1,22 +1,9 @@
 import { servicioService } from '../services/catalogoService.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { crearControladorCatalogo } from './catalogoController.js';
 
-export const listarServicios = asyncHandler(async (req, res) => {
-  const servicios = await servicioService.listar(req);
-  res.json(servicios);
-}, { defaultStatus: 500, useMessageKey: false });
+const catalogo = crearControladorCatalogo(servicioService);
 
-export const crearServicio = asyncHandler(async (req, res) => {
-  const nuevo = await servicioService.crear(req.body, req);
-  res.status(201).json(nuevo);
-}, { useMessageKey: false });
-
-export const actualizarServicio = asyncHandler(async (req, res) => {
-  const actualizado = await servicioService.actualizar(req.params.id, req.body, req);
-  res.json(actualizado);
-}, { useMessageKey: false });
-
-export const eliminarServicio = asyncHandler(async (req, res) => {
-  const resultado = await servicioService.eliminar(req.params.id, req);
-  res.json(resultado);
-}, { useMessageKey: false });
+export const listarServicios = catalogo.listar;
+export const crearServicio = catalogo.crear;
+export const actualizarServicio = catalogo.actualizar;
+export const eliminarServicio = catalogo.eliminar;

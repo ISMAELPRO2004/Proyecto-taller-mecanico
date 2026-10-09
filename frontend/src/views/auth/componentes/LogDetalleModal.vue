@@ -1,323 +1,28 @@
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
-import { 
-  X, PlusCircle, Trash2, RefreshCcw, ArrowRight, ChevronDown,
-  Package, Wrench, ExternalLink, Activity, Info,
-  User, Monitor, Camera
-} from 'lucide-vue-next';
-import { labelEstadoOrden } from '../../../constants/estadosOrden.js';
-import { usuarioService } from '../../../services/usuarioService.js';
+import { X, Activity, User, Monitor, Info } from 'lucide-vue-next';
 import { fechaHora } from '../../../utils/fecha.js';
+import { useDetalleLog } from '../composables/useDetalleLog.js';
+import LogGrupo from './log/LogGrupo.vue';
+import LogDetalle from './log/LogDetalle.vue';
+import LogFoto from './log/LogFoto.vue';
+import LogFicha from './log/LogFicha.vue';
 
 const props = defineProps({ isOpen: Boolean, log: Object });
 const emit = defineEmits(['close']);
 
-const data = computed(() => {
-  if (!props.log?.detalles) return null;
-  try {
-    return typeof props.log.detalles === 'string'
-      ? JSON.parse(props.log.detalles)
-      : props.log.detalles;
-  } catch { return null; }
-});
+const {
+  data, tituloItem, rolLabel, etiquetaOperacionFoto,
+  vistaAnterior, vistaNueva, vistaAmpliada, cargandoFotos,
+  datosCreacion, datosEliminacion, camposCabecera, listas,
+  campoLabel, formatVal, accionConfig,
+} = useDetalleLog(props);
 
-const seccionesAbiertas = ref([]);
-const alternarSeccion = (indice) => {
-  const abiertas = new Set(seccionesAbiertas.value);
-  if (abiertas.has(indice)) abiertas.delete(indice);
-  else abiertas.add(indice);
-  seccionesAbiertas.value = [...abiertas];
-};
-const seccionAbierta = (indice) => seccionesAbiertas.value.includes(indice);
-
-watch(() => props.log?.id, () => {
-  seccionesAbiertas.value = [];
-});
-
-const vistaAnterior = ref('');
-const vistaNueva = ref('');
-const vistaAmpliada = ref('');
-const cargandoFotos = ref(false);
-let cargaSeq = 0;
-
-const revocarVistas = () => {
-  if (vistaAnterior.value) URL.revokeObjectURL(vistaAnterior.value);
-  if (vistaNueva.value) URL.revokeObjectURL(vistaNueva.value);
-  vistaAnterior.value = '';
-  vistaNueva.value = '';
-  vistaAmpliada.value = '';
-};
-
-const cargarVista = async (ruta) => {
-  if (!ruta) return '';
-  try {
-    const blob = await usuarioService.descargarFotoLog(ruta);
-    if (!blob || !(blob.type || '').startsWith('image/')) return '';
-    return URL.createObjectURL(blob);
-  } catch {
-    return '';
-  }
-};
-
-watch(
-  () => [props.isOpen, props.log?.id],
-  async ([abierto]) => {
-    const seq = ++cargaSeq;
-    revocarVistas();
-    if (!abierto || data.value?.tipo !== 'FOTO') return;
-    cargandoFotos.value = true;
-    try {
-      const [antes, despues] = await Promise.all([
-        cargarVista(data.value.snapshotAnterior),
-        cargarVista(data.value.snapshotNuevo),
-      ]);
-      if (seq !== cargaSeq) {
-        if (antes) URL.revokeObjectURL(antes);
-        if (despues) URL.revokeObjectURL(despues);
-        return;
-      }
-      vistaAnterior.value = antes;
-      vistaNueva.value = despues;
-    } finally {
-      if (seq === cargaSeq) cargandoFotos.value = false;
-    }
-  },
-  { immediate: true }
-);
-
-onBeforeUnmount(revocarVistas);
-
-const etiquetaOperacionFoto = (op) => {
-  if (op === 'REEMPLAZAR') return 'Se reemplazó la imagen';
-  if (op === 'QUITAR') return 'Se quitó la imagen';
-  return 'Se subió la imagen';
-};
-const ROL_LABELS  = {
-  ADMIN: 'Administrador', SUPERVISOR: 'Supervisor', TECNICO: 'Técnico', RECEPCIONISTA: 'Recepcionista'
-};
-const rolLabel = (val) => ROL_LABELS[val] || val || '—';
-
-const CAMPO_LABELS = {
-  clienteNombre: 'Cliente', clienteCelular: 'Celular',
-  trabajoSolicitado: 'Trabajo Solicitado', placa: 'Placa',
-  marca: 'Marca', modelo: 'Modelo', horometro: 'Horómetro',
-  kilometraje: 'Kilometraje', totalFinal: 'Total Final',
-  estado: 'Estado', responsable: 'Responsable',
-  nombreCompleto: 'Nombre Completo', username: 'Usuario',
-  rol: 'Rol', activo: 'Estado de Cuenta',
-  descripcion: 'Descripción', precioBase: 'Precio Base',
-  nombre: 'Nombre', nombreRazonSocial: 'Nombre',
-  tipoCliente: 'Tipo', tipoDocumento: 'Tipo de documento',
-  numeroDocumento: 'Número de documento', representante: 'Representante',
-  celular: 'Celular', correo: 'Correo',
-};
-const campoLabel = (key) => CAMPO_LABELS[key] || key;
-
-const formatFecha = (val) => {
-  if (!val) return '—';
-  try { return new Date(val).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }); }
-  catch { return String(val); }
-};
-
-const formatVal = (key, val) => {
-  if (val === null || val === undefined) return '—';
-  if (key === 'marca' && typeof val === 'object') return val.nombre || '—';
-  if (key === 'tipoCliente') return val === 'EMPRESA' ? 'Empresa' : val === 'PERSONA' ? 'Persona' : String(val);
-  if (typeof val === 'object') return '—';
-  if (key === 'estado')  return labelEstadoOrden(val);
-  if (key === 'rol')     return rolLabel(val);
-  if (key === 'activo')  return val ? 'Activo' : 'Inactivo';
-  if (['totalFinal', 'precioBase', 'monto'].includes(key))
-    return `S/ ${parseFloat(val).toFixed(2)}`;
-  if (['actualizadoAt', 'fechaCreacion', 'creadoAt'].includes(key))
-    return formatFecha(val);
-  return String(val);
-};
-
-const accionConfig = (accion) => {
-  if (accion === 'AÑADIDO')   return { color: 'text-emerald-500', bg: 'bg-emerald-50',  border: 'border-emerald-100' };
-  if (accion === 'ELIMINADO') return { color: 'text-red-400',     bg: 'bg-red-50',      border: 'border-red-100'     };
-  return                             { color: 'text-amber-500',   bg: 'bg-amber-50/60', border: 'border-amber-100'   };
-};
-
-// ── Tipo de acción ────────────────────────────────────────────────────────────
-const tipoAccion = computed(() => {
-  const a = props.log?.accion || '';
-  if (a.includes('FOTO'))      return 'foto';
-  if (a.includes('MARCA'))     return 'marca';
-  if (a.includes('CLIENTE'))   return 'cliente';
-  if (a.includes('VEHICUL'))   return 'vehiculo';
-  if (a.includes('MATERIAL'))  return 'material';
-  if (a.includes('SERVICIO'))  return 'servicio';
-  if (a.includes('TERCERO'))   return 'tercero';
-  if (a.includes('ORDEN'))     return 'orden';
-  if (a.includes('USUARIO'))   return 'usuario';
-  return 'otro';
-});
-
-const labelTipo = computed(() => ({
-  material: 'Material', servicio: 'Servicio', tercero: 'Tercero',
-  orden: 'Orden', usuario: 'Usuario', foto: 'Foto',
-  marca: 'Marca', cliente: 'Cliente', vehiculo: 'Vehículo', otro: 'Registro'
-})[tipoAccion.value]);
-
-// ── Título contextual del ítem afectado ───────────────────────────────────────
-// Muestra el nombre/número del ítem en el header para contexto inmediato
-const tituloItem = computed(() => {
-  if (!data.value) return null;
-  const d = data.value;
-
-  if (d.tipo === 'GRUPO' && d.resumen) return d.resumen;
-  if (d.tipo === 'DETALLE' && d.resumen) return d.resumen;
-  if (d.tipo === 'FOTO' && d.imagen) return d.imagen;
-  if (d.tipo === 'EDICION' && d.nombreItem) return d.nombreItem;
-
-  // Creación de orden — número de orden desde el log
-  if (d.tipo === 'CREACION' && props.log?.orden?.numeroOrden)
-    return props.log.orden.numeroOrden;
-
-  // Creación de catálogo — descripcion
-  if (d.tipo === 'CREACION' && (d.datos?.nombre || d.datos?.nombreRazonSocial || d.datos?.placa))
-    return d.datos.nombre || d.datos.nombreRazonSocial || d.datos.placa;
-
-  if (d.tipo === 'CREACION' && d.datos?.descripcion)
-    return d.datos.descripcion;
-
-  // Creación de usuario — nombreCompleto o username
-  if (d.tipo === 'CREACION' && d.datos?.nombreCompleto)
-    return d.datos.nombreCompleto;
-
-  // Eliminación
-  if (d.tipo === 'ELIMINACION' && (d.datos_borrados?.nombre || d.datos_borrados?.nombreRazonSocial || d.datos_borrados?.placa))
-    return d.datos_borrados.nombre || d.datos_borrados.nombreRazonSocial || d.datos_borrados.placa;
-
-  if (d.tipo === 'ELIMINACION' && d.datos_borrados?.descripcion)
-    return d.datos_borrados.descripcion;
-  if (d.tipo === 'ELIMINACION' && d.datos_borrados?.clienteNombre)
-    return `Orden de ${d.datos_borrados.clienteNombre}`;
-
-  return null;
-});
-
-// ── Campos por tipo de creación ───────────────────────────────────────────────
-const CAMPOS_CATALOGO  = ['descripcion', 'precioBase', 'actualizadoAt'];
-const CAMPOS_ORDEN     = ['clienteNombre', 'clienteCelular', 'trabajoSolicitado',
-                          'placa', 'marca', 'modelo', 'horometro', 'kilometraje',
-                          'estado', 'responsable'];
-const CAMPOS_USUARIO   = ['nombreCompleto', 'username', 'rol'];
-const CAMPOS_MARCA     = ['nombre'];
-const CAMPOS_CLIENTE   = ['tipoCliente', 'tipoDocumento', 'numeroDocumento', 'nombreRazonSocial', 'representante', 'celular', 'correo'];
-const CAMPOS_VEHICULO  = ['placa', 'marca', 'modelo', 'horometro', 'kilometraje'];
-
-const camposSegunTipo = (tipo) => ({
-  orden: CAMPOS_ORDEN,
-  usuario: CAMPOS_USUARIO,
-  marca: CAMPOS_MARCA,
-  cliente: CAMPOS_CLIENTE,
-  vehiculo: CAMPOS_VEHICULO,
-}[tipo] || CAMPOS_CATALOGO);
-
-const datosCreacion = computed(() => {
-  if (data.value?.tipo !== 'CREACION')
-    return { campos: [], materiales: [], servicios: [], terceros: [], total: null };
-
-  const datos = data.value.datos || {};
-  const tipo  = tipoAccion.value;
-  const lista = camposSegunTipo(tipo);
-
-  const campos = lista
-    .filter(k => datos[k] !== undefined && datos[k] !== null && datos[k] !== '')
-    .map(k => {
-      let label = campoLabel(k);
-      if (k === 'descripcion') label = `Nombre del ${labelTipo.value}`;
-      if (k === 'actualizadoAt') label = 'Fecha de Registro';
-      return [label, formatVal(k, datos[k])];
-    });
-
-  if (tipo !== 'orden') return { campos, materiales: [], servicios: [], terceros: [], total: null };
-
-  const materiales = (datos.materiales || []).map(m => ({
-    descripcion: m.descripcion || '—',
-    cantidad: m.cantidad,
-    subtotal: parseFloat(m.cantidad || 0) * parseFloat(m.precioAlMomento ?? m.precioAplicado ?? 0),
-  }));
-  const servicios = (datos.servicios || []).map(s => ({
-    descripcion: s.descripcion || '—', monto: parseFloat(s.monto || 0),
-  }));
-  const terceros = (datos.terceros || []).map(t => ({
-    descripcion: t.descripcion || '—', monto: parseFloat(t.monto || 0),
-  }));
-  const total = parseFloat(datos.totalFinal || 0) ||
-    materiales.reduce((a, m) => a + m.subtotal, 0) +
-    servicios.reduce((a, s)  => a + s.monto,    0) +
-    terceros.reduce((a, t)   => a + t.monto,     0);
-
-  return { campos, materiales, servicios, terceros, total };
-});
-
-// ── Eliminación ───────────────────────────────────────────────────────────────
-const datosEliminacion = computed(() => {
-  if (data.value?.tipo !== 'ELIMINACION')
-    return { campos: [], materiales: [], servicios: [], terceros: [], total: null };
-
-  const datos = data.value.datos_borrados || {};
-  const tipo  = tipoAccion.value;
-  const lista = camposSegunTipo(tipo);
-
-  const campos = lista
-    .filter(k => datos[k] !== undefined && datos[k] !== null && datos[k] !== '')
-    .map(k => {
-      let label = campoLabel(k);
-      if (k === 'descripcion') label = `Nombre del ${labelTipo.value}`;
-      if (k === 'actualizadoAt') label = 'Última Modificación';
-      return [label, formatVal(k, datos[k])];
-    });
-
-  if (tipo !== 'orden')
-    return { campos, materiales: [], servicios: [], terceros: [], total: null };
-
-  const materiales = (datos.materiales || []).map(m => ({
-    descripcion: m.material?.descripcion || m.descripcion || '—',
-    cantidad: m.cantidad,
-    subtotal: parseFloat(m.cantidad || 0) * parseFloat(m.precioAplicado || 0),
-  }));
-  const servicios = (datos.servicios || []).map(s => ({
-    descripcion: s.descripcion || '—', monto: parseFloat(s.monto || 0),
-  }));
-  const terceros = (datos.terceros || []).map(t => ({
-    descripcion: t.descripcion || '—', monto: parseFloat(t.monto || 0),
-  }));
-
-  return { campos, materiales, servicios, terceros, total: parseFloat(datos.totalFinal || 0) };
-});
-
-// ── Edición ───────────────────────────────────────────────────────────────────
-const camposCabecera = computed(() => {
-  if (data.value?.tipo !== 'EDICION') return [];
-  if (data.value.cambios?.cabecera)
-    return Object.entries(data.value.cambios.cabecera);
-  if (data.value.cambios)
-    return Object.entries(data.value.cambios)
-      .filter(([, v]) => v && typeof v === 'object' && 'de' in v);
-  return [];
-});
-
-const listas = computed(() => {
-  if (data.value?.tipo !== 'EDICION') return [];
-  const c = data.value.cambios || {};
-  const res = [];
-  if (c.materiales?.length) res.push({ nombre: 'Repuestos', icono: 'package', items: c.materiales });
-  if (c.servicios?.length)  res.push({ nombre: 'Servicios', icono: 'wrench',  items: c.servicios  });
-  if (c.terceros?.length)   res.push({ nombre: 'Terceros',  icono: 'external', items: c.terceros  });
-  return res;
-});
+const ficha = (tipo) => tipo === 'CREACION' || tipo === 'ELIMINACION' || tipo === 'EDICION';
 </script>
 
 <template>
   <div :class="['modal modal-bottom sm:modal-middle', { 'modal-open': isOpen }]">
     <div class="modal-box max-w-3xl p-0 border-t-8 border-lyer-green rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden">
-
-      <!-- Header -->
       <div class="p-4 md:p-6 bg-slate-50 border-b flex justify-between items-center">
         <div class="flex items-center gap-3 min-w-0">
           <div class="bg-lyer-green/10 p-2 rounded-xl text-lyer-green shrink-0">
@@ -327,7 +32,6 @@ const listas = computed(() => {
             <h3 class="font-black text-slate-800 uppercase tracking-tighter truncate">
               {{ log?.accion || 'Detalle de Auditoría' }}
             </h3>
-            <!-- Título contextual del ítem afectado -->
             <p v-if="tituloItem" class="text-[10px] font-black text-lyer-green truncate mt-0.5">
               {{ tituloItem }}
             </p>
@@ -340,8 +44,6 @@ const listas = computed(() => {
       </div>
 
       <div class="max-h-[70vh] overflow-y-auto bg-white custom-scroll">
-
-        <!-- Meta -->
         <div v-if="log" class="px-8 pt-5 pb-4 flex flex-wrap gap-3 border-b border-slate-50">
           <div class="flex items-center gap-2 text-xs text-slate-500">
             <User class="w-3.5 h-3.5 text-lyer-green" />
@@ -360,339 +62,40 @@ const listas = computed(() => {
           </div>
         </div>
 
-        <div class="p-8 space-y-6">
-
-          <!-- ── GRUPO: un guardado, varias secciones contraídas ───────── -->
-          <template v-if="data?.tipo === 'GRUPO'">
-            <p class="text-[10px] font-black uppercase tracking-widest" :class="data.contexto === 'ORDEN' ? 'text-lyer-green' : 'text-slate-400'">
-              {{ data.contexto === 'ORDEN' ? 'Orden en trabajo' : 'Recepción / borrador' }}
-            </p>
-            <div v-for="(seccion, indice) in data.secciones" :key="seccion.titulo" class="rounded-2xl border border-slate-100 overflow-hidden">
-              <button type="button" class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 text-left"
-                @click="alternarSeccion(indice)">
-                <span class="text-[11px] font-black uppercase tracking-wide text-slate-700">{{ seccion.titulo }}</span>
-                <span class="flex items-center gap-2 text-[10px] font-bold text-slate-400 shrink-0">
-                  {{ seccion.items.length }}
-                  <ChevronDown :class="['w-4 h-4 transition-transform', seccionAbierta(indice) ? 'rotate-180' : '']" />
-                </span>
-              </button>
-              <div v-if="seccionAbierta(indice)" class="p-4 space-y-4 border-t border-slate-100 bg-white">
-                <div v-for="(item, itemIndice) in seccion.items" :key="itemIndice" class="space-y-2">
-                  <p class="text-xs font-black uppercase" :class="item.modo === 'borrado' ? 'text-red-500' : item.modo === 'cambio' ? 'text-amber-600' : 'text-emerald-600'">
-                    {{ item.resumen }}
-                  </p>
-                  <div v-if="item.modo === 'cambio'" class="space-y-2">
-                    <div v-for="fila in item.filas" :key="fila.etiqueta"
-                      class="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <span class="text-[9px] font-black text-slate-400 uppercase w-32 shrink-0">{{ fila.etiqueta }}</span>
-                      <div class="flex items-center gap-2 text-xs font-bold min-w-0">
-                        <span class="opacity-40 line-through truncate">{{ fila.de }}</span>
-                        <ArrowRight class="w-3 h-3 text-lyer-green shrink-0" />
-                        <span class="text-lyer-green truncate">{{ fila.a }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div v-for="fila in item.filas" :key="fila.etiqueta"
-                      :class="['p-3 rounded-xl border', item.modo === 'borrado' ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100']">
-                      <span class="block text-[8px] font-black uppercase opacity-60 mb-1" :class="item.modo === 'borrado' ? 'text-red-500' : 'text-emerald-700'">{{ fila.etiqueta }}</span>
-                      <span class="text-xs font-bold" :class="item.modo === 'borrado' ? 'text-red-800' : 'text-slate-700'">{{ fila.valor }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <!-- ── DETALLE (borrador y registros sueltos) ─────────────────── -->
-          <template v-else-if="data?.tipo === 'DETALLE'">
-            <div class="flex items-center gap-2" :class="data.modo === 'borrado' ? 'text-red-500' : data.modo === 'cambio' ? 'text-amber-600' : 'text-emerald-600'">
-              <PlusCircle v-if="data.modo === 'nuevo'" class="w-4 h-4" />
-              <Trash2 v-else-if="data.modo === 'borrado'" class="w-4 h-4" />
-              <RefreshCcw v-else class="w-4 h-4" />
-              <span class="text-[10px] font-black uppercase tracking-widest">
-                {{ data.modo === 'nuevo' ? 'Registro nuevo' : data.modo === 'borrado' ? 'Se eliminó' : 'Antes y después' }}
-              </span>
-            </div>
-
-            <div v-if="data.modo === 'cambio'" class="space-y-3">
-              <div v-for="fila in data.filas" :key="fila.etiqueta"
-                class="flex items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <span class="text-[9px] font-black text-slate-400 uppercase w-36 shrink-0">{{ fila.etiqueta }}</span>
-                <div class="flex items-center gap-3 text-xs font-bold min-w-0">
-                  <span class="opacity-40 line-through truncate">{{ fila.de }}</span>
-                  <ArrowRight class="w-3 h-3 text-lyer-green shrink-0" />
-                  <span class="text-lyer-green truncate">{{ fila.a }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div v-for="fila in data.filas" :key="fila.etiqueta"
-                :class="['p-4 rounded-2xl border', data.modo === 'borrado' ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100']">
-                <span class="block text-[8px] font-black uppercase opacity-60 mb-1"
-                  :class="data.modo === 'borrado' ? 'text-red-500' : 'text-emerald-700'">
-                  {{ fila.etiqueta }}
-                </span>
-                <span class="text-xs font-bold" :class="data.modo === 'borrado' ? 'text-red-800' : 'text-slate-700'">
-                  {{ fila.valor }}
-                </span>
-              </div>
-            </div>
-          </template>
-
-          <!-- ── FOTO ────────────────────────────────────────────────────── -->
-          <template v-else-if="data?.tipo === 'FOTO'">
-            <div class="flex items-center gap-2" :class="data.operacion === 'QUITAR' ? 'text-red-500' : 'text-lyer-green'">
-              <Camera class="w-4 h-4" />
-              <span class="text-[10px] font-black uppercase tracking-widest">{{ etiquetaOperacionFoto(data.operacion) }}</span>
-            </div>
-            <div class="p-5 rounded-2xl border border-slate-100 bg-slate-50 space-y-4">
-              <p class="text-sm font-black text-slate-800 uppercase">{{ data.imagen }}</p>
-              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {{ data.tipoFoto === 'registro' ? 'Foto inicial de ingreso' : 'Foto rotativa de desarrollo' }}
-              </p>
-
-              <div v-if="cargandoFotos" class="py-8 text-center">
-                <span class="loading loading-ring loading-md text-lyer-green" />
-              </div>
-
-              <div v-else-if="data.operacion === 'REEMPLAZAR'" class="grid grid-cols-2 gap-3">
-                <div class="space-y-1.5">
-                  <p class="text-[9px] font-black text-slate-400 uppercase">Anterior</p>
-                  <button type="button" class="aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center"
-                    :disabled="!vistaAnterior" @click="vistaAmpliada = vistaAnterior">
-                    <img v-if="vistaAnterior" :src="vistaAnterior" alt="Foto anterior" class="w-full h-full object-contain" />
-                    <p v-else class="text-[10px] font-bold text-slate-300 uppercase px-2 text-center">Sin copia anterior</p>
-                  </button>
-                </div>
-                <div class="space-y-1.5">
-                  <p class="text-[9px] font-black text-lyer-green uppercase">Nueva</p>
-                  <button type="button" class="aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-emerald-100 flex items-center justify-center"
-                    :disabled="!vistaNueva" @click="vistaAmpliada = vistaNueva">
-                    <img v-if="vistaNueva" :src="vistaNueva" alt="Foto nueva" class="w-full h-full object-contain" />
-                    <p v-else class="text-[10px] font-bold text-slate-300 uppercase px-2 text-center">Sin copia nueva</p>
-                  </button>
-                </div>
-              </div>
-
-              <div v-else-if="data.operacion === 'QUITAR'">
-                <p class="text-[9px] font-black text-red-400 uppercase mb-1.5">Imagen quitada</p>
-                <button type="button" class="aspect-[4/3] max-w-xs w-full rounded-xl overflow-hidden bg-white border border-red-100 flex items-center justify-center"
-                  :disabled="!vistaAnterior" @click="vistaAmpliada = vistaAnterior">
-                  <img v-if="vistaAnterior" :src="vistaAnterior" alt="Foto quitada" class="w-full h-full object-contain" />
-                  <p v-else class="text-[10px] font-bold text-slate-300 uppercase">No hay copia de la imagen</p>
-                </button>
-              </div>
-
-              <div v-else>
-                <button type="button" class="aspect-[4/3] max-w-xs w-full rounded-xl overflow-hidden bg-white border border-emerald-100 flex items-center justify-center"
-                  :disabled="!vistaNueva" @click="vistaAmpliada = vistaNueva">
-                  <img v-if="vistaNueva" :src="vistaNueva" alt="Foto subida" class="w-full h-full object-contain" />
-                  <p v-else class="text-[10px] font-bold text-slate-300 uppercase">No hay copia de la imagen</p>
-                </button>
-              </div>
-            </div>
-          </template>
-
-          <!-- ── CREACIÓN ────────────────────────────────────────────────── -->
-          <template v-else-if="data?.tipo === 'CREACION'">
-            <div class="flex items-center gap-2 text-emerald-600">
-              <PlusCircle class="w-4 h-4" />
-              <span class="text-[10px] font-black uppercase tracking-widest">Datos Registrados</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div v-for="[label, val] in datosCreacion.campos" :key="label"
-                class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
-                <span class="block text-[8px] font-black text-emerald-700 uppercase opacity-60 mb-1">{{ label }}</span>
-                <span class="text-xs font-bold text-slate-700">{{ val }}</span>
-              </div>
-            </div>
-
-            <template v-if="datosCreacion.materiales.length">
-              <div class="flex items-center gap-2 text-slate-400">
-                <Package class="w-4 h-4" />
-                <span class="text-[9px] font-black uppercase tracking-widest">Repuestos</span>
-              </div>
-              <div class="rounded-2xl border border-slate-100 overflow-hidden">
-                <table class="table table-compact w-full text-xs">
-                  <thead class="bg-slate-50 text-slate-400 text-[9px] uppercase">
-                    <tr><th class="pl-4 py-3">Descripción</th><th class="text-center">Cant.</th><th class="text-right pr-4">Subtotal</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(m, i) in datosCreacion.materiales" :key="i" class="border-t border-slate-50">
-                      <td class="pl-4 py-2 font-medium">{{ m.descripcion }}</td>
-                      <td class="text-center font-bold">{{ m.cantidad }}</td>
-                      <td class="text-right pr-4 font-black">S/ {{ m.subtotal.toFixed(2) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </template>
-
-            <template v-if="datosCreacion.servicios.length">
-              <div class="flex items-center gap-2 text-slate-400">
-                <Wrench class="w-4 h-4" />
-                <span class="text-[9px] font-black uppercase tracking-widest">Servicios</span>
-              </div>
-              <div class="rounded-2xl border border-slate-100 overflow-hidden">
-                <table class="table table-compact w-full text-xs">
-                  <tbody>
-                    <tr v-for="(s, i) in datosCreacion.servicios" :key="i" class="border-t border-slate-50 first:border-0">
-                      <td class="pl-4 py-2 font-medium">{{ s.descripcion }}</td>
-                      <td class="text-right pr-4 font-black">S/ {{ s.monto.toFixed(2) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </template>
-
-            <template v-if="datosCreacion.terceros.length">
-              <div class="flex items-center gap-2 text-slate-400">
-                <ExternalLink class="w-4 h-4" />
-                <span class="text-[9px] font-black uppercase tracking-widest">Terceros</span>
-              </div>
-              <div class="rounded-2xl border border-slate-100 overflow-hidden">
-                <table class="table table-compact w-full text-xs">
-                  <tbody>
-                    <tr v-for="(t, i) in datosCreacion.terceros" :key="i" class="border-t border-slate-50 first:border-0">
-                      <td class="pl-4 py-2 font-medium italic text-blue-800">{{ t.descripcion }}</td>
-                      <td class="text-right pr-4 font-black text-blue-700">S/ {{ t.monto.toFixed(2) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </template>
-
-            <div v-if="datosCreacion.total !== null"
-              class="bg-slate-900 text-white p-5 rounded-2xl flex justify-between items-center">
-              <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Total de la Orden</span>
-              <span class="text-xl font-black text-emerald-400">S/ {{ datosCreacion.total.toFixed(2) }}</span>
-            </div>
-          </template>
-
-          <!-- ── ELIMINACIÓN ─────────────────────────────────────────────── -->
-          <template v-else-if="data?.tipo === 'ELIMINACION'">
-            <div class="flex items-center gap-2 text-red-500">
-              <Trash2 class="w-4 h-4" />
-              <span class="text-[10px] font-black uppercase tracking-widest">Registro Eliminado</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div v-for="[label, val] in datosEliminacion.campos" :key="label"
-                class="p-4 bg-red-50/50 rounded-2xl border border-red-100">
-                <span class="block text-[8px] font-black text-red-500 uppercase opacity-70 mb-1">{{ label }}</span>
-                <span class="text-xs font-bold text-red-800">{{ val }}</span>
-              </div>
-            </div>
-
-            <template v-if="datosEliminacion.materiales.length">
-              <div class="flex items-center gap-2 text-red-400">
-                <Package class="w-4 h-4" />
-                <span class="text-[9px] font-black uppercase tracking-widest">Repuestos incluidos</span>
-              </div>
-              <div class="rounded-2xl border border-red-100 overflow-hidden">
-                <table class="table table-compact w-full text-xs">
-                  <tbody>
-                    <tr v-for="(m, i) in datosEliminacion.materiales" :key="i" class="border-t border-red-50 first:border-0">
-                      <td class="pl-4 py-2 font-medium text-red-800">{{ m.descripcion }}</td>
-                      <td class="text-center text-red-500 font-bold">x{{ m.cantidad }}</td>
-                      <td class="text-right pr-4 font-black text-red-700">S/ {{ m.subtotal.toFixed(2) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </template>
-
-            <template v-if="datosEliminacion.servicios.length || datosEliminacion.terceros.length">
-              <div class="flex items-center gap-2 text-red-400">
-                <Wrench class="w-4 h-4" />
-                <span class="text-[9px] font-black uppercase tracking-widest">Servicios incluidos</span>
-              </div>
-              <div class="rounded-2xl border border-red-100 overflow-hidden">
-                <table class="table table-compact w-full text-xs">
-                  <tbody>
-                    <tr v-for="(s, i) in datosEliminacion.servicios" :key="'s'+i" class="border-t border-red-50 first:border-0">
-                      <td class="pl-4 py-2 font-medium text-red-800">{{ s.descripcion }}</td>
-                      <td class="text-right pr-4 font-black text-red-700">S/ {{ s.monto.toFixed(2) }}</td>
-                    </tr>
-                    <tr v-for="(t, i) in datosEliminacion.terceros" :key="'t'+i" class="border-t border-red-50">
-                      <td class="pl-4 py-2 font-medium italic text-red-700">{{ t.descripcion }}</td>
-                      <td class="text-right pr-4 font-black text-red-600">S/ {{ t.monto.toFixed(2) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </template>
-
-            <div v-if="datosEliminacion.total"
-              class="bg-red-900 text-white p-5 rounded-2xl flex justify-between items-center">
-              <span class="text-[10px] font-black text-red-300 uppercase tracking-widest">Total eliminado</span>
-              <span class="text-xl font-black text-red-300">S/ {{ datosEliminacion.total.toFixed(2) }}</span>
-            </div>
-          </template>
-
-          <!-- ── EDICIÓN ─────────────────────────────────────────────────── -->
-          <template v-else-if="data?.tipo === 'EDICION'">
-            <div v-if="camposCabecera.length" class="space-y-3">
-              <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Campos Modificados</p>
-              <div v-for="[key, val] in camposCabecera" :key="key"
-                class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <span class="text-[9px] font-black text-slate-400 uppercase w-32 shrink-0">{{ campoLabel(key) }}</span>
-                <div class="flex items-center gap-3 text-xs font-bold overflow-hidden">
-                  <span class="opacity-40 line-through truncate max-w-[100px]">{{ formatVal(key, val.de) }}</span>
-                  <ArrowRight class="w-3 h-3 text-lyer-green shrink-0" />
-                  <span class="text-lyer-green truncate max-w-[120px]">{{ formatVal(key, val.a) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div v-for="lista in listas" :key="lista.nombre" class="space-y-3">
-              <div class="flex items-center gap-2 text-slate-400">
-                <Package v-if="lista.icono === 'package'" class="w-4 h-4" />
-                <Wrench  v-else-if="lista.icono === 'wrench'" class="w-4 h-4" />
-                <ExternalLink v-else class="w-4 h-4" />
-                <span class="text-[9px] font-black uppercase tracking-widest">{{ lista.nombre }}</span>
-              </div>
-              <div v-for="(item, i) in lista.items" :key="i"
-                :class="['p-4 rounded-2xl border', accionConfig(item.accion).bg, accionConfig(item.accion).border]">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="flex items-center gap-2">
-                    <PlusCircle  v-if="item.accion === 'AÑADIDO'"    :class="['w-4 h-4 shrink-0', accionConfig(item.accion).color]" />
-                    <Trash2      v-else-if="item.accion === 'ELIMINADO'" :class="['w-4 h-4 shrink-0', accionConfig(item.accion).color]" />
-                    <RefreshCcw  v-else :class="['w-4 h-4 shrink-0', accionConfig(item.accion).color]" />
-                    <span class="text-[11px] font-black text-slate-700 uppercase">{{ item.descripcion }}</span>
-                  </div>
-                  <span :class="['text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0', accionConfig(item.accion).bg, accionConfig(item.accion).color]">
-                    {{ item.accion }}
-                  </span>
-                </div>
-                <div v-if="item.accion === 'MODIFICADO'" class="mt-3 pl-6 space-y-1">
-                  <div v-for="campo in ['cantidad', 'precio', 'monto']" :key="campo">
-                    <div v-if="item[campo]" class="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                      <span class="capitalize text-slate-400 w-16">{{ campo }}:</span>
-                      <span class="opacity-40 line-through">{{ item[campo].de }}</span>
-                      <ArrowRight class="w-3 h-3 text-lyer-green" />
-                      <span class="text-lyer-green">{{ item[campo].a }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="item.accion === 'AÑADIDO' && item.datos" class="mt-2 pl-6 flex gap-4 text-[10px] text-slate-500 font-bold">
-                  <span v-if="item.datos.cantidad">Cant: {{ item.datos.cantidad }}</span>
-                  <span v-if="item.datos.precio">S/ {{ item.datos.precio }}</span>
-                  <span v-if="item.datos.monto">S/ {{ item.datos.monto }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="!camposCabecera.length && !listas.length"
-              class="text-center py-8 text-slate-300 text-xs font-bold">
-              Sin cambios registrados
-            </div>
-          </template>
-
-          <!-- Sin detalles -->
+        <div class="p-8">
+          <LogGrupo
+            v-if="data?.tipo === 'GRUPO'"
+            :contexto="data.contexto"
+            :secciones="data.secciones"
+            :clave="log?.id"
+          />
+          <LogDetalle
+            v-else-if="data?.tipo === 'DETALLE'"
+            :modo="data.modo"
+            :filas="data.filas"
+          />
+          <LogFoto
+            v-else-if="data?.tipo === 'FOTO'"
+            :operacion="data.operacion"
+            :etiqueta="etiquetaOperacionFoto(data.operacion)"
+            :imagen="data.imagen"
+            :tipo-foto="data.tipoFoto"
+            :cargando="cargandoFotos"
+            :vista-anterior="vistaAnterior"
+            :vista-nueva="vistaNueva"
+            @ampliar="vistaAmpliada = $event"
+          />
+          <LogFicha
+            v-else-if="ficha(data?.tipo)"
+            :tipo="data.tipo"
+            :creacion="datosCreacion"
+            :eliminacion="datosEliminacion"
+            :cabecera="camposCabecera"
+            :listas="listas"
+            :campo-label="campoLabel"
+            :format-val="formatVal"
+            :accion-config="accionConfig"
+          />
           <div v-else class="text-center py-16 space-y-4">
             <div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
               <Info class="w-10 h-10 text-slate-200" />
@@ -700,7 +103,6 @@ const listas = computed(() => {
             <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Registro Básico</p>
             <p class="text-[10px] text-slate-300 italic">Esta acción no generó detalles adicionales.</p>
           </div>
-
         </div>
       </div>
 

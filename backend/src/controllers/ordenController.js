@@ -1,5 +1,5 @@
 import { createReadStream } from 'fs';
-import * as ordenService from '../services/ordenService.js';
+import * as ordenService from '../services/orden/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const crearOrden = asyncHandler(async (req, res) => {

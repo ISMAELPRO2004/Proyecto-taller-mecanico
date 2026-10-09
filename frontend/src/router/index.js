@@ -1,3 +1,7 @@
+/**
+ * Capas: ruta → vista (compone la pantalla) → composable (reglas) → service (HTTP).
+ * Cada pantalla vive en views/<funcionalidad>, con sus componentes al lado.
+ */
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth.js';
 
