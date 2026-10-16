@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { ChevronDown, ArrowRight } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { ArrowRight, PlusCircle, RefreshCcw, Trash2 } from 'lucide-vue-next';
+import { MOVIMIENTO } from '../../../../utils/movimientoLog.js';
 
 const props = defineProps({
   contexto: String,
@@ -8,54 +9,62 @@ const props = defineProps({
   clave: [String, Number],
 });
 
-const abiertas = ref([]);
-watch(() => props.clave, () => { abiertas.value = []; });
+const claveDe = (modo) => (modo === 'borrado' ? 'eliminado' : modo === 'nuevo' ? 'creado' : 'modificado');
 
-const alternar = (indice) => {
-  const set = new Set(abiertas.value);
-  if (set.has(indice)) set.delete(indice);
-  else set.add(indice);
-  abiertas.value = [...set];
-};
-const abierta = (indice) => abiertas.value.includes(indice);
+const bloques = computed(() => {
+  const mapa = { creado: [], modificado: [], eliminado: [] };
+  for (const seccion of props.secciones) {
+    for (const item of seccion.items || []) {
+      mapa[claveDe(item.modo)].push({ ...item, seccion: seccion.titulo });
+    }
+  }
+  return ['creado', 'modificado', 'eliminado']
+    .filter((clave) => mapa[clave].length)
+    .map((clave) => ({ clave, ...MOVIMIENTO[clave], items: mapa[clave] }));
+});
 </script>
 
 <template>
   <div class="space-y-6">
-  <p class="text-[10px] font-black uppercase tracking-widest" :class="contexto === 'ORDEN' ? 'text-lyer-green' : 'text-slate-400'">
-    {{ contexto === 'ORDEN' ? 'Orden en trabajo' : 'Recepción / borrador' }}
-  </p>
-  <div v-for="(seccion, indice) in secciones" :key="seccion.titulo" class="rounded-2xl border border-slate-100 overflow-hidden">
-    <button type="button" class="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 text-left" @click="alternar(indice)">
-      <span class="text-[11px] font-black uppercase tracking-wide text-slate-700">{{ seccion.titulo }}</span>
-      <span class="flex items-center gap-2 text-[10px] font-bold text-slate-400 shrink-0">
-        {{ seccion.items.length }}
-        <ChevronDown :class="['w-4 h-4 transition-transform', abierta(indice) ? 'rotate-180' : '']" />
-      </span>
-    </button>
-    <div v-if="abierta(indice)" class="p-4 space-y-4 border-t border-slate-100 bg-white">
-      <div v-for="(item, itemIndice) in seccion.items" :key="itemIndice" class="space-y-2">
-        <p class="text-xs font-black uppercase" :class="item.modo === 'borrado' ? 'text-red-500' : item.modo === 'cambio' ? 'text-amber-600' : 'text-emerald-600'">
-          {{ item.resumen }}
-        </p>
-        <div v-if="item.modo === 'cambio'" class="space-y-2">
-          <div v-for="fila in item.filas" :key="fila.etiqueta" class="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <span class="text-[9px] font-black text-slate-400 uppercase w-32 shrink-0">{{ fila.etiqueta }}</span>
-            <div class="flex items-center gap-2 text-xs font-bold min-w-0">
-              <span class="opacity-40 line-through truncate">{{ fila.de }}</span>
-              <ArrowRight class="w-3 h-3 text-lyer-green shrink-0" />
-              <span class="text-lyer-green truncate">{{ fila.a }}</span>
+    <p class="font-mono text-[11px] font-bold uppercase tracking-widest text-lyer-cyan">
+      {{ contexto === 'ORDEN' ? 'Orden en trabajo' : 'Recepción / borrador' }}
+    </p>
+
+    <section v-for="bloque in bloques" :key="bloque.clave" class="space-y-3">
+      <div class="flex items-center gap-2" :class="bloque.tono">
+        <PlusCircle v-if="bloque.clave === 'creado'" class="h-4 w-4" />
+        <Trash2 v-else-if="bloque.clave === 'eliminado'" class="h-4 w-4" />
+        <RefreshCcw v-else class="h-4 w-4" />
+        <span class="font-mono text-[11px] font-bold uppercase tracking-widest">{{ bloque.label }}</span>
+        <span class="font-mono text-[10px] text-slate-500">{{ bloque.items.length }}</span>
+      </div>
+
+      <article
+        v-for="(item, indice) in bloque.items"
+        :key="bloque.clave + indice"
+        :class="['rounded-xl border p-4', bloque.tono]"
+      >
+        <p class="font-mono text-[10px] uppercase tracking-wider text-slate-400">{{ item.seccion }}</p>
+        <p class="mt-1 text-sm font-semibold text-white">{{ item.resumen }}</p>
+
+        <div v-if="bloque.clave === 'modificado'" class="mt-3 space-y-2">
+          <div v-for="fila in item.filas" :key="fila.etiqueta" class="rounded-lg border border-[#4a2870]/40 bg-[#10041f] px-3 py-2.5">
+            <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ fila.etiqueta }}</p>
+            <div class="mt-1 flex flex-wrap items-center gap-2 text-sm font-semibold">
+              <span class="text-slate-400 line-through">{{ fila.de }}</span>
+              <ArrowRight class="h-3.5 w-3.5 shrink-0 text-amber-200" />
+              <span class="text-white">{{ fila.a }}</span>
             </div>
           </div>
         </div>
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div v-for="fila in item.filas" :key="fila.etiqueta" :class="['p-3 rounded-xl border', item.modo === 'borrado' ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100']">
-            <span class="block text-[8px] font-black uppercase opacity-60 mb-1" :class="item.modo === 'borrado' ? 'text-red-500' : 'text-emerald-700'">{{ fila.etiqueta }}</span>
-            <span class="text-xs font-bold" :class="item.modo === 'borrado' ? 'text-red-800' : 'text-slate-700'">{{ fila.valor }}</span>
+
+        <div v-else class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div v-for="fila in item.filas" :key="fila.etiqueta" class="rounded-lg border border-[#4a2870]/40 bg-[#10041f] px-3 py-2.5">
+            <span class="block font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ fila.etiqueta }}</span>
+            <span class="mt-1 block text-sm font-semibold text-white">{{ fila.valor }}</span>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
+      </article>
+    </section>
   </div>
 </template>

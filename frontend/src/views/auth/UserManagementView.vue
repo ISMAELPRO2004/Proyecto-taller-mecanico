@@ -178,39 +178,40 @@ const paginasVisibles = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6 animate-fade-in pb-10">
-
-    <!-- Encabezado -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
+  <div class="space-y-5 animate-fade-in">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div class="flex items-center gap-3">
-        <div class="bg-lyer-green p-3 rounded-2xl text-white shadow-lg shadow-emerald-900/20">
-          <ShieldCheck class="w-6 h-6" />
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+          <ShieldCheck class="h-6 w-6" />
         </div>
         <div>
-          <h2 class="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase italic">Seguridad</h2>
-          <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Snapshot del Sistema</p>
+          <h2 class="font-display text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">Seguridad</h2>
+          <p class="font-mono text-[11px] uppercase tracking-widest text-slate-400">Usuarios y auditoría</p>
         </div>
       </div>
       <button
         v-if="tabActiva === 'usuarios'"
+        type="button"
+        class="inline-flex h-11 items-center justify-center gap-2 self-start rounded-xl bg-lyer-accent px-5 text-sm font-bold tracking-wide text-[#1a0633] shadow-[0_0_20px_-3px_rgba(255,96,128,0.45)]"
         @click="abrirCrear"
-        class="btn btn-sm md:btn-md bg-lyer-green text-white border-none px-6 md:px-8 rounded-xl shadow-md w-full md:w-auto"
       >
-        <UserPlus class="w-4 h-4 mr-1" /> Nuevo Acceso
+        <UserPlus class="h-5 w-5" />
+        Nuevo acceso
       </button>
     </div>
 
-    <Tabs v-model="tabActiva" :items="tabsSeguridad" />
+    <Tabs v-model="tabActiva" :items="tabsSeguridad" oscuro />
 
     <GridUsuarios
       v-if="tabActiva === 'usuarios'"
       :usuarios="usuarios"
+      :loading="loading"
       @editar="abrirEditar"
       @toggle="toggleUsuario"
       @eliminar="eliminarUsuario"
     />
 
-    <div v-else class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+    <div v-else class="overflow-hidden rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
       <FiltrosAuditoria
         v-model:busqueda="busqueda"
         v-model:filtroUsuarioId="filtroUsuarioId"
@@ -223,7 +224,7 @@ const paginasVisibles = computed(() => {
         @ver-detalle="verDetalleLog"
       />
 
-      <div class="p-4 md:p-6 bg-slate-50/50 border-t">
+      <div class="border-t border-[#4a2870]/40 bg-[#160a24] px-4 py-4 md:px-6">
         <Paginador
           v-model="paginaActual"
           v-model:items-por-pagina="itemsPorPagina"
@@ -232,6 +233,8 @@ const paginasVisibles = computed(() => {
           :total="totalLogs"
           :paginas-visibles="paginasVisibles"
           mostrar-label-ver
+          oscuro
+          total-sufijo="registros"
         />
       </div>
     </div>

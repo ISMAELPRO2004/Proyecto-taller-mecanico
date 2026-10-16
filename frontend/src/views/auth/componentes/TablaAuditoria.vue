@@ -1,6 +1,7 @@
 <script setup>
-import { Clock, Eye } from 'lucide-vue-next';
+import { Eye } from 'lucide-vue-next';
 import { fechaHora } from '../../../utils/fecha.js';
+import { MOVIMIENTO, movimientosDeLog } from '../../../utils/movimientoLog.js';
 
 defineProps({
   logs: { type: Array, default: () => [] },
@@ -15,113 +16,87 @@ const resumenLog = (log) => {
     : log?.detalles;
   return detalles?.resumen || '';
 };
+
+const marcas = (log) => movimientosDeLog(log).map((clave) => ({ clave, ...MOVIMIENTO[clave] }));
+const accionBtn = 'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#4a2870]/50 bg-[#2a1840] text-lyer-cyan transition-colors hover:border-lyer-cyan/50 hover:bg-lyer-cyan/10';
 </script>
 
 <template>
-  <div class="min-h-[400px]">
-    <div v-if="loading" class="py-20 text-center">
-      <span class="loading loading-ring loading-lg text-lyer-green"></span>
+  <div v-if="loading" class="py-16 text-center">
+    <span class="loading loading-ring loading-md text-lyer-accent" />
+  </div>
+
+  <div v-else-if="!logs.length" class="py-16 text-center text-sm text-slate-400">
+    Sin registros
+  </div>
+
+  <template v-else>
+    <div class="divide-y divide-[#4a2870]/35 md:hidden">
+      <article v-for="l in logs" :key="'m-' + l.id" class="flex items-start justify-between gap-3 p-4">
+        <div class="min-w-0 flex-1">
+          <p class="font-mono text-[11px] text-slate-400">{{ fechaHora(l.fecha) }}</p>
+          <p class="mt-1 text-sm font-semibold text-white">{{ l.usuario?.nombreCompleto || 'Sistema' }}</p>
+          <p class="text-xs uppercase tracking-wider text-slate-400">{{ l.usuario?.rol || 'Automático' }}</p>
+          <div class="mt-2 flex flex-wrap items-center gap-1.5">
+            <span
+              v-for="marca in marcas(l)"
+              :key="marca.clave"
+              :class="['rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider', marca.tono]"
+            >{{ marca.label }}</span>
+            <span class="text-xs font-semibold uppercase text-slate-200">{{ l.accion }}</span>
+          </div>
+          <p v-if="resumenLog(l)" class="mt-1 text-xs text-slate-400">{{ resumenLog(l) }}</p>
+          <p v-if="l.orden" class="mt-1 font-mono text-xs text-lyer-cyan">{{ l.orden.numeroOrden }}</p>
+        </div>
+        <button type="button" :class="accionBtn" title="Ver detalle" @click="$emit('verDetalle', l)">
+          <Eye class="h-4 w-4" />
+        </button>
+      </article>
     </div>
 
-    <template v-else>
-      <!-- Vista móvil -->
-      <div class="md:hidden divide-y divide-slate-100">
-        <div
-          v-for="l in logs"
-          :key="'m-' + l.id"
-          class="p-4 hover:bg-emerald-50/20 transition-colors flex items-start justify-between gap-3"
-        >
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 mb-1.5">
-              <Clock class="w-3.5 h-3.5 text-slate-300" />
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                {{ fechaHora(l.fecha) }}
-              </span>
-            </div>
-
-            <p class="font-black text-slate-800 text-xs uppercase leading-tight">
-              {{ l.usuario?.nombreCompleto || 'Sistema' }}
-              <span class="text-[9px] font-medium text-slate-400 normal-case block italic">
-                {{ l.usuario?.rol || 'Automático' }}
-              </span>
-            </p>
-
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <span class="px-2 py-1 bg-white rounded-lg text-[9px] font-black text-lyer-green border border-slate-200 uppercase tracking-tighter shadow-sm">
-                {{ l.accion }}
-              </span>
-              <span v-if="resumenLog(l)" class="text-[10px] font-bold text-slate-500">{{ resumenLog(l) }}</span>
-              <span v-if="l.orden" class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
-                OT: {{ l.orden.numeroOrden }}
-              </span>
-            </div>
-          </div>
-
-          <div class="shrink-0">
-            <button
-              @click="$emit('verDetalle', l)"
-              class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-xl shadow-sm border border-slate-100 bg-white"
-            >
-              <Eye class="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        <div v-if="!logs.length" class="py-16 text-center text-slate-300 font-bold text-xs uppercase tracking-widest">
-          Sin registros
-        </div>
-      </div>
-
-      <!-- Vista desktop -->
-      <div class="hidden md:block overflow-x-auto">
-        <table class="table w-full border-separate border-spacing-0">
-          <thead class="bg-slate-50 text-slate-400 uppercase text-[9px] font-black tracking-[0.2em] border-b">
-            <tr>
-              <th class="py-5 pl-8 text-left">Timestamp</th>
-              <th class="text-left">Operador</th>
-              <th class="text-left">Acción</th>
-              <th class="text-left">Relacionado</th>
-              <th class="text-center pr-8 w-24">Detalle</th>
-            </tr>
-          </thead>
-          <tbody class="text-slate-600">
-            <tr
-              v-for="l in logs"
-              :key="l.id"
-              class="hover:bg-emerald-50/30 transition-colors border-b border-slate-50 group"
-            >
-              <td class="pl-8 text-[11px] font-bold py-4">
-                <div class="flex items-center gap-2">
-                  <Clock class="w-3.5 h-3.5 text-slate-300" />
-                  {{ fechaHora(l.fecha) }}
-                </div>
-              </td>
-              <td class="py-4">
-                <p class="font-black text-slate-800 text-xs">{{ l.usuario?.nombreCompleto || 'Sistema' }}</p>
-                <p class="text-[9px] text-slate-400 font-bold">{{ l.usuario?.rol }}</p>
-              </td>
-              <td class="py-4">
-                <span class="px-3 py-1.5 bg-white rounded-lg text-[10px] font-black text-lyer-green border border-slate-200 uppercase tracking-tighter shadow-sm">
-                  {{ l.accion }}
-                </span>
-                <p v-if="resumenLog(l)" class="mt-1 text-[10px] font-bold text-slate-500">{{ resumenLog(l) }}</p>
-              </td>
-              <td class="py-4 text-[10px] font-bold text-slate-400">
-                <span v-if="l.orden" class="bg-slate-100 px-2 py-1 rounded-md">{{ l.orden.numeroOrden }}</span>
-                <span v-else>—</span>
-              </td>
-              <td class="text-center pr-8 py-4">
-                <button
-                  @click="$emit('verDetalle', l)"
-                  class="btn btn-square btn-ghost btn-sm text-lyer-green hover:bg-lyer-green hover:text-white rounded-xl transition-all"
-                >
-                  <Eye class="w-5 h-5" />
+    <div class="hidden overflow-x-auto md:block">
+      <table class="w-full min-w-[860px] border-collapse text-left text-sm text-slate-200">
+        <thead class="border-b border-[#4a2870]/40 bg-[#160a24] text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <tr>
+            <th class="px-6 py-3.5">Fecha</th>
+            <th class="px-4 py-3.5">Operador</th>
+            <th class="px-4 py-3.5">Acción</th>
+            <th class="px-4 py-3.5">Relacionado</th>
+            <th class="px-6 py-3.5 text-center">Detalle</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#4a2870]/35">
+          <tr v-for="l in logs" :key="l.id" class="transition-colors hover:bg-white/5">
+            <td class="whitespace-nowrap px-6 py-3.5 font-mono text-xs text-slate-400">{{ fechaHora(l.fecha) }}</td>
+            <td class="px-4 py-3.5">
+              <p class="font-semibold text-white">{{ l.usuario?.nombreCompleto || 'Sistema' }}</p>
+              <p class="text-[11px] uppercase tracking-wider text-slate-400">{{ l.usuario?.rol }}</p>
+            </td>
+            <td class="px-4 py-3.5">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span
+                  v-for="marca in marcas(l)"
+                  :key="marca.clave"
+                  :class="['rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider', marca.tono]"
+                >{{ marca.label }}</span>
+                <span class="text-xs font-semibold uppercase text-slate-100">{{ l.accion }}</span>
+              </div>
+              <p v-if="resumenLog(l)" class="mt-1 text-xs text-slate-400">{{ resumenLog(l) }}</p>
+            </td>
+            <td class="px-4 py-3.5 font-mono text-xs">
+              <span v-if="l.orden" class="rounded-md border border-[#4a2870]/60 bg-[#140a22] px-2 py-0.5 text-lyer-cyan">{{ l.orden.numeroOrden }}</span>
+              <span v-else class="text-slate-500">—</span>
+            </td>
+            <td class="px-6 py-3.5">
+              <div class="flex justify-center">
+                <button type="button" :class="accionBtn" title="Ver detalle" @click="$emit('verDetalle', l)">
+                  <Eye class="h-4 w-4" />
                 </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </template>
-  </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </template>
 </template>

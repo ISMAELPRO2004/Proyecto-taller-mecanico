@@ -1,43 +1,42 @@
 <script setup>
+import { computed } from 'vue';
 import { PlusCircle, Trash2, RefreshCcw, ArrowRight } from 'lucide-vue-next';
+import { MOVIMIENTO, claveMovimiento } from '../../../../utils/movimientoLog.js';
 
-defineProps({
+const props = defineProps({
   modo: String,
   filas: { type: Array, default: () => [] },
 });
+
+const clave = computed(() => claveMovimiento('', props.modo));
+const marca = computed(() => MOVIMIENTO[clave.value]);
 </script>
 
 <template>
-  <div class="space-y-6">
-  <div class="flex items-center gap-2" :class="modo === 'borrado' ? 'text-red-500' : modo === 'cambio' ? 'text-amber-600' : 'text-emerald-600'">
-    <PlusCircle v-if="modo === 'nuevo'" class="w-4 h-4" />
-    <Trash2 v-else-if="modo === 'borrado'" class="w-4 h-4" />
-    <RefreshCcw v-else class="w-4 h-4" />
-    <span class="text-[10px] font-black uppercase tracking-widest">
-      {{ modo === 'nuevo' ? 'Registro nuevo' : modo === 'borrado' ? 'Se eliminó' : 'Antes y después' }}
-    </span>
-  </div>
+  <div class="space-y-4">
+    <div class="flex items-center gap-2" :class="marca.tono">
+      <PlusCircle v-if="clave === 'creado'" class="h-4 w-4" />
+      <Trash2 v-else-if="clave === 'eliminado'" class="h-4 w-4" />
+      <RefreshCcw v-else class="h-4 w-4" />
+      <span class="font-mono text-[11px] font-bold uppercase tracking-widest">{{ marca.label }}</span>
+    </div>
 
-  <div v-if="modo === 'cambio'" class="space-y-3">
-    <div v-for="fila in filas" :key="fila.etiqueta" class="flex items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-      <span class="text-[9px] font-black text-slate-400 uppercase w-36 shrink-0">{{ fila.etiqueta }}</span>
-      <div class="flex items-center gap-3 text-xs font-bold min-w-0">
-        <span class="opacity-40 line-through truncate">{{ fila.de }}</span>
-        <ArrowRight class="w-3 h-3 text-lyer-green shrink-0" />
-        <span class="text-lyer-green truncate">{{ fila.a }}</span>
+    <div v-if="clave === 'modificado'" class="space-y-3">
+      <div v-for="fila in filas" :key="fila.etiqueta" class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+        <p class="font-mono text-[10px] font-bold uppercase tracking-wider text-amber-200">{{ fila.etiqueta }}</p>
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-sm font-semibold">
+          <span class="text-slate-400 line-through">{{ fila.de }}</span>
+          <ArrowRight class="h-3.5 w-3.5 shrink-0 text-amber-200" />
+          <span class="text-white">{{ fila.a }}</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <div v-for="fila in filas" :key="fila.etiqueta" :class="['p-4 rounded-2xl border', modo === 'borrado' ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100']">
-      <span class="block text-[8px] font-black uppercase opacity-60 mb-1" :class="modo === 'borrado' ? 'text-red-500' : 'text-emerald-700'">
-        {{ fila.etiqueta }}
-      </span>
-      <span class="text-xs font-bold" :class="modo === 'borrado' ? 'text-red-800' : 'text-slate-700'">
-        {{ fila.valor }}
-      </span>
+    <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div v-for="fila in filas" :key="fila.etiqueta" :class="['rounded-xl border p-4', marca.tono]">
+        <span class="mb-1 block font-mono text-[10px] font-bold uppercase tracking-wider opacity-80">{{ fila.etiqueta }}</span>
+        <span class="text-sm font-semibold text-white">{{ fila.valor }}</span>
+      </div>
     </div>
-  </div>
   </div>
 </template>

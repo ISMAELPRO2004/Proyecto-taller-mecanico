@@ -92,8 +92,10 @@ export function useDetalleLog(props) {
     tipoCliente: 'Tipo', tipoDocumento: 'Tipo de documento',
     numeroDocumento: 'Número de documento', representante: 'Representante',
     celular: 'Celular', correo: 'Correo',
+    numeroFactura: 'Número de factura', montoFactura: 'Monto de factura',
+    requiereFactura: 'Lleva factura',
   };
-  const campoLabel = (key) => CAMPO_LABELS[key] || key;
+  const campoLabel = (key) => CAMPO_LABELS[key] || String(key || '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
 
   const formatFecha = (val) => {
     if (!val) return '—';
@@ -102,22 +104,21 @@ export function useDetalleLog(props) {
   };
 
   const formatVal = (key, val) => {
-    if (val === null || val === undefined) return '—';
+    if (val === null || val === undefined || val === '') return '—';
+    if (key === 'requiereFactura') return val ? 'Sí' : 'No';
+    if (typeof val === 'boolean') return val ? 'Sí' : 'No';
     if (key === 'marca' && typeof val === 'object') return val.nombre || '—';
     if (key === 'tipoCliente') return val === 'EMPRESA' ? 'Empresa' : val === 'PERSONA' ? 'Persona' : String(val);
     if (typeof val === 'object') return '—';
     if (key === 'estado') return labelEstadoOrden(val);
     if (key === 'rol') return rolLabel(val);
     if (key === 'activo') return val ? 'Activo' : 'Inactivo';
-    if (['totalFinal', 'precioBase', 'monto'].includes(key)) return `S/ ${parseFloat(val).toFixed(2)}`;
+    if (['totalFinal', 'precioBase', 'monto', 'montoFactura'].includes(key)) {
+      const n = parseFloat(val);
+      return Number.isFinite(n) ? `S/ ${n.toFixed(2)}` : '—';
+    }
     if (['actualizadoAt', 'fechaCreacion', 'creadoAt'].includes(key)) return formatFecha(val);
     return String(val);
-  };
-
-  const accionConfig = (accion) => {
-    if (accion === 'AÑADIDO') return { color: 'text-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-100' };
-    if (accion === 'ELIMINADO') return { color: 'text-red-400', bg: 'bg-red-50', border: 'border-red-100' };
-    return { color: 'text-amber-500', bg: 'bg-amber-50/60', border: 'border-amber-100' };
   };
 
   const tipoAccion = computed(() => {
@@ -264,6 +265,6 @@ export function useDetalleLog(props) {
     data, tituloItem, rolLabel, etiquetaOperacionFoto,
     vistaAnterior, vistaNueva, vistaAmpliada, cargandoFotos,
     datosCreacion, datosEliminacion, camposCabecera, listas,
-    campoLabel, formatVal, accionConfig,
+    campoLabel, formatVal,
   };
 }

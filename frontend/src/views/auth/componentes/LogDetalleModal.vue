@@ -14,55 +14,61 @@ const {
   data, tituloItem, rolLabel, etiquetaOperacionFoto,
   vistaAnterior, vistaNueva, vistaAmpliada, cargandoFotos,
   datosCreacion, datosEliminacion, camposCabecera, listas,
-  campoLabel, formatVal, accionConfig,
+  campoLabel, formatVal,
 } = useDetalleLog(props);
 
 const ficha = (tipo) => tipo === 'CREACION' || tipo === 'ELIMINACION' || tipo === 'EDICION';
 </script>
 
 <template>
-  <div :class="['modal modal-bottom sm:modal-middle', { 'modal-open': isOpen }]">
-    <div class="modal-box max-w-3xl p-0 border-t-8 border-lyer-green rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden">
-      <div class="p-4 md:p-6 bg-slate-50 border-b flex justify-between items-center">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="bg-lyer-green/10 p-2 rounded-xl text-lyer-green shrink-0">
-            <Activity class="w-5 h-5" />
+  <div v-if="isOpen" class="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center">
+    <div class="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#4a2870]/60 bg-[#160a24] text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.85)]">
+      <div class="h-1 w-full shrink-0 bg-gradient-to-r from-lyer-green via-lyer-accent to-lyer-cyan" />
+      <header class="flex shrink-0 items-start justify-between gap-3 border-b border-[#4a2870]/50 bg-[#10041f] px-5 py-4 sm:px-6">
+        <div class="flex min-w-0 items-start gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+            <Activity class="h-5 w-5" />
           </div>
           <div class="min-w-0">
-            <h3 class="font-black text-slate-800 uppercase tracking-tighter truncate">
-              {{ log?.accion || 'Detalle de Auditoría' }}
+            <h3 class="truncate font-display text-lg font-bold uppercase tracking-tight text-white">
+              {{ log?.accion || 'Detalle de auditoría' }}
             </h3>
-            <p v-if="tituloItem" class="text-[10px] font-black text-lyer-green truncate mt-0.5">
-              {{ tituloItem }}
-            </p>
-            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+            <p v-if="tituloItem" class="mt-0.5 truncate text-sm font-semibold text-lyer-cyan">{{ tituloItem }}</p>
+            <p class="mt-0.5 font-mono text-[11px] uppercase tracking-widest text-slate-400">
               {{ log ? fechaHora(log.fecha) : '' }}
             </p>
           </div>
         </div>
-        <button @click="emit('close')" class="btn btn-sm btn-circle btn-ghost text-slate-400 shrink-0"><X /></button>
-      </div>
+        <button
+          type="button"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-slate-400 hover:text-white"
+          @click="emit('close')"
+        >
+          <X class="h-4 w-4" />
+        </button>
+      </header>
 
-      <div class="max-h-[70vh] overflow-y-auto bg-white custom-scroll">
-        <div v-if="log" class="px-8 pt-5 pb-4 flex flex-wrap gap-3 border-b border-slate-50">
-          <div class="flex items-center gap-2 text-xs text-slate-500">
-            <User class="w-3.5 h-3.5 text-lyer-green" />
-            <span class="font-black text-slate-700">{{ log.usuario?.nombreCompleto || 'Sistema' }}</span>
-            <span class="text-slate-300">·</span>
-            <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full font-bold">{{ rolLabel(log.usuario?.rol) }}</span>
+      <div class="max-h-[70vh] overflow-y-auto">
+        <div v-if="log" class="flex flex-wrap items-center gap-3 border-b border-[#4a2870]/40 px-5 py-4 sm:px-6">
+          <div class="flex items-center gap-2 text-sm text-slate-300">
+            <User class="h-4 w-4 text-lyer-cyan" />
+            <span class="font-semibold text-white">{{ log.usuario?.nombreCompleto || 'Sistema' }}</span>
+            <span class="rounded-md border border-[#4a2870]/50 bg-[#140a22] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-300">
+              {{ rolLabel(log.usuario?.rol) }}
+            </span>
           </div>
-          <div v-if="log.ipCliente" class="flex items-center gap-2 text-[10px] text-slate-400">
-            <Monitor class="w-3 h-3" /> {{ log.ipCliente }}
+          <div v-if="log.ipCliente" class="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+            <Monitor class="h-3.5 w-3.5" /> {{ log.ipCliente }}
           </div>
-          <div v-if="log.orden" class="flex items-center gap-2 text-[10px]">
-            <span class="bg-lyer-green/10 text-lyer-green px-2 py-0.5 rounded-full font-black">
+          <div v-if="log.orden" class="flex items-center gap-2 text-xs">
+            <span class="rounded-md border border-lyer-cyan/30 bg-lyer-cyan/10 px-2 py-0.5 font-mono font-bold text-lyer-cyan">
               {{ log.orden.numeroOrden }}
             </span>
-            <span class="text-slate-400">{{ log.orden.clienteNombre }}</span>
+            <span class="text-slate-300">{{ log.orden.clienteNombre }}</span>
           </div>
         </div>
 
-        <div class="p-8">
+        <div class="px-5 py-5 sm:px-6">
           <LogGrupo
             v-if="data?.tipo === 'GRUPO'"
             :contexto="data.contexto"
@@ -94,24 +100,26 @@ const ficha = (tipo) => tipo === 'CREACION' || tipo === 'ELIMINACION' || tipo ==
             :listas="listas"
             :campo-label="campoLabel"
             :format-val="formatVal"
-            :accion-config="accionConfig"
           />
-          <div v-else class="text-center py-16 space-y-4">
-            <div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
-              <Info class="w-10 h-10 text-slate-200" />
+          <div v-else class="space-y-3 py-12 text-center">
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#4a2870]/50 bg-[#140a22]">
+              <Info class="h-7 w-7 text-slate-500" />
             </div>
-            <p class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Registro Básico</p>
-            <p class="text-[10px] text-slate-300 italic">Esta acción no generó detalles adicionales.</p>
+            <p class="font-mono text-[11px] font-bold uppercase tracking-widest text-slate-400">Registro básico</p>
+            <p class="text-sm text-slate-500">Esta acción no generó detalles adicionales.</p>
           </div>
         </div>
       </div>
 
-      <div class="p-6 bg-slate-50 border-t flex justify-end">
-        <button @click="emit('close')"
-          class="btn bg-lyer-green text-white border-none px-12 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition-all">
+      <footer class="flex shrink-0 justify-end border-t border-[#4a2870]/50 bg-[#10041f] px-5 py-4 sm:px-6">
+        <button
+          type="button"
+          class="rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#3a1260]"
+          @click="emit('close')"
+        >
           Cerrar
         </button>
-      </div>
+      </footer>
     </div>
     <Teleport to="body">
       <div v-if="vistaAmpliada" class="fixed inset-0 z-[2000] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
@@ -122,8 +130,3 @@ const ficha = (tipo) => tipo === 'CREACION' || tipo === 'ELIMINACION' || tipo ==
   </div>
 </template>
 
-<style scoped>
-.custom-scroll::-webkit-scrollbar { width: 5px; }
-.custom-scroll::-webkit-scrollbar-track { background: transparent; }
-.custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 20px; }
-</style>

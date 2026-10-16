@@ -1,5 +1,5 @@
 <script setup>
-import { Search } from 'lucide-vue-next';
+import { ChevronDown, Search } from 'lucide-vue-next';
 
 defineProps({
   busqueda: { type: String, default: '' },
@@ -8,29 +8,38 @@ defineProps({
 });
 
 defineEmits(['update:busqueda', 'update:filtroUsuarioId']);
+
+const campo = 'h-11 w-full rounded-xl border border-[#4a2870]/60 bg-[#140a22] text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none';
 </script>
 
 <template>
-  <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-center">
-    <div class="relative w-full sm:flex-1">
-      <Search class="absolute left-4 top-3 w-4 h-4 text-slate-400" />
-      <input
-        :value="busqueda"
-        @input="$emit('update:busqueda', $event.target.value)"
-        type="text"
-        placeholder="Buscar por acción..."
-        class="input input-bordered w-full pl-12 bg-white border-slate-200 focus:border-lyer-accent rounded-2xl text-sm font-medium shadow-inner"
-      />
-    </div>
-    <div class="w-full sm:w-auto">
-      <select
-        :value="filtroUsuarioId"
-        @change="$emit('update:filtroUsuarioId', $event.target.value)"
-        class="select select-bordered w-full bg-white border-slate-200 rounded-2xl text-sm font-bold focus:border-lyer-accent min-w-[160px]"
-      >
-        <option value="">Todos los usuarios</option>
-        <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombreCompleto }}</option>
-      </select>
-    </div>
+  <div class="flex flex-col gap-3 border-b border-[#4a2870]/40 px-4 py-4 sm:flex-row sm:items-end md:px-6">
+    <label class="block min-w-0 flex-1 space-y-1.5">
+      <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Acción</span>
+      <span class="relative block">
+        <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <input
+          :value="busqueda"
+          type="text"
+          placeholder="Buscar por acción..."
+          :class="[campo, 'pl-10 pr-4']"
+          @input="$emit('update:busqueda', $event.target.value)"
+        />
+      </span>
+    </label>
+    <label class="block w-full space-y-1.5 sm:w-64">
+      <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Usuario</span>
+      <span class="relative block">
+        <select
+          :value="filtroUsuarioId"
+          :class="[campo, 'appearance-none px-4 pr-10']"
+          @change="$emit('update:filtroUsuarioId', $event.target.value)"
+        >
+          <option value="">Todos los usuarios</option>
+          <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombreCompleto }}</option>
+        </select>
+        <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      </span>
+    </label>
   </div>
 </template>
