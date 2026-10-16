@@ -19,7 +19,7 @@ const {
   puedeEditarClienteUI, aplicarCliente, empezarEditarClienteEnPaso, cambiarCliente,
   editandoCliente, clienteConfirmado, cancelarEdicionCliente, irAPaso, guardarPasoCliente,
   resumenCliente, recepcionCompleta, irAEditarCliente, fotoSrc, puedeCambiarRegistro,
-  puedeQuitarRegistro, subiendoFoto, archivoRegistro, quitarRegistro, guardando,
+  puedeQuitarRegistro, subiendoFoto, archivoRegistro, alElegirFoto, quitarRegistro, guardando,
   completarBorrador,
 } = useRecepcionOrden();
 </script>
@@ -299,7 +299,7 @@ const {
           :puede-cambiar="puedeCambiarRegistro"
           :puede-quitar="puedeQuitarRegistro"
           :subiendo="subiendoFoto"
-          @seleccionar="archivoRegistro = $event"
+          @seleccionar="alElegirFoto"
           @quitar="quitarRegistro"
         />
 

@@ -1,10 +1,20 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth.js';
 import { ordenService } from '../../../services/ordenService.js';
 import { vehiculoService } from '../../../services/vehiculoService.js';
 import { notify } from '../../../utils/alerts.js';
 import { FORMATO_PLACA, MENSAJE_FORMATO_PLACA, errorPlacaEnCurso } from '../../../utils/placa.js';
+import {
+  leerBorradorLocal,
+  guardarBorradorLocal,
+  limpiarBorradorLocal,
+  marcarRecargaRecepcion,
+  consumirRecargaRecepcion,
+  guardarFotoLocal,
+  leerFotoLocal,
+  borrarFotoLocal,
+} from '../../../utils/borradorRecepcion.js';
 
 /** Estado y pasos del borrador de recepción. La vista solo compone la pantalla. */
 export function useRecepcionOrden() {
@@ -72,6 +82,8 @@ export function useRecepcionOrden() {
   });
 
   const errores = ref({});
+  /** Evita que el estado vacío inicial pise el borrador guardado en el navegador. */
+  const restaurando = ref(true);
 
   const recepcionCompleta = computed(() => pasoRecepcion.value == null && !!ordenId.value);
   const vehiculoBloqueado = computed(() => {
@@ -149,7 +161,99 @@ export function useRecepcionOrden() {
     }
   };
 
-  const mapOrdenAForm = (orden) => {
+  const claveFoto = () => String(ordenId.value || 'nueva');
+
+  const snapshotLocal = () => ({
+    ordenId: ordenId.value,
+    paso: paso.value,
+    pasoRecepcion: pasoRecepcion.value,
+    form: form.value,
+    placaConsultada: placaConsultada.value,
+    vehiculoEraNuevo: vehiculoEraNuevo.value,
+    clienteConsultado: clienteConsultado.value,
+    clienteEraNuevo: clienteEraNuevo.value,
+    clienteConfirmado: clienteConfirmado.value,
+    vehiculoEditable: vehiculoEditable.value,
+    clienteEditable: clienteEditable.value,
+    editandoVehiculo: editandoVehiculo.value,
+    editandoCliente: editandoCliente.value,
+    ruta: window.location.pathname,
+  });
+
+  const snapshotUtil = (local) => {
+    if (!local?.form) return false;
+    return !!(
+      local.ordenId
+      || local.form.vehiculo?.placa
+      || local.form.cliente?.nombreRazonSocial
+      || local.form.descripcionInformal
+      || local.form.observacionIngreso
+    );
+  };
+
+  const persistirLocal = () => {
+    if (restaurando.value) return;
+    const previo = leerBorradorLocal();
+    const placa = form.value.vehiculo.placa;
+    const nombre = form.value.cliente.nombreRazonSocial?.trim();
+    const solicitud = form.value.descripcionInformal?.trim();
+    if (!ordenId.value && !placa && !nombre && !solicitud && snapshotUtil(previo)) return;
+    if (!ordenId.value && previo?.ordenId && !placa) return;
+    guardarBorradorLocal(snapshotLocal());
+  };
+
+  const esRecargaDeEstaPantalla = () => {
+    const nav = performance.getEntriesByType('navigation')[0];
+    const misma = !!nav?.name?.includes(window.location.pathname);
+    if (misma && nav.type === 'reload') return true;
+    if (misma && consumirRecargaRecepcion()) return true;
+    return false;
+  };
+
+  const aplicarSnapshot = (local, conservarServidor = false) => {
+    const fotoServidor = conservarServidor ? form.value.fotoRegistro : '';
+    form.value = {
+      ...local.form,
+      cliente: { ...clienteVacio(), ...local.form.cliente },
+      vehiculo: {
+        placa: '',
+        marcaId: '',
+        modelo: '',
+        horometro: null,
+        kilometraje: null,
+        ...local.form.vehiculo,
+      },
+      fotoRegistro: fotoServidor || local.form.fotoRegistro || '',
+    };
+    if (local.paso) paso.value = local.paso;
+    placaConsultada.value = !!local.placaConsultada;
+    vehiculoEraNuevo.value = !!local.vehiculoEraNuevo;
+    clienteConsultado.value = !!local.clienteConsultado;
+    clienteEraNuevo.value = local.clienteEraNuevo !== false;
+    clienteConfirmado.value = !!local.clienteConfirmado;
+    vehiculoEditable.value = !!local.vehiculoEditable;
+    clienteEditable.value = !!local.clienteEditable;
+    editandoVehiculo.value = !!local.editandoVehiculo;
+    editandoCliente.value = !!local.editandoCliente;
+    if (!conservarServidor) {
+      ordenId.value = local.ordenId || null;
+      pasoRecepcion.value = local.pasoRecepcion ?? null;
+    }
+  };
+
+  const restaurarFotoPendiente = async () => {
+    if (form.value.fotoRegistro) {
+      await borrarFotoLocal(claveFoto()).catch(() => {});
+      return;
+    }
+    const file = await leerFotoLocal(claveFoto()).catch(() => null);
+    if (!file) return;
+    archivoRegistro.value = file;
+    if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
+    fotoSrc.value = URL.createObjectURL(file);
+  };
+
+  const mapOrdenAForm = async (orden) => {
     form.value = {
       cliente: mapCliente(orden.cliente || {}),
       vehiculo: {
@@ -181,7 +285,7 @@ export function useRecepcionOrden() {
     else if (orden.pasoRecepcion === 2) paso.value = 3;
     else paso.value = 3;
 
-    cargarFotoRegistro(orden.id, orden.fotoRegistro);
+    await cargarFotoRegistro(orden.id, orden.fotoRegistro);
     recordarGuardado();
   };
 
@@ -239,8 +343,46 @@ export function useRecepcionOrden() {
     }
   };
 
+  const alElegirFoto = async (file) => {
+    if (!file) return;
+    errores.value = { ...errores.value, fotoRegistro: '' };
+    archivoRegistro.value = file;
+    if (fotoSrc.value?.startsWith('blob:')) URL.revokeObjectURL(fotoSrc.value);
+    fotoSrc.value = URL.createObjectURL(file);
+    const clave = claveFoto();
+    try {
+      await guardarFotoLocal(clave, file);
+    } catch {
+      /* si el navegador no guarda la foto, el envío al finalizar sigue usando el archivo */
+    }
+    persistirLocal();
+    if (!ordenId.value) return;
+
+    subiendoFoto.value = true;
+    try {
+      const ordenFoto = await ordenService.subirFoto(ordenId.value, 'registro', file);
+      form.value.fotoRegistro = ordenFoto.fotoRegistro || form.value.fotoRegistro;
+      archivoRegistro.value = null;
+      await borrarFotoLocal(clave).catch(() => {});
+      await cargarFotoRegistro(ordenId.value, form.value.fotoRegistro);
+    } catch (e) {
+      notify.error(
+        'No se pudo subir la foto',
+        e.response?.data?.message || 'Quedó en este borrador y se reintentará al finalizar.',
+      );
+    } finally {
+      subiendoFoto.value = false;
+    }
+  };
+
   const quitarRegistro = async () => {
     archivoRegistro.value = null;
+    await borrarFotoLocal(claveFoto()).catch(() => {});
+    if (!form.value.fotoRegistro && fotoSrc.value?.startsWith('blob:')) {
+      URL.revokeObjectURL(fotoSrc.value);
+      fotoSrc.value = '';
+      return;
+    }
     if (!ordenId.value || !form.value.fotoRegistro) return;
     subiendoFoto.value = true;
     try {
@@ -256,27 +398,59 @@ export function useRecepcionOrden() {
     }
   };
 
+  const redirigirSiYaNoEsBorrador = (orden) => {
+    if (orden.estado === 'EN_ESPERA') return false;
+    const puedeTaller = ['ADMIN', 'SUPERVISOR', 'TECNICO'].includes(auth.usuario?.rol);
+    if (puedeTaller) router.replace(`/ordenes/taller/${orden.id}`);
+    else {
+      notify.info('Orden aceptada', 'La recepción ya no edita esta orden.');
+      router.replace('/ordenes');
+    }
+    return true;
+  };
+
+  const recuperarEncima = async (orden, local, recarga) => {
+    await mapOrdenAForm(orden);
+    historialOrdenes.value = [];
+    const hayLocal = local && Number(local.ordenId) === Number(orden.id) && snapshotUtil(local);
+    if (hayLocal) aplicarSnapshot(local, true);
+    await restaurarFotoPendiente();
+    if (recarga && (hayLocal || archivoRegistro.value)) {
+      notify.info('Borrador recuperado', 'Sigues en el mismo paso.');
+    }
+  };
+
   const inicializar = async () => {
+    restaurando.value = true;
     cargando.value = true;
+    const recarga = esRecargaDeEstaPantalla();
+    const local = leerBorradorLocal();
     try {
       await cargarMarcas();
       if (esEdicion.value) {
         const orden = await ordenService.obtener(route.params.id);
-        if (orden.estado !== 'EN_ESPERA') {
-          const puedeTaller = ['ADMIN', 'SUPERVISOR', 'TECNICO'].includes(auth.usuario?.rol);
-          if (puedeTaller) router.replace(`/ordenes/taller/${orden.id}`);
-          else {
-            notify.info('Orden aceptada', 'La recepción ya no edita esta orden.');
-            router.replace('/ordenes');
-          }
-          return;
-        }
-        mapOrdenAForm(orden);
-        historialOrdenes.value = [];
+        if (redirigirSiYaNoEsBorrador(orden)) return;
+        await recuperarEncima(orden, local, recarga);
+        return;
+      }
+
+      if (recarga && local?.ordenId && local.ruta === '/ordenes/nueva') {
+        await router.replace(`/ordenes/editar/${local.ordenId}`);
+        const orden = await ordenService.obtener(local.ordenId);
+        if (redirigirSiYaNoEsBorrador(orden)) return;
+        await recuperarEncima(orden, local, true);
+        return;
+      }
+
+      if (recarga && snapshotUtil(local)) {
+        aplicarSnapshot(local);
+        await restaurarFotoPendiente();
+        notify.info('Borrador recuperado', 'Sigues en el mismo paso.');
       }
     } catch {
       notify.error('Error', 'No se pudo cargar la orden.');
     } finally {
+      restaurando.value = false;
       cargando.value = false;
     }
   };
@@ -580,6 +754,7 @@ export function useRecepcionOrden() {
       });
 
       notify.success('Borrador listo', 'La orden quedó en espera de validación.');
+      await limpiarBorradorLocal();
       router.push('/ordenes');
     } catch (e) {
       const msg = e.response?.data?.errors?.[0]?.mensaje
@@ -673,8 +848,45 @@ export function useRecepcionOrden() {
     if (origen != null && origen >= 3 && clienteConfirmado.value) paso.value = 3;
   };
 
-  onMounted(inicializar);
+  watch(
+    () => ({
+      ordenId: ordenId.value,
+      paso: paso.value,
+      pasoRecepcion: pasoRecepcion.value,
+      form: form.value,
+      placaConsultada: placaConsultada.value,
+      vehiculoEraNuevo: vehiculoEraNuevo.value,
+      clienteConsultado: clienteConsultado.value,
+      clienteEraNuevo: clienteEraNuevo.value,
+      clienteConfirmado: clienteConfirmado.value,
+      vehiculoEditable: vehiculoEditable.value,
+      clienteEditable: clienteEditable.value,
+      editandoVehiculo: editandoVehiculo.value,
+      editandoCliente: editandoCliente.value,
+    }),
+    () => persistirLocal(),
+    { deep: true },
+  );
+
+  const alOcultarPagina = () => {
+    persistirLocal();
+    marcarRecargaRecepcion();
+  };
+
+  const alCambiarVisibilidad = () => {
+    if (document.visibilityState === 'hidden') persistirLocal();
+  };
+
+  onMounted(() => {
+    window.addEventListener('pagehide', alOcultarPagina);
+    window.addEventListener('beforeunload', alOcultarPagina);
+    document.addEventListener('visibilitychange', alCambiarVisibilidad);
+    inicializar();
+  });
   onUnmounted(() => {
+    window.removeEventListener('pagehide', alOcultarPagina);
+    window.removeEventListener('beforeunload', alOcultarPagina);
+    document.removeEventListener('visibilitychange', alCambiarVisibilidad);
     if (fotoSrc.value) URL.revokeObjectURL(fotoSrc.value);
   });
 
@@ -688,7 +900,7 @@ export function useRecepcionOrden() {
     puedeEditarClienteUI, aplicarCliente, empezarEditarClienteEnPaso, cambiarCliente,
     editandoCliente, clienteConfirmado, cancelarEdicionCliente, irAPaso, guardarPasoCliente,
     resumenCliente, recepcionCompleta, irAEditarCliente, fotoSrc, puedeCambiarRegistro,
-    puedeQuitarRegistro, subiendoFoto, archivoRegistro, quitarRegistro, guardando,
+    puedeQuitarRegistro, subiendoFoto, archivoRegistro, alElegirFoto, quitarRegistro, guardando,
     completarBorrador,
   };
 }

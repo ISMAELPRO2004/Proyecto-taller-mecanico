@@ -30,7 +30,15 @@ export const subirFotoOrden = async (id, tipo, file, req) => {
 
   const orden = await prisma.ordenTrabajo.findUnique({
     where: { id: parseInt(id) },
-    select: { id: true, estado: true, estaCerrada: true, fotoRegistro: true, fotoDesarrollo: true, numeroOrden: true },
+    select: {
+      id: true,
+      estado: true,
+      estaCerrada: true,
+      pasoRecepcion: true,
+      fotoRegistro: true,
+      fotoDesarrollo: true,
+      numeroOrden: true,
+    },
   });
   if (!orden) throw new AppError('Orden no encontrada', 404);
 
@@ -44,7 +52,8 @@ export const subirFotoOrden = async (id, tipo, file, req) => {
   }
 
   if (tipo === 'registro') {
-    if (previa && !esAdmin) {
+    const recepcionEnCurso = orden.estado === 'EN_ESPERA' && orden.pasoRecepcion != null;
+    if (previa && !esAdmin && !recepcionEnCurso) {
       throw new AppError('La foto de registro ya fue tomada. Solo un administrador puede cambiarla.', 403);
     }
   } else if (!puedeEditarDesarrollo(orden)) {

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '../api/axios.js';
+import { limpiarBorradorLocal } from '../utils/borradorRecepcion.js';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -24,6 +25,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null;
       this.usuario = null;
       localStorage.clear();
+      limpiarBorradorLocal();
     }
   }
 });
