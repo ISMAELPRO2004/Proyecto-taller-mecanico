@@ -194,7 +194,7 @@ const routeTitle = (name) => {
       </header>
 
       <section
-        :class="route.name === 'dashboard' ? 'bg-[#140a22] text-slate-100' : 'bg-slate-50 text-slate-800'"
+        :class="['dashboard', 'listado-ordenes'].includes(route.name) ? 'bg-[#140a22] text-slate-100' : 'bg-slate-50 text-slate-800'"
         class="flex-1 overflow-y-auto p-4 md:p-5 lg:px-6 lg:py-6"
       >
         <router-view />

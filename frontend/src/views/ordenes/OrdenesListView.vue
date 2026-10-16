@@ -12,7 +12,7 @@ import { usePaginacion } from '../../composables/usePaginacion.js';
 import { notify } from '../../utils/alerts.js';
 import { generarOrdenPDF } from '../../utils/ordenPdf.js';
 import { nombreClienteOrden } from '../../utils/ordenDisplay.js';
-import { Plus, FileText } from 'lucide-vue-next';
+import { Plus } from 'lucide-vue-next';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -148,20 +148,20 @@ onMounted(obtenerOrdenes);
 </script>
 
 <template>
-  <div class="space-y-6 animate-fade-in">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div class="flex items-center gap-3">
-        <div class="bg-lyer-green p-3 rounded-2xl text-white shadow-lg">
-          <FileText class="w-6 h-6" />
-        </div>
-        <div>
-          <h2 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Gestión de Órdenes</h2>
-          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mecánica LYER Motors</p>
-        </div>
+  <div class="w-full space-y-5 animate-fade-in">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-lyer-cyan">Mecánica LYER Motors</p>
+        <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+          Listado de órdenes de trabajo
+        </h2>
       </div>
-      <router-link to="/ordenes/nueva"
-        class="btn bg-lyer-green text-white hover:bg-emerald-900 border-none px-8 rounded-xl shadow-md transition-transform hover:scale-105">
-        <Plus class="w-5 h-5 mr-1" /> Nueva Orden
+      <router-link
+        to="/ordenes/nueva"
+        class="inline-flex h-11 items-center gap-2 self-start rounded-xl bg-lyer-accent px-5 text-sm font-bold tracking-wide text-[#1a0633] shadow-[0_0_20px_-3px_rgba(255,96,128,0.45)]"
+      >
+        <Plus class="h-5 w-5" />
+        Crear orden
       </router-link>
     </div>
 
@@ -172,7 +172,7 @@ onMounted(obtenerOrdenes);
       @refrescar="obtenerOrdenes"
     />
 
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-hidden rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
       <TablaOrdenes
         :ordenes="ordenesPaginadas"
         :cargando="cargando"
@@ -187,13 +187,15 @@ onMounted(obtenerOrdenes);
         @factura="abrirFactura"
       />
 
-      <div class="p-4 md:p-6 bg-slate-50/50 border-t border-slate-100">
+      <div class="border-t border-[#4a2870]/40 bg-[#160a24] px-4 py-4 md:px-6">
         <Paginador
           v-model="paginaActual"
           v-model:items-por-pagina="itemsPorPagina"
           :total-paginas="totalPaginas"
           :total="ordenesFiltradas.length"
           :opciones-items="opcionesItems"
+          oscuro
+          total-sufijo="órdenes"
         />
       </div>
     </div>

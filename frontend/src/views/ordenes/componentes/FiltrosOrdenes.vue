@@ -12,19 +12,30 @@ defineEmits(['update:busqueda', 'update:filtroEstado', 'refrescar']);
 </script>
 
 <template>
-  <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-3">
-    <input :value="busqueda" @input="$emit('update:busqueda', $event.target.value)" type="text"
+  <div class="flex flex-col gap-3 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-4 sm:flex-row sm:items-center">
+    <input
+      :value="busqueda"
+      type="text"
       placeholder="Buscar placa, cliente o N° orden..."
-      class="input input-bordered w-full bg-slate-50 border-slate-100 focus:border-lyer-accent rounded-xl text-sm" />
-    <div class="flex gap-2">
-      <select :value="filtroEstado" @change="$emit('update:filtroEstado', $event.target.value)"
-        class="select select-bordered flex-1 bg-slate-50 border-slate-100 rounded-xl text-sm">
+      class="h-11 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan focus:outline-none"
+      @input="$emit('update:busqueda', $event.target.value)"
+    />
+    <div class="flex gap-2 sm:w-auto sm:shrink-0">
+      <select
+        :value="filtroEstado"
+        class="h-11 min-w-0 flex-1 rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-3 text-sm text-slate-200 focus:border-lyer-cyan focus:outline-none sm:w-52"
+        @change="$emit('update:filtroEstado', $event.target.value)"
+      >
         <option value="">Todos los estados</option>
         <option v-for="opt in ESTADO_ORDEN_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
       </select>
-      <button @click="$emit('refrescar')"
-        class="btn btn-square bg-white border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl shrink-0">
-        <RefreshCcw :class="{ 'animate-spin': cargando }" class="w-5 h-5" />
+      <button
+        type="button"
+        title="Actualizar listado"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#2a1840] text-slate-300 hover:text-white"
+        @click="$emit('refrescar')"
+      >
+        <RefreshCcw :class="{ 'animate-spin': cargando }" class="h-5 w-5" />
       </button>
     </div>
   </div>
