@@ -1,24 +1,32 @@
 <script setup>
+import { computed } from 'vue';
+import { Calendar, Car, ClipboardList, MessageSquareText, User } from 'lucide-vue-next';
 import { useTallerOrden } from './composables/useTallerOrden.js';
 import EncabezadoOrdenForm from './componentes/EncabezadoOrdenForm.vue';
 import ListaItemsOrden from './componentes/ListaItemsOrden.vue';
 import SelectorCatalogoModal from './componentes/SelectorCatalogoModal.vue';
 import FooterResumenOrden from './componentes/FooterResumenOrden.vue';
 import CampoFoto from './componentes/CampoFoto.vue';
-import ModalFacturaOrden from './componentes/ModalFacturaOrden.vue';
 
 const {
-  router, cargando, form, cambiarEstado, facturaPendiente, fotos, esAdmin, subiendoFoto,
+  router, cargando, form, cambiarEstado, fotos, esAdmin, subiendoFoto,
   subirRegistroAdmin, quitarRegistroAdmin, subirDesarrollo, quitarDesarrollo, verPrecios,
-  abrirSelector, responsables, totalFinal, guardar, selector, itemsSelector, idsSeleccionados,
-  confirmarCatalogo, modalFactura, cancelarFactura, aplicarFactura, guardando,
+  abrirSelector, responsables, subtotales, totalFinal, guardar, selector, itemsSelector, idsSeleccionados,
+  confirmarCatalogo, guardando,
 } = useTallerOrden();
+
+const fechaIngreso = computed(() => {
+  if (!form.value.fechaCreacion) return '';
+  const fecha = new Date(form.value.fechaCreacion);
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+});
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto space-y-5 pb-10">
+  <div class="mx-auto w-full max-w-6xl space-y-6 pb-16">
     <div v-if="cargando" class="py-24 text-center">
-      <span class="loading loading-ring loading-lg text-lyer-green" />
+      <span class="loading loading-ring loading-lg text-lyer-accent" />
     </div>
 
     <template v-else>
@@ -26,32 +34,50 @@ const {
         es-edicion
         modo="taller"
         :estado="form.estado"
+        :numero-orden="form.numeroOrden"
         @back="router.push('/ordenes')"
         @update:estado="cambiarEstado"
       />
 
-      <section class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-6">
-        <div class="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p class="text-[10px] font-black text-lyer-green uppercase tracking-widest">{{ form.numeroOrden }}</p>
-            <h3 class="text-lg font-black text-slate-800 uppercase italic">{{ form.placa }}</h3>
-            <p class="text-xs text-slate-500 font-bold">
-              {{ form.marca }} {{ form.modelo }} · {{ form.cliente }}
-            </p>
+      <section class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+        <article class="flex items-center gap-3.5 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-4">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+            <Car class="h-5 w-5" />
           </div>
-          <span
-            v-if="facturaPendiente"
-            class="badge badge-warning badge-sm font-black uppercase animate-pulse"
-          >
-            Factura pendiente
-          </span>
-        </div>
+          <div class="min-w-0">
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Placa</span>
+            <span class="block font-mono text-base font-bold tracking-wide text-white">{{ form.placa || '—' }}</span>
+            <span class="block truncate text-[11px] text-slate-400">{{ form.marca }} {{ form.modelo }}</span>
+          </div>
+        </article>
+
+        <article class="flex items-center gap-3.5 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-4">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-lyer-soft">
+            <User class="h-5 w-5" />
+          </div>
+          <div class="min-w-0">
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Cliente</span>
+            <span class="block truncate text-sm font-semibold text-white">{{ form.cliente || '—' }}</span>
+            <span class="block truncate font-mono text-[11px] text-slate-400">{{ form.documento || 'Sin documento' }}</span>
+          </div>
+        </article>
+
+        <article class="flex items-center gap-3.5 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-4">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-lyer-cyan">
+            <Calendar class="h-5 w-5" />
+          </div>
+          <div class="min-w-0">
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ingreso</span>
+            <span class="block font-mono text-base font-bold text-white">{{ fechaIngreso || '—' }}</span>
+          </div>
+        </article>
       </section>
 
-      <section class="grid md:grid-cols-2 gap-4">
+      <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CampoFoto
-          titulo="Foto de registro"
-          ayuda="Tomada al ingreso. Solo el administrador puede cambiarla."
+          oscuro
+          titulo="Foto de registro inicial"
+          ayuda="Tomada al ingresar la unidad. Solo un administrador puede cambiarla."
           :src="fotos.registro"
           :puede-cambiar="esAdmin"
           :puede-quitar="esAdmin && !!fotos.registro"
@@ -60,8 +86,9 @@ const {
           @quitar="quitarRegistroAdmin"
         />
         <CampoFoto
+          oscuro
           titulo="Foto de desarrollo"
-          ayuda="Se puede ir reemplazando mientras la orden está en trabajo."
+          ayuda="Se reemplaza mientras la orden está en trabajo. JPG, PNG o WEBP, hasta 5 MB."
           :src="fotos.desarrollo"
           puede-cambiar
           :puede-quitar="!!fotos.desarrollo"
@@ -71,64 +98,74 @@ const {
         />
       </section>
 
-      <section class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-6 grid md:grid-cols-2 gap-4">
-        <label class="form-control">
-          <span class="label-text text-[10px] font-black text-slate-400 uppercase">Solicitud del cliente</span>
-          <textarea
-            v-model="form.descripcionInformal"
-            rows="3"
-            placeholder="Lo que pidió el cliente al ingresar la unidad."
-            class="textarea textarea-bordered rounded-2xl text-sm"
-          />
-        </label>
-        <label class="form-control">
-          <span class="label-text text-[10px] font-black text-slate-400 uppercase">Trabajos a realizar</span>
+      <section class="space-y-6">
+        <article class="rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-6">
+          <div class="mb-3 flex items-center gap-2">
+            <MessageSquareText class="h-4 w-4 text-lyer-cyan" />
+            <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white">Solicitud del cliente</h3>
+          </div>
+          <p class="mb-3 text-xs text-slate-400">Lo que pidió al ingresar la unidad. Quedó registrado en recepción.</p>
+          <div class="min-h-32 rounded-xl border border-[#4a2870]/50 bg-[#140a22] p-4 text-sm leading-relaxed text-white">
+            {{ form.descripcionInformal?.trim() || 'Sin solicitud registrada.' }}
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-6">
+          <div class="mb-3 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <ClipboardList class="h-4 w-4 text-lyer-cyan" />
+              <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white">Trabajos a realizar</h3>
+            </div>
+            <span class="rounded-md border border-lyer-cyan/30 bg-lyer-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-lyer-cyan">
+              En taller
+            </span>
+          </div>
+          <p class="mb-3 text-xs text-slate-400">El detalle de lo que hay que hacer, una vez aceptada la orden.</p>
           <textarea
             v-model="form.trabajoSolicitado"
-            rows="3"
-            placeholder="Detalle de lo que el taller va a hacer, una vez verificada la orden."
-            class="textarea textarea-bordered rounded-2xl text-sm"
+            rows="6"
+            placeholder="Por ejemplo: desmontaje de la caja de cambios y revisión del embrague."
+            class="min-h-40 w-full resize-y rounded-xl border border-[#4a2870]/50 bg-[#140a22] p-4 text-sm leading-relaxed text-white placeholder:text-slate-600 focus:border-lyer-cyan focus:outline-none"
           />
-        </label>
+        </article>
       </section>
 
-      <section class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-6 space-y-8">
-        <ListaItemsOrden
-          titulo="Insumos"
-          icono="package"
-          texto-boton="+ Añadir"
-          solido
-          con-cantidad
-          campo-monto="precioAlMomento"
-          :items="form.materiales"
-          :ver-precios="verPrecios"
-          @add="abrirSelector('materiales')"
-          @remove="form.materiales.splice($event, 1)"
-        />
-        <ListaItemsOrden
-          titulo="Mano de Obra"
-          icono="wrench"
-          texto-boton="+ Catálogo"
-          :items="form.servicios"
-          :ver-precios="verPrecios"
-          @add="abrirSelector('servicios')"
-          @remove="form.servicios.splice($event, 1)"
-        />
-        <ListaItemsOrden
-          titulo="Trabajos Externos"
-          icono="external"
-          texto-boton="+ Terceros"
-          azul
-          :items="form.terceros"
-          :ver-precios="verPrecios"
-          @add="abrirSelector('terceros')"
-          @remove="form.terceros.splice($event, 1)"
-        />
-      </section>
+      <ListaItemsOrden
+        titulo="Insumos y repuestos"
+        icono="package"
+        texto-boton="+ Añadir insumo"
+        solido
+        con-cantidad
+        campo-monto="precioAlMomento"
+        :items="form.materiales"
+        :ver-precios="verPrecios"
+        @add="abrirSelector('materiales')"
+        @remove="form.materiales.splice($event, 1)"
+      />
+      <ListaItemsOrden
+        titulo="Mano de obra"
+        icono="wrench"
+        texto-boton="+ Catálogo"
+        :items="form.servicios"
+        :ver-precios="verPrecios"
+        @add="abrirSelector('servicios')"
+        @remove="form.servicios.splice($event, 1)"
+      />
+      <ListaItemsOrden
+        titulo="Trabajos externos"
+        icono="external"
+        texto-boton="+ Añadir tercero"
+        azul
+        :items="form.terceros"
+        :ver-precios="verPrecios"
+        @add="abrirSelector('terceros')"
+        @remove="form.terceros.splice($event, 1)"
+      />
 
       <FooterResumenOrden
         :responsable-id="form.responsableId"
         :responsables="responsables"
+        :subtotales="subtotales"
         :total-final="totalFinal"
         :ver-precios="verPrecios"
         es-edicion
@@ -148,21 +185,8 @@ const {
       @confirmar="confirmarCatalogo"
     />
 
-    <ModalFacturaOrden
-      :is-open="modalFactura"
-      intencion="cancelar"
-      :orden="{
-        numeroOrden: form.numeroOrden,
-        requiereFactura: form.requiereFactura,
-        numeroFactura: form.numeroFactura,
-        montoFactura: form.montoFactura,
-      }"
-      @close="cancelarFactura"
-      @guardar="aplicarFactura"
-    />
-
-    <div v-if="guardando" class="fixed inset-0 z-40 bg-white/40 flex items-center justify-center">
-      <span class="loading loading-spinner loading-lg text-lyer-green" />
+    <div v-if="guardando" class="fixed inset-0 z-40 flex items-center justify-center bg-[#140a22]/50">
+      <span class="loading loading-spinner loading-lg text-lyer-accent" />
     </div>
   </div>
 </template>

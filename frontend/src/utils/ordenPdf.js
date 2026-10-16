@@ -2,6 +2,24 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoEmpresa from '../assets/logoEmpresa.png';
 
+const montoPdf = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+};
+
+const solesPdf = (valor) => {
+  const n = montoPdf(valor);
+  return n === null ? 'Sin precio' : `S/ ${n.toFixed(2)}`;
+};
+
+const totalLineaPdf = (cantidad, precio) => {
+  const c = montoPdf(cantidad);
+  const p = montoPdf(precio);
+  if (c === null || p === null) return 'Sin precio';
+  return `S/ ${(c * p).toFixed(2)}`;
+};
+
 let logoDataUrlPromise = null;
 
 const cargarLogoDataUrl = () => {
@@ -79,8 +97,8 @@ async function construirDocumento(orden, verPrecios) {
         ? [
           m.cantidad,
           m.material.descripcion,
-          `S/ ${Number(m.precioAplicado).toFixed(2)}`,
-          `S/ ${(Number(m.cantidad) * Number(m.precioAplicado)).toFixed(2)}`
+          solesPdf(m.precioAplicado),
+          totalLineaPdf(m.cantidad, m.precioAplicado)
         ]
         : [m.cantidad, m.material.descripcion]),
       headStyles: { fillColor: verdeLyer, fontSize: 10 },
@@ -91,10 +109,10 @@ async function construirDocumento(orden, verPrecios) {
 
   const servicios = [
     ...(orden.servicios || []).map(s => verPrecios
-      ? [s.descripcion, `S/ ${Number(s.monto).toFixed(2)}`]
+      ? [s.descripcion, solesPdf(s.monto)]
       : [s.descripcion]),
     ...(orden.terceros || []).map(t => verPrecios
-      ? [`(Tercero) ${t.descripcion}`, `S/ ${Number(t.monto).toFixed(2)}`]
+      ? [`(Tercero) ${t.descripcion}`, solesPdf(t.monto)]
       : [`(Tercero) ${t.descripcion}`])
   ];
 

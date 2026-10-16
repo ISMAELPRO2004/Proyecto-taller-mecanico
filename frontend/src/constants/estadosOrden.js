@@ -13,12 +13,12 @@ export const ESTADO_ORDEN_OPTIONS = Object.entries(ESTADOS_ORDEN).map(([value, l
   label,
 }));
 
+/** Estados que se eligen en taller. Cancelado no va aquí: solo el admin, con la orden ya terminada. */
 export const ESTADOS_OPERATIVOS = [
   'EN_REPARACION',
   'CAMBIO_ACEITE',
   'ESPERANDO_REPUESTO',
   'TERMINADO',
-  'CANCELADO',
 ];
 
 export const labelEstadoOrden = (estado) => ESTADOS_ORDEN[estado] || estado || '—';

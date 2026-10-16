@@ -153,7 +153,7 @@ export const actualizarOrdenSchema = z.object({
     .transform((v) => (v === null || v === undefined || v === '' ? null : parseInt(v, 10))),
   estado: z.enum([
     'EN_ESPERA', 'ACEPTADO', 'EN_REPARACION', 'CAMBIO_ACEITE',
-    'ESPERANDO_REPUESTO', 'TERMINADO', 'CANCELADO',
+    'ESPERANDO_REPUESTO', 'TERMINADO',
   ]).optional(),
   requiereFactura: z.boolean().optional(),
   numeroFactura: z.string().max(50).optional().nullable(),

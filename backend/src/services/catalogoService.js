@@ -29,10 +29,11 @@ export const createCatalogoService = ({
 
     const esTecnico = req.user?.rol === 'TECNICO';
     let precio = null;
-    if (!esTecnico) {
-      const n = parseFloat(precioBase);
-      if (!Number.isFinite(n) || n <= 0) throw new AppError('Ingresa un precio válido.');
-      precio = n;
+    const textoPrecio = precioBase == null ? '' : String(precioBase).trim();
+    if (textoPrecio !== '') {
+      const n = parseFloat(textoPrecio);
+      if (!Number.isFinite(n) || n < 0) throw new AppError('Ingresa un precio válido.');
+      precio = n > 0 ? n : null;
     }
 
     const data = {

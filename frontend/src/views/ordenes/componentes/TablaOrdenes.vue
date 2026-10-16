@@ -4,7 +4,7 @@ import { puedeEditar, puedeEliminar, puedeAceptar, puedeCancelarTerminado } from
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
 import { useAuthStore } from '../../../stores/auth.js';
 import {
-  Eye, Trash2, Edit3, Lock, Printer, CheckCircle2, Receipt, Ban
+  Eye, Trash2, Edit3, Lock, Printer, CheckCircle2, Receipt, ReceiptText
 } from 'lucide-vue-next';
 
 import { puedeVerPrecios, recepcionPendiente, puedeImprimir, mostrarAlertaFactura } from '../../../utils/roles.js';
@@ -186,11 +186,11 @@ defineEmits(['verDetalle', 'imprimir', 'editar', 'eliminar', 'aceptar', 'factura
               <button
                 v-if="mostrarCancelar(o)"
                 type="button"
-                :class="[accionBtn, 'text-rose-300 hover:border-rose-400/50 hover:bg-rose-500/10']"
-                title="Cancelar y pedir factura"
+                :class="[accionBtn, 'text-amber-300 hover:border-amber-400/50 hover:bg-amber-500/10']"
+                title="Pasar a Cancelado para registrar la factura"
                 @click="$emit('cancelar', o)"
               >
-                <Ban class="h-4 w-4" />
+                <ReceiptText class="h-4 w-4" />
               </button>
               <button
                 v-if="mostrarEliminar(o)"

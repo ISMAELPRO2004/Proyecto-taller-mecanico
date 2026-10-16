@@ -72,8 +72,11 @@ export const actualizarOrden = async (id, data, req) => {
     throw new AppError('La orden debe estar aceptada antes de registrar materiales o servicios.');
   }
 
-  const ESTADOS_TRABAJO = ['EN_REPARACION', 'CAMBIO_ACEITE', 'ESPERANDO_REPUESTO', 'TERMINADO', 'CANCELADO'];
+  const ESTADOS_TRABAJO = ['EN_REPARACION', 'CAMBIO_ACEITE', 'ESPERANDO_REPUESTO', 'TERMINADO'];
   if (data.estado) {
+    if (data.estado === 'CANCELADO') {
+      throw new AppError('Cancelado solo lo asigna un administrador cuando la orden ya está terminada.');
+    }
     if (ordenPrevia.estado === 'EN_ESPERA' && data.estado !== 'EN_ESPERA') {
       throw new AppError('Acepte la orden antes de cambiar el estado de trabajo.');
     }
@@ -81,7 +84,7 @@ export const actualizarOrden = async (id, data, req) => {
       throw new AppError('No se puede volver a En espera.');
     }
     if (ESTADOS_TRABAJO.includes(ordenPrevia.estado) && !ESTADOS_TRABAJO.includes(data.estado)) {
-      throw new AppError('El estado de trabajo solo puede ser reparación, cambio de aceite, esperando repuesto, terminado o cancelado.');
+      throw new AppError('El estado de trabajo solo puede ser reparación, cambio de aceite, esperando repuesto o terminado.');
     }
   }
 

@@ -105,32 +105,38 @@ onMounted(cargarDatos);
 </script>
 
 <template>
-  <div class="space-y-6 animate-fade-in">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
+  <div class="space-y-5 animate-fade-in">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div class="flex items-center gap-3">
-        <div class="bg-lyer-green p-3 rounded-2xl text-white shadow-lg">
-          <Layers class="w-6 h-6" />
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+          <Layers class="h-6 w-6" />
         </div>
         <div>
-          <h2 class="text-xl md:text-2xl font-black text-slate-800 uppercase">Catálogos</h2>
-          <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Precios Maestros</p>
+          <h2 class="font-display text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">Catálogos</h2>
+          <p class="font-mono text-[11px] uppercase tracking-widest text-slate-400">Precios maestros</p>
         </div>
       </div>
-      <button @click="abrirModal()"
-        class="btn btn-sm md:btn-md bg-lyer-green text-white border-none rounded-xl w-full md:w-auto">
-        <Plus class="w-4 h-4 mr-1" /> Nuevo {{ nombreTabActiva }}
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center gap-2 self-start rounded-xl bg-lyer-accent px-5 text-sm font-bold tracking-wide text-[#1a0633] shadow-[0_0_20px_-3px_rgba(255,96,128,0.45)]"
+        @click="abrirModal()"
+      >
+        <Plus class="h-5 w-5" />
+        Nuevo {{ nombreTabActiva }}
       </button>
     </div>
 
-    <div class="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-200 space-y-6">
-      <Tabs v-model="tabActiva" :items="tabsCatalogo" @change="cargarDatos">
-        <input
-          v-model="busqueda"
-          type="text"
-          placeholder="Buscar..."
-          class="input input-bordered w-full lg:w-96 bg-slate-50 border-slate-100 rounded-xl text-sm"
-        />
-      </Tabs>
+    <div class="overflow-hidden rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+      <div class="border-b border-[#4a2870]/40 px-4 py-4 md:px-6">
+        <Tabs v-model="tabActiva" :items="tabsCatalogo" oscuro @change="cargarDatos">
+          <input
+            v-model="busqueda"
+            type="text"
+            placeholder="Buscar..."
+            class="h-11 w-full rounded-xl border border-[#4a2870]/60 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none lg:w-80"
+          />
+        </Tabs>
+      </div>
 
       <TablaCatalogo
         :items="listaPaginada"
@@ -141,7 +147,7 @@ onMounted(cargarDatos);
         @eliminar="eliminar"
       />
 
-      <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-50">
+      <div class="border-t border-[#4a2870]/40 bg-[#160a24] px-4 py-4 md:px-6">
         <Paginador
           v-model="paginaActual"
           v-model:items-por-pagina="itemsPorPagina"
@@ -149,7 +155,8 @@ onMounted(cargarDatos);
           :total="listaFiltrada.length"
           :opciones-items="opcionesItems"
           mostrar-label-ver
-          total-sufijo="Registros"
+          oscuro
+          total-sufijo="registros"
         />
       </div>
     </div>

@@ -1,38 +1,72 @@
 <script setup>
-import { CheckCircle, ClipboardList } from 'lucide-vue-next';
+import { CheckCircle, ChevronDown } from 'lucide-vue-next';
 
 defineProps({
   responsableId: { type: [String, Number], default: '' },
   responsables: { type: Array, default: () => [] },
+  subtotales: {
+    type: Object,
+    default: () => ({ insumos: 0, manoObra: 0, terceros: 0 }),
+  },
   totalFinal: { type: Number, default: 0 },
   esEdicion: { type: Boolean, default: false },
   verPrecios: { type: Boolean, default: true },
 });
 
 defineEmits(['update:responsableId', 'guardar']);
+
+const soles = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 </script>
 
 <template>
-  <footer class="bg-slate-900 p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] flex flex-col gap-6 shadow-2xl relative overflow-hidden mt-6">
-    <div class="z-10 w-full md:w-1/3">
-      <label class="text-[8px] font-black text-emerald-400/50 uppercase tracking-[0.3em] block mb-2">Responsable Taller</label>
-      <select :value="responsableId" @change="$emit('update:responsableId', $event.target.value)"
-        class="select select-bordered bg-slate-800 text-white border-slate-700 rounded-2xl font-bold text-xs h-12 w-full focus:border-lyer-green">
-        <option value="">Seleccione técnico...</option>
-        <option v-for="u in responsables" :key="u.id" :value="u.id">{{ u.nombreCompleto }}</option>
-      </select>
-    </div>
+  <footer class="rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <label class="min-w-0 lg:max-w-sm lg:flex-1">
+        <span class="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          Responsable del taller
+        </span>
+        <div class="relative">
+          <select
+            :value="responsableId"
+            class="h-11 w-full appearance-none rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-3 pr-9 text-sm text-white focus:border-lyer-cyan focus:outline-none"
+            @change="$emit('update:responsableId', $event.target.value)"
+          >
+            <option value="">Seleccione técnico...</option>
+            <option v-for="u in responsables" :key="u.id" :value="u.id">{{ u.nombreCompleto }}</option>
+          </select>
+          <ChevronDown class="pointer-events-none absolute right-3 top-3 h-4 w-4 text-slate-400" />
+        </div>
+      </label>
 
-    <div class="z-10 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-slate-800 pt-6">
-      <div v-if="verPrecios">
-        <p class="text-[8px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-1 opacity-60">Liquidación OT</p>
-        <h2 class="text-4xl font-black text-white tracking-tighter tabular-nums">S/ {{ totalFinal.toFixed(2) }}</h2>
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+        <div v-if="verPrecios" class="flex flex-wrap items-end gap-4 font-mono text-xs">
+          <div class="text-right">
+            <span class="block text-[10px] uppercase tracking-wider text-slate-400">Insumos</span>
+            <span class="font-semibold text-lyer-soft">{{ soles(subtotales.insumos) }}</span>
+          </div>
+          <div class="text-right">
+            <span class="block text-[10px] uppercase tracking-wider text-slate-400">M. obra</span>
+            <span class="font-semibold text-lyer-cyan">{{ soles(subtotales.manoObra) }}</span>
+          </div>
+          <div class="text-right">
+            <span class="block text-[10px] uppercase tracking-wider text-slate-400">Terceros</span>
+            <span class="font-semibold text-amber-300">{{ soles(subtotales.terceros) }}</span>
+          </div>
+          <div class="rounded-xl border border-lyer-cyan/30 bg-[#140a22] px-3.5 py-2 text-right">
+            <span class="block text-[10px] uppercase tracking-wider text-slate-400">Total</span>
+            <span class="text-lg font-bold text-lyer-cyan">{{ soles(totalFinal) }}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-6 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#3a1260]"
+          @click="$emit('guardar')"
+        >
+          <CheckCircle class="h-4 w-4" />
+          {{ esEdicion ? 'Guardar orden' : 'Finalizar' }}
+        </button>
       </div>
-      <button @click="$emit('guardar')" class="btn btn-lg w-full md:w-auto bg-lyer-green hover:bg-emerald-500 text-white border-none px-12 rounded-2xl shadow-xl transition-all hover:scale-105">
-        <CheckCircle class="w-5 h-5 mr-2" />
-        <span class="font-black uppercase tracking-widest text-sm">{{ esEdicion ? 'Actualizar' : 'Finalizar' }}</span>
-      </button>
     </div>
-    <div class="absolute -right-6 -bottom-6 opacity-[0.03] rotate-12 pointer-events-none"><ClipboardList class="w-48 h-48 text-white" /></div>
   </footer>
 </template>

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { X } from 'lucide-vue-next';
+import { AlertTriangle, Check, Receipt, X } from 'lucide-vue-next';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -36,70 +36,129 @@ const confirmar = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden">
-      <div class="p-5 border-b flex items-start justify-between gap-3">
-        <div>
-          <h3 class="font-black text-slate-800 uppercase italic">
-            {{ cancelando ? 'Cancelar orden' : 'Factura' }}
-          </h3>
-          <p class="text-xs text-slate-500">
-            {{ cancelando
-              ? 'Al cancelar se pide la factura. Después solo se podrá editar esa información.'
-              : `${orden?.numeroOrden} · solo el administrador puede cambiar la factura` }}
-          </p>
-        </div>
-        <button type="button" class="btn btn-sm btn-circle btn-ghost" @click="emit('close')">
-          <X class="w-4 h-4" />
-        </button>
-      </div>
+  <div v-if="isOpen" class="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center">
+    <div class="relative w-full max-w-[540px] overflow-hidden rounded-2xl border border-[#4a2870]/60 bg-[#160a24] text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.85)]">
+      <div class="h-1 w-full bg-gradient-to-r from-lyer-green via-lyer-accent to-lyer-cyan" />
 
-      <div class="p-5 space-y-4">
-        <p class="text-sm text-slate-600">
-          {{ cancelando ? '¿Esta cancelación lleva factura?' : '¿Esta orden cancelada lleva factura?' }}
-        </p>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            class="btn flex-1 rounded-xl"
-            :class="form.decision === 'si' ? 'bg-lyer-green text-white border-none' : 'btn-outline'"
-            @click="form.decision = 'si'"
-          >Sí</button>
-          <button
-            type="button"
-            class="btn flex-1 rounded-xl"
-            :class="form.decision === 'no' ? 'bg-slate-800 text-white border-none' : 'btn-outline'"
-            @click="form.decision = 'no'"
-          >No, omitir</button>
+      <header class="flex items-start justify-between gap-3 border-b border-[#4a2870]/50 bg-[#10041f] px-5 py-4 sm:px-6">
+        <div class="flex min-w-0 items-start gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+            <Receipt class="h-5 w-5" />
+          </div>
+          <div class="min-w-0">
+            <h3 class="font-display text-lg font-bold uppercase tracking-tight text-white sm:text-xl">
+              {{ cancelando ? 'Cancelar orden' : 'Factura' }}
+            </h3>
+            <p class="mt-0.5 text-xs leading-relaxed text-slate-400">
+              <span v-if="orden?.numeroOrden" class="font-mono font-semibold text-lyer-cyan">{{ orden.numeroOrden }}</span>
+              <span v-if="orden?.numeroOrden"> · </span>
+              {{ cancelando
+                ? 'Al cancelar se pide la factura. Después solo se podrá editar esa información.'
+                : 'Solo el administrador puede cambiar la factura.' }}
+            </p>
+          </div>
         </div>
-
-        <div v-if="form.decision === 'si'" class="space-y-3">
-          <label class="form-control">
-            <span class="label-text text-[10px] font-black text-slate-400 uppercase">Número de factura</span>
-            <input v-model="form.numero" type="text" class="input input-bordered rounded-xl" placeholder="Puede completarse después" />
-          </label>
-          <label class="form-control">
-            <span class="label-text text-[10px] font-black text-slate-400 uppercase">Monto</span>
-            <input v-model="form.monto" type="number" step="0.01" min="0" class="input input-bordered rounded-xl" />
-          </label>
-          <p v-if="!String(form.numero || '').trim()" class="text-[11px] text-amber-600 font-bold">
-            Sin número, la factura sigue pendiente y parpadea en el listado.
-          </p>
-        </div>
-      </div>
-
-      <div class="p-4 bg-slate-50 border-t flex gap-2">
-        <button type="button" class="btn btn-ghost flex-1 rounded-xl" :disabled="guardando" @click="emit('close')">Cancelar</button>
         <button
           type="button"
-          class="btn flex-1 bg-lyer-green text-white border-none rounded-xl"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-slate-400 hover:text-white"
+          :disabled="guardando"
+          @click="emit('close')"
+        >
+          <X class="h-4 w-4" />
+        </button>
+      </header>
+
+      <div class="space-y-4 px-5 py-5 sm:px-6">
+        <p class="text-sm font-medium text-slate-200">
+          {{ cancelando ? '¿Esta cancelación lleva factura?' : '¿Esta orden cancelada lleva factura?' }}
+        </p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            :class="[
+              'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors',
+              form.decision === 'si'
+                ? 'border border-lyer-accent/50 bg-[#2a0a4a] text-white shadow-[0_0_20px_-6px_rgba(255,96,128,0.55)]'
+                : 'border border-[#4a2870]/60 bg-[#140a22] text-slate-300 hover:bg-[#1c1030] hover:text-white',
+            ]"
+            @click="form.decision = 'si'"
+          >
+            <Check v-if="form.decision === 'si'" class="h-4 w-4 text-lyer-cyan" />
+            Sí
+          </button>
+          <button
+            type="button"
+            :class="[
+              'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors',
+              form.decision === 'no'
+                ? 'border border-lyer-cyan/50 bg-[#2a1840] text-white'
+                : 'border border-[#4a2870]/60 bg-[#140a22] text-slate-300 hover:bg-[#1c1030] hover:text-white',
+            ]"
+            @click="form.decision = 'no'"
+          >
+            <Check v-if="form.decision === 'no'" class="h-4 w-4 text-lyer-cyan" />
+            No, omitir
+          </button>
+        </div>
+
+        <div v-if="form.decision === 'si'" class="space-y-4">
+          <label class="block space-y-1.5">
+            <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Número de factura</span>
+            <span class="relative block">
+              <input
+                v-model="form.numero"
+                type="text"
+                placeholder="Puede completarse después"
+                class="w-full rounded-xl border border-[#4a2870]/70 bg-[#10041f] py-3 pl-4 pr-11 font-mono text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none"
+              />
+              <Receipt class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-lyer-cyan" />
+            </span>
+          </label>
+
+          <label class="block space-y-1.5">
+            <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Monto (S/)</span>
+            <span class="relative block">
+              <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm font-bold text-slate-400">S/</span>
+              <input
+                v-model="form.monto"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full rounded-xl border border-[#4a2870]/70 bg-[#10041f] py-3 pl-11 pr-4 font-mono text-base font-bold text-white focus:border-lyer-cyan/70 focus:outline-none"
+              />
+            </span>
+          </label>
+
+          <div
+            v-if="!String(form.numero || '').trim()"
+            class="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-200"
+          >
+            <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+            <p class="text-xs leading-snug">Sin número, la factura sigue pendiente y parpadea en el listado.</p>
+          </div>
+        </div>
+      </div>
+
+      <footer class="flex items-center justify-end gap-2 border-t border-[#4a2870]/50 bg-[#10041f] px-5 py-4 sm:px-6">
+        <button
+          type="button"
+          class="rounded-xl border border-[#4a2870]/60 bg-[#140a22] px-5 py-2.5 text-sm text-slate-300 hover:text-white disabled:opacity-50"
+          :disabled="guardando"
+          @click="emit('close')"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#3a1260] disabled:opacity-40"
           :disabled="guardando || !form.decision"
           @click="confirmar"
         >
           <span v-if="guardando" class="loading loading-spinner loading-xs" />
           {{ cancelando ? 'Cancelar orden' : 'Guardar' }}
         </button>
-      </div>
+      </footer>
     </div>
   </div>
 </template>

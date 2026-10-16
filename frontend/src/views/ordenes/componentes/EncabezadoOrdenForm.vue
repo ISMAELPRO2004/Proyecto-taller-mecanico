@@ -1,15 +1,32 @@
 <script setup>
-import { ArrowLeft } from 'lucide-vue-next';
-import { ESTADO_ORDEN_OPTIONS, ESTADOS_OPERATIVOS } from '../../../constants/estadosOrden.js';
+import { ArrowLeft, ChevronDown, Receipt } from 'lucide-vue-next';
+import { ESTADO_ORDEN_OPTIONS, ESTADOS_OPERATIVOS, labelEstadoOrden } from '../../../constants/estadosOrden.js';
+import { notify } from '../../../utils/alerts.js';
 
-defineProps({
+const props = defineProps({
   esEdicion: { type: Boolean, default: false },
   estado: { type: String, default: 'EN_ESPERA' },
+  numeroOrden: { type: String, default: '' },
   modo: { type: String, default: 'recepcion' }, // recepcion | taller
   paso: { type: Number, default: 1 },
 });
 
-defineEmits(['back', 'update:estado']);
+const emit = defineEmits(['back', 'update:estado']);
+
+const alCambiarEstado = async (event) => {
+  const nuevo = event.target.value;
+  if (nuevo === 'TERMINADO' && nuevo !== props.estado) {
+    const ok = await notify.confirm(
+      'La orden pasará a Terminada',
+      'Es decir, no se podrá editar. ¿Estás seguro?'
+    );
+    if (!ok) {
+      event.target.value = props.estado;
+      return;
+    }
+  }
+  emit('update:estado', nuevo);
+};
 
 const opcionesEstado = ESTADO_ORDEN_OPTIONS.filter((o) => ESTADOS_OPERATIVOS.includes(o.value));
 </script>
@@ -42,27 +59,50 @@ const opcionesEstado = ESTADO_ORDEN_OPTIONS.filter((o) => ESTADOS_OPERATIVOS.inc
     </div>
   </header>
 
-  <header v-else class="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-    <div class="flex items-center gap-4 w-full md:w-auto">
-      <button @click="$emit('back')" class="btn btn-circle btn-ghost"><ArrowLeft class="w-5 h-5" /></button>
-      <div>
-        <h2 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter">
-          {{ modo === 'taller' ? 'Completar' : (esEdicion ? 'Editar' : 'Nueva') }} <span class="text-lyer-green">Orden</span>
-        </h2>
-        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-          {{ modo === 'recepcion' ? 'Registro de recepción / borrador' : 'Mecánica LYER Motors' }}
-        </p>
+  <header v-else class="rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex min-w-0 flex-wrap items-center gap-4">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-3.5 py-2 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white"
+          @click="$emit('back')"
+        >
+          <ArrowLeft class="h-4 w-4" />
+          Volver
+        </button>
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-3">
+            <h2 class="flex items-center gap-2 font-display text-xl font-bold uppercase tracking-tight text-white md:text-2xl">
+              <Receipt class="h-6 w-6 text-lyer-cyan" />
+              Orden de trabajo
+              <span v-if="numeroOrden" class="font-mono text-lyer-cyan">{{ numeroOrden }}</span>
+            </h2>
+            <span class="rounded-full border border-lyer-cyan/40 bg-lyer-cyan/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-lyer-cyan">
+              {{ labelEstadoOrden(estado) }}
+            </span>
+          </div>
+          <p class="mt-1 text-[11px] font-medium uppercase tracking-widest text-slate-400">
+            Mecánica LYER Motors
+          </p>
+        </div>
       </div>
-    </div>
-    <div v-if="esEdicion && modo === 'taller'" class="w-full md:w-auto bg-slate-50 px-5 py-2 rounded-2xl border border-slate-200 flex items-center justify-between gap-4">
-      <span class="text-[9px] font-black text-slate-400 uppercase">Estado:</span>
-      <select :value="estado" @change="$emit('update:estado', $event.target.value)"
-        class="select select-xs select-ghost font-black text-lyer-green focus:bg-transparent">
-        <option v-if="estado === 'ACEPTADO'" value="ACEPTADO">ACEPTADO</option>
-        <option v-for="opt in opcionesEstado" :key="opt.value" :value="opt.value">
-          {{ opt.label.toUpperCase() }}
-        </option>
-      </select>
+
+      <label class="flex items-center gap-2.5 self-start rounded-xl border border-[#4a2870]/60 bg-[#140a22] px-3 py-2 lg:self-center">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Estado</span>
+        <div class="relative">
+          <select
+            :value="estado"
+            class="cursor-pointer appearance-none bg-transparent py-1 pr-6 font-mono text-xs font-bold uppercase text-lyer-soft focus:outline-none"
+            @change="alCambiarEstado"
+          >
+            <option v-if="estado === 'ACEPTADO'" value="ACEPTADO">Aceptado</option>
+            <option v-for="opt in opcionesEstado" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+          <ChevronDown class="pointer-events-none absolute right-0 top-1 h-4 w-4 text-slate-400" />
+        </div>
+      </label>
     </div>
   </header>
 </template>

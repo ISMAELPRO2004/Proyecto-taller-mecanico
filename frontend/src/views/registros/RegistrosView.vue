@@ -132,31 +132,48 @@ onMounted(cargar);
 </script>
 
 <template>
-  <div class="space-y-6 animate-fade-in pb-10">
+  <div class="space-y-5 animate-fade-in">
     <div class="flex items-center gap-3">
-      <div class="bg-lyer-green p-3 rounded-2xl text-white shadow-lg">
-        <Database class="w-6 h-6" />
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+        <Database class="h-6 w-6" />
       </div>
       <div>
-        <h2 class="text-xl md:text-2xl font-black text-slate-800 uppercase">Registros</h2>
-        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Clientes, vehículos y marcas</p>
+        <h2 class="font-display text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">Registros</h2>
+        <p class="font-mono text-[11px] uppercase tracking-widest text-slate-400">Clientes, vehículos y marcas</p>
       </div>
     </div>
 
-    <Tabs v-model="tab" :items="tabsRegistro" />
-
-    <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-1">
-          <Search class="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-          <input v-model="busqueda" type="text" placeholder="Buscar..."
-            class="input input-bordered w-full pl-10 rounded-xl bg-slate-50 border-none" />
-        </div>
-        <div v-if="tab === 'marcas'" class="flex gap-2">
-          <input v-model="nuevaMarca" placeholder="Nueva marca" class="input input-bordered rounded-xl" @keyup.enter="crearMarca" />
-          <button @click="crearMarca" class="btn bg-lyer-green text-white border-none rounded-xl">
-            <Plus class="w-4 h-4" />
-          </button>
+    <div class="overflow-hidden rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+      <div class="space-y-4 border-b border-[#4a2870]/40 px-4 py-4 md:px-6">
+        <Tabs v-model="tab" :items="tabsRegistro" oscuro />
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <div class="relative flex-1">
+            <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              v-model="busqueda"
+              type="text"
+              placeholder="Buscar..."
+              class="h-11 w-full rounded-xl border border-[#4a2870]/60 bg-[#140a22] pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none"
+            />
+          </div>
+          <div v-if="tab === 'marcas'" class="flex gap-2">
+            <input
+              v-model="nuevaMarca"
+              type="text"
+              placeholder="Nombre de la marca"
+              aria-label="Nombre de la marca"
+              class="h-11 w-full rounded-xl border border-[#4a2870]/60 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none sm:w-56"
+              @keyup.enter="crearMarca"
+            />
+            <button
+              type="button"
+              title="Crear marca"
+              class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lyer-accent text-[#1a0633]"
+              @click="crearMarca"
+            >
+              <Plus class="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -168,13 +185,15 @@ onMounted(cargar);
         @eliminar="eliminar"
       />
 
-      <div class="p-4 border-t bg-slate-50/50">
+      <div class="border-t border-[#4a2870]/40 bg-[#160a24] px-4 py-4 md:px-6">
         <Paginador
           v-model="paginaActual"
           v-model:items-por-pagina="itemsPorPagina"
           :total-paginas="totalPaginas"
           :total="listaActiva.length"
           :opciones-items="opcionesItems"
+          oscuro
+          total-sufijo="registros"
         />
       </div>
     </div>

@@ -17,52 +17,78 @@ const actualizar = (campo, valor) => {
 </script>
 
 <template>
-  <div :class="['modal modal-bottom sm:modal-middle', { 'modal-open': isOpen }]">
-    <div class="modal-box p-0 overflow-hidden border-t-8 border-lyer-green rounded-3xl shadow-2xl">
-      <div class="p-6 bg-slate-50 border-b flex justify-between items-center">
-        <h3 class="font-black text-lg text-slate-800 uppercase italic">
+  <div v-if="isOpen" class="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center">
+    <div class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[#4a2870]/60 bg-[#160a24] text-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.85)]">
+      <div class="h-1 w-full bg-gradient-to-r from-lyer-green via-lyer-accent to-lyer-cyan" />
+
+      <header class="flex items-center justify-between gap-3 border-b border-[#4a2870]/50 bg-[#10041f] px-5 py-4 sm:px-6">
+        <h3 class="font-display text-lg font-bold uppercase tracking-tight text-white">
           {{ editando ? 'Editar' : 'Nuevo' }} {{ nombreTabActiva.toLowerCase() }}
         </h3>
-        <button @click="emit('close')" class="btn btn-circle btn-ghost btn-sm text-slate-400">
-          <X class="w-5 h-5" />
+        <button
+          type="button"
+          class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-slate-400 hover:text-white"
+          @click="emit('close')"
+        >
+          <X class="h-4 w-4" />
         </button>
-      </div>
+      </header>
 
-      <div class="p-8 space-y-6">
-        <div class="form-control">
-          <label class="label"><span class="label-text font-black text-slate-400 uppercase text-[10px]">Descripción
-              del Ítem</span></label>
-          <input :value="form.descripcion" @input="actualizar('descripcion', $event.target.value)" type="text"
+      <div class="space-y-4 px-5 py-5 sm:px-6">
+        <label class="block space-y-1.5">
+          <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Descripción del ítem</span>
+          <input
+            :value="form.descripcion"
+            type="text"
             placeholder="Ej: Aceite de Motor 15W40"
-            class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-lyer-accent rounded-xl font-bold" />
-        </div>
-        <div v-if="mostrarResponsable" class="form-control">
-          <label class="label"><span class="label-text font-black text-slate-400 uppercase text-[10px]">Responsable
-              del tercero</span></label>
-          <input :value="form.responsable" @input="actualizar('responsable', $event.target.value)" type="text"
+            class="w-full rounded-xl border border-[#4a2870]/70 bg-[#10041f] px-4 py-3 text-sm font-semibold text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none"
+            @input="actualizar('descripcion', $event.target.value)"
+          />
+        </label>
+
+        <label v-if="mostrarResponsable" class="block space-y-1.5">
+          <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Responsable del tercero</span>
+          <input
+            :value="form.responsable"
+            type="text"
             placeholder="Empresa o persona que realiza el servicio"
-            class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-lyer-accent rounded-xl font-bold" />
-        </div>
-        <div class="form-control">
-          <label class="label"><span class="label-text font-black text-slate-400 uppercase text-[10px]">Precio
-              Sugerido (S/)</span></label>
-          <div class="relative">
-            <input :value="form.precioBase" @input="actualizar('precioBase', $event.target.value)" type="number"
+            class="w-full rounded-xl border border-[#4a2870]/70 bg-[#10041f] px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none"
+            @input="actualizar('responsable', $event.target.value)"
+          />
+        </label>
+
+        <label class="block space-y-1.5">
+          <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Precio sugerido (S/)</span>
+          <span class="relative block">
+            <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm font-bold text-slate-400">S/</span>
+            <input
+              :value="form.precioBase"
+              type="number"
               step="0.01"
-              class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-lyer-accent rounded-xl font-black" />
-          </div>
-          <label class="label"><span class="label-text-alt opacity-50 italic">Este precio aparecerá por defecto en las
-              nuevas órdenes.</span></label>
-        </div>
+              class="w-full rounded-xl border border-[#4a2870]/70 bg-[#10041f] py-3 pl-11 pr-4 font-mono text-base font-bold text-white focus:border-lyer-cyan/70 focus:outline-none"
+              @input="actualizar('precioBase', $event.target.value)"
+            />
+          </span>
+          <span class="block text-xs text-slate-500">Este precio aparecerá por defecto en las nuevas órdenes.</span>
+        </label>
       </div>
 
-      <div class="p-6 bg-slate-50 border-t flex justify-end gap-3">
-        <button @click="emit('close')" class="btn btn-ghost font-bold text-slate-400">Cancelar</button>
-        <button @click="emit('guardar')"
-          class="btn bg-lyer-green text-white border-none px-8 rounded-xl shadow-lg hover:bg-emerald-900 transition-all">
-          {{ editando ? 'Guardar Cambios' : 'Registrar Ítem' }}
+      <footer class="flex items-center justify-end gap-2 border-t border-[#4a2870]/50 bg-[#10041f] px-5 py-4 sm:px-6">
+        <button
+          type="button"
+          class="rounded-xl border border-[#4a2870]/60 bg-[#140a22] px-5 py-2.5 text-sm text-slate-300 hover:text-white"
+          @click="emit('close')"
+        >
+          Cancelar
         </button>
-      </div>
+        <button
+          type="button"
+          class="rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#3a1260]"
+          @click="emit('guardar')"
+        >
+          {{ editando ? 'Guardar cambios' : 'Registrar ítem' }}
+        </button>
+      </footer>
     </div>
   </div>
 </template>
