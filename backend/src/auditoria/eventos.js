@@ -177,8 +177,10 @@ export const eventosTrabajoBorrador = ({ ordenPrevia, orden, data }) => {
   const ingreso = data.estadoIngreso || 'ACEPTADO';
   const observacion = data.observacionIngreso?.trim() || null;
   const campos = [
-    ['Lo que indicó el cliente', ordenPrevia.descripcionInformal, descripcion],
-    ['Trabajo solicitado', ordenPrevia.trabajoSolicitado, trabajo],
+    ['Solicitud del cliente', ordenPrevia.descripcionInformal, descripcion],
+    ...(data.trabajoSolicitado !== undefined
+      ? [['Trabajos a realizar', ordenPrevia.trabajoSolicitado, trabajo]]
+      : []),
     ['Estado de ingreso', etiquetaIngreso(ordenPrevia.estadoIngreso), etiquetaIngreso(ingreso)],
     ['Observación de ingreso', ordenPrevia.observacionIngreso, observacion],
   ];

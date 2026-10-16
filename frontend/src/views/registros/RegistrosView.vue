@@ -29,7 +29,7 @@ const listaActiva = computed(() => {
   const q = busqueda.value.trim().toLowerCase();
   if (tab.value === 'clientes') {
     return clientes.value.filter((c) =>
-      !q || c.nombreRazonSocial.toLowerCase().includes(q) || c.numeroDocumento.includes(q)
+      !q || c.nombreRazonSocial.toLowerCase().includes(q) || (c.numeroDocumento || '').toLowerCase().includes(q)
     );
   }
   if (tab.value === 'vehiculos') {

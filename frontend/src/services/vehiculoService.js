@@ -2,6 +2,7 @@ import api from '../api/axios.js';
 
 export const vehiculoService = {
   listar: () => api.get('/vehiculos').then((r) => r.data),
+  sugerir: (q) => api.get('/vehiculos/sugerencias', { params: { q } }).then((r) => r.data),
   buscarPorPlaca: (placa) => api.get(`/vehiculos/${encodeURIComponent(placa)}`).then((r) => r.data),
   upsert: (payload) => api.post('/vehiculos', payload).then((r) => r.data),
   actualizar: (placa, payload) => api.put(`/vehiculos/${encodeURIComponent(placa)}`, payload).then((r) => r.data),

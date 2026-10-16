@@ -8,6 +8,16 @@ export const crearClienteSchema = z.object({
   representante: z.string().max(200).optional().nullable().or(z.literal('')),
   celular: z.string().max(15).optional().nullable().or(z.literal('')),
   correo: z.union([z.literal(''), z.null(), z.string().email()]).optional(),
+}).superRefine((data, ctx) => {
+  if (data.tipoCliente === 'EMPRESA' && data.tipoDocumento !== 'RUC') {
+    ctx.addIssue({ code: 'custom', path: ['tipoDocumento'], message: 'Una empresa solo puede usar RUC' });
+  }
+  if (data.tipoDocumento === 'DNI' && data.numeroDocumento.length !== 8) {
+    ctx.addIssue({ code: 'custom', path: ['numeroDocumento'], message: 'DNI debe tener 8 dígitos' });
+  }
+  if (data.tipoDocumento === 'RUC' && data.numeroDocumento.length !== 11) {
+    ctx.addIssue({ code: 'custom', path: ['numeroDocumento'], message: 'RUC debe tener 11 dígitos' });
+  }
 });
 
 export const crearMarcaSchema = z.object({
@@ -16,9 +26,7 @@ export const crearMarcaSchema = z.object({
 
 export const upsertVehiculoSchema = z.object({
   placa: z.string()
-    .min(7, 'Placa requerida (7 u 8 caracteres)')
-    .max(8, 'Placa debe tener máximo 8 caracteres')
-    .regex(/^[A-Z0-9-]{7,8}$/i, 'Formato de placa inválido (letras, números y guion)')
+    .regex(/^[A-Z0-9]{3}-[A-Z0-9]{3}$/i, 'La placa debe tener el formato aaa-aaa')
     .transform((v) => v.trim().toUpperCase()),
   marcaId: z.union([z.string(), z.number()]).transform((v) => parseInt(v, 10)),
   modelo: z.string().min(1).max(100),

@@ -1,8 +1,11 @@
 <script setup>
-import { Search, History } from 'lucide-vue-next';
+import { ref, onBeforeUnmount } from 'vue';
+import { Search, History, Info, Loader2 } from 'lucide-vue-next';
 import { nombreClienteOrden } from '../../../utils/ordenDisplay.js';
+import { formatearPlacaEscrita } from '../../../utils/placa.js';
+import { vehiculoService } from '../../../services/vehiculoService.js';
 
-defineProps({
+const props = defineProps({
   placa: { type: String, default: '' },
   historial: { type: Array, default: () => [] },
   error: { type: String, default: '' },
@@ -10,56 +13,135 @@ defineProps({
 
 const emit = defineEmits(['update:placa', 'buscar']);
 
-const onInput = (e) => {
-  const val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 8);
-  emit('update:placa', val);
+const sugerencias = ref([]);
+const buscando = ref(false);
+const mostrarSugerencias = ref(false);
+let debounceTimer = null;
+let busquedaSeq = 0;
+
+const buscarSugerencias = async (texto) => {
+  const q = String(texto || '').trim();
+  const seq = ++busquedaSeq;
+  if (q.replace(/[^A-Z0-9]/gi, '').length < 2) {
+    sugerencias.value = [];
+    mostrarSugerencias.value = false;
+    return;
+  }
+  buscando.value = true;
+  try {
+    const data = await vehiculoService.sugerir(q);
+    if (seq !== busquedaSeq) return;
+    sugerencias.value = data;
+    mostrarSugerencias.value = data.length > 0;
+  } catch {
+    if (seq !== busquedaSeq) return;
+    sugerencias.value = [];
+    mostrarSugerencias.value = false;
+  } finally {
+    if (seq === busquedaSeq) buscando.value = false;
+  }
 };
+
+const onInput = (e) => {
+  const val = formatearPlacaEscrita(props.placa, e.target.value);
+  e.target.value = val;
+  emit('update:placa', val);
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => buscarSugerencias(val), 280);
+};
+
+const elegir = (vehiculo) => {
+  sugerencias.value = [];
+  mostrarSugerencias.value = false;
+  emit('update:placa', vehiculo.placa);
+  emit('buscar', vehiculo.placa);
+};
+
+const cerrarSugerencias = () => {
+  setTimeout(() => { mostrarSugerencias.value = false; }, 180);
+};
+
+onBeforeUnmount(() => clearTimeout(debounceTimer));
 </script>
 
 <template>
-  <section class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
-    <div class="flex items-center gap-2 text-lyer-green">
-      <Search class="w-4 h-4" />
-      <span class="text-[10px] font-black uppercase tracking-widest">Identificar placa</span>
+  <section class="space-y-4">
+    <div class="flex items-center gap-2.5">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+        <Search class="h-4 w-4" />
+      </div>
+      <h2 class="font-display text-base font-bold uppercase tracking-wider text-white md:text-lg">Identificar placa</h2>
     </div>
 
-    <div class="flex flex-col sm:flex-row gap-3">
+    <div>
+      <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+        Placa
+        <span class="text-lyer-accent">*</span>
+      </label>
+    <div class="flex flex-col items-stretch gap-3 sm:flex-row">
+      <div :class="['relative min-w-0 flex-1', mostrarSugerencias && 'z-20']">
       <input
         :value="placa"
-        @input="onInput"
-        @keyup.enter="emit('buscar', placa)"
-        maxlength="8"
-        placeholder="Ej: ABC-123"
+        maxlength="12"
+        placeholder="EJ: ABC-123"
+        autocomplete="off"
         :class="[
-          'input input-bordered w-full sm:max-w-xs rounded-xl font-black text-center uppercase tracking-widest text-lg',
-          error ? 'border-red-300 bg-red-50' : 'bg-slate-50 border-none',
+          'h-14 w-full rounded-xl border bg-[#140a22] px-4 pr-12 font-mono text-xl font-bold uppercase tracking-widest text-white placeholder:text-slate-600 focus:outline-none md:text-2xl',
+          error ? 'border-rose-400 focus:border-rose-400' : 'border-[#4a2870]/50 focus:border-lyer-cyan',
         ]"
+        @input="onInput"
+        @focus="sugerencias.length && (mostrarSugerencias = true)"
+        @blur="cerrarSugerencias"
+        @keyup.enter="emit('buscar', placa)"
       />
+      <Loader2 v-if="buscando" class="absolute right-4 top-4.5 h-5 w-5 animate-spin text-lyer-cyan" />
+      <ul
+        v-if="mostrarSugerencias && sugerencias.length"
+        class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[#4a2870]/50 bg-[#140a22] shadow-xl"
+      >
+        <li
+          v-for="v in sugerencias"
+          :key="v.placa"
+          class="cursor-pointer border-b border-[#4a2870]/30 px-4 py-3 last:border-0 hover:bg-[#2a1840]"
+          @mousedown.prevent="elegir(v)"
+        >
+          <p class="font-mono text-base font-bold tracking-widest text-white">{{ v.placa }}</p>
+          <p class="text-[11px] font-medium text-slate-400">
+            {{ v.marca?.nombre || 'Sin marca' }}
+            <span v-if="v.modelo"> · {{ v.modelo }}</span>
+          </p>
+        </li>
+      </ul>
+      </div>
       <button
         type="button"
+        class="flex h-14 items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-8 font-display text-base font-bold uppercase tracking-wider text-white hover:bg-[#3a1260]"
         @click="emit('buscar', placa)"
-        class="btn bg-lyer-green text-white border-none rounded-xl px-8"
       >
+        <Search class="h-5 w-5" />
         Buscar placa
       </button>
     </div>
-    <p v-if="error" class="text-xs text-red-500 font-bold">{{ error }}</p>
-    <p class="text-[11px] text-slate-400">
+    </div>
+
+    <p v-if="error" class="text-sm font-medium text-rose-300">{{ error }}</p>
+    <p class="flex items-start gap-2 text-xs text-slate-400 md:text-sm">
+      <Info class="mt-0.5 h-4 w-4 shrink-0 text-lyer-cyan" />
       Por ahora la placa se ingresa manualmente. Más adelante se conectará el escaneo por cámara/IA.
     </p>
 
-    <div v-if="historial.length" class="mt-4 rounded-2xl border border-slate-100 overflow-hidden">
-      <div class="px-4 py-3 bg-slate-50 flex items-center gap-2 text-slate-500">
-        <History class="w-4 h-4" />
-        <span class="text-[10px] font-black uppercase tracking-widest">Historial reciente ({{ historial.length }})</span>
+    <div v-if="historial.length" class="overflow-hidden rounded-xl border border-[#4a2870]/40">
+      <div class="flex items-center gap-2 bg-[#160a24] px-4 py-3 text-slate-400">
+        <History class="h-4 w-4" />
+        <span class="text-[10px] font-bold uppercase tracking-widest">Historial reciente ({{ historial.length }})</span>
       </div>
-      <ul class="divide-y divide-slate-50">
-        <li v-for="o in historial" :key="o.id" class="px-4 py-3 flex justify-between gap-3 text-sm">
+      <ul class="divide-y divide-[#4a2870]/30">
+        <li v-for="o in historial" :key="o.id" class="flex justify-between gap-3 px-4 py-3 text-sm">
           <div>
-            <span class="font-black text-lyer-green italic">{{ o.numeroOrden }}</span>
-            <span class="text-slate-400 text-xs ml-2">{{ nombreClienteOrden(o) }}</span>
+            <span class="font-bold text-lyer-cyan">{{ o.numeroOrden }}</span>
+            <span class="ml-2 text-xs text-slate-400">{{ nombreClienteOrden(o) }}</span>
           </div>
-          <span class="text-[10px] font-bold text-slate-400 uppercase">{{ o.estado }}</span>
+          <span class="text-[10px] font-bold uppercase text-slate-400">{{ o.estado }}</span>
         </li>
       </ul>
     </div>

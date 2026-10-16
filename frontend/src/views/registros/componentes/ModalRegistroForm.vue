@@ -12,8 +12,8 @@ const emit = defineEmits(['close', 'guardar', 'update:form']);
 
 const patch = (campo, valor) => {
   const next = { ...props.form, [campo]: valor };
-  if (campo === 'tipoCliente') {
-    next.tipoDocumento = valor === 'EMPRESA' ? 'RUC' : 'DNI';
+  if (campo === 'tipoCliente' && valor === 'EMPRESA') {
+    next.tipoDocumento = 'RUC';
   }
   emit('update:form', next);
 };
@@ -42,8 +42,13 @@ const titulo = {
               <option value="PERSONA">Persona</option>
               <option value="EMPRESA">Empresa</option>
             </select>
-            <select :value="form.tipoDocumento" @change="patch('tipoDocumento', $event.target.value)" class="select select-bordered rounded-xl font-bold">
-              <option value="DNI">DNI</option>
+            <select
+              :value="form.tipoCliente === 'EMPRESA' ? 'RUC' : form.tipoDocumento"
+              :disabled="form.tipoCliente === 'EMPRESA'"
+              @change="patch('tipoDocumento', $event.target.value)"
+              class="select select-bordered rounded-xl font-bold"
+            >
+              <option v-if="form.tipoCliente !== 'EMPRESA'" value="DNI">DNI</option>
               <option value="RUC">RUC</option>
             </select>
           </div>

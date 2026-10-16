@@ -5,6 +5,7 @@ import {
   actualizarMarca,
   eliminarMarca,
   listarVehiculos,
+  sugerirVehiculos,
   buscarPorPlaca,
   upsertVehiculo,
   actualizarVehiculo,
@@ -45,6 +46,7 @@ router.delete('/marcas/:id',
 );
 
 router.get('/', authenticateJWT, authorize(SOLO_ADMIN), listarVehiculos);
+router.get('/sugerencias', authenticateJWT, authorize(ROLES), sugerirVehiculos);
 router.get('/:placa', authenticateJWT, authorize(ROLES), buscarPorPlaca);
 router.post('/',
   authenticateJWT,

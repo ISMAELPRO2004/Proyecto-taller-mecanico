@@ -35,7 +35,7 @@ model Cliente {
   id                Int            @id @default(autoincrement())
   tipoCliente       TipoCliente
   tipoDocumento     TipoDocumento
-  numeroDocumento   String         @unique // DNI o RUC
+  numeroDocumento   String?        @unique // DNI o RUC, opcional en recepción
   nombreRazonSocial String
   representante     String? // Chofer, trabajador o persona que deja el vehículo
   celular           String?
@@ -101,8 +101,8 @@ model OrdenTrabajo {
   vehiculo  Vehiculo @relation(fields: [placa], references: [placa])
 
   // Descripciones del Trabajo
-  descripcionInformal String? @db.Text // Lo que dicta el cliente/recepcionista
-  trabajoSolicitado   String? @db.Text // Descripción profesional del trabajo a realizar
+  descripcionInformal String? @db.Text // Solicitud del cliente al recepcionar
+  trabajoSolicitado   String? @db.Text // Trabajos a realizar, se llena tras validar la orden
 
   // Condiciones de Ingreso
   estadoIngreso      EstadoIngreso @default(ACEPTADO)
@@ -180,7 +180,7 @@ model CatalogoTercero {
 model OTMaterial {
   id             Int              @id @default(autoincrement())
   ordenId        Int
-  orden          OrdenTrabajo     @relation(fields: [ordenId], references: [id])
+  orden          OrdenTrabajo     @relation(fields: [ordenId], references: [id], onDelete: Cascade)
   materialId     Int
   material       CatalogoMaterial @relation(fields: [materialId], references: [id])
   cantidad       Decimal          @db.Decimal(10, 2)
@@ -190,7 +190,7 @@ model OTMaterial {
 model OTServicio {
   id          Int              @id @default(autoincrement())
   ordenId     Int
-  orden       OrdenTrabajo     @relation(fields: [ordenId], references: [id])
+  orden       OrdenTrabajo     @relation(fields: [ordenId], references: [id], onDelete: Cascade)
   servicioId  Int
   servicio    CatalogoServicio @relation(fields: [servicioId], references: [id])
   descripcion String
@@ -200,7 +200,7 @@ model OTServicio {
 model OTTercero {
   id          Int             @id @default(autoincrement())
   ordenId     Int
-  orden       OrdenTrabajo    @relation(fields: [ordenId], references: [id])
+  orden       OrdenTrabajo    @relation(fields: [ordenId], references: [id], onDelete: Cascade)
   terceroId   Int
   tercero     CatalogoTercero @relation(fields: [terceroId], references: [id])
   descripcion String

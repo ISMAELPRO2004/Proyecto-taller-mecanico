@@ -25,81 +25,119 @@ const crearMarca = () => {
   nuevaMarca.value = '';
   mostrandoNueva.value = false;
 };
+
+const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-600 focus:border-lyer-cyan focus:outline-none disabled:cursor-not-allowed disabled:opacity-80';
 </script>
 
 <template>
-  <section class="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100/50 space-y-4">
-    <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 text-emerald-700">
-        <Car class="w-4 h-4" />
-        <span class="text-[10px] font-black uppercase tracking-widest">Datos del vehículo</span>
-        <span v-if="bloqueado" class="badge badge-sm bg-white text-emerald-700 border-emerald-100 font-black uppercase text-[8px]">
-          Guardado
-        </span>
+  <section class="space-y-6">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
+          <Car class="h-4 w-4" />
+        </div>
+        <h2 class="font-display text-base font-bold uppercase tracking-wider text-white md:text-lg">Datos del vehículo</h2>
       </div>
       <button
         v-if="bloqueado && puedeEditar"
         type="button"
+        class="inline-flex items-center gap-1 text-sm font-semibold text-lyer-cyan hover:text-white"
         @click="$emit('editar')"
-        class="btn btn-sm btn-ghost text-lyer-green font-bold gap-1"
       >
-        <Edit3 class="w-3.5 h-3.5" /> Editar
+        <Edit3 class="h-4 w-4" />
+        Editar
       </button>
+      <span
+        v-else-if="bloqueado"
+        class="rounded-md border border-lyer-cyan/30 bg-lyer-cyan/10 px-2.5 py-1 font-mono text-[11px] font-semibold tracking-wider text-lyer-cyan"
+      >
+        Guardado
+      </span>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="col-span-2 md:col-span-1">
-        <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Placa</label>
-        <input :value="vehiculo.placa" disabled
-          class="input input-bordered w-full rounded-xl font-black text-center uppercase border-none shadow-sm bg-white/70" />
-      </div>
-
-      <div class="col-span-2">
-        <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Marca</label>
-        <div class="flex gap-2">
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div>
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+          Marca
+          <span class="text-lyer-accent">*</span>
+        </label>
+        <div class="flex items-center gap-2">
           <select
             :value="vehiculo.marcaId"
             :disabled="bloqueado"
+            :class="[campo, errores.marcaId ? 'border-rose-400' : '']"
             @change="patch('marcaId', $event.target.value)"
-            :class="['select select-bordered w-full rounded-xl font-bold border-none shadow-sm', errores.marcaId ? 'bg-red-50' : '', bloqueado ? 'bg-white/70 opacity-80' : '']"
           >
             <option value="">Seleccione marca</option>
             <option v-for="m in marcas" :key="m.id" :value="m.id">{{ m.nombre }}</option>
           </select>
-          <button v-if="!bloqueado" type="button" @click="mostrandoNueva = !mostrandoNueva"
-            class="btn btn-square bg-white border-emerald-100 text-emerald-700 rounded-xl">
-            <Plus class="w-4 h-4" />
+          <button
+            v-if="!bloqueado"
+            type="button"
+            title="Añadir nueva marca"
+            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#2a1840] text-lyer-cyan hover:border-lyer-cyan/50"
+            @click="mostrandoNueva = !mostrandoNueva"
+          >
+            <Plus class="h-5 w-5" />
           </button>
         </div>
-        <div v-if="mostrandoNueva && !bloqueado" class="flex gap-2 mt-2">
-          <input v-model="nuevaMarca" placeholder="Nueva marca"
-            class="input input-sm input-bordered flex-1 rounded-lg" @keyup.enter="crearMarca" />
-          <button type="button" class="btn btn-sm bg-lyer-green text-white border-none" @click="crearMarca">OK</button>
+        <p v-if="errores.marcaId" class="mt-1 text-xs text-rose-300">{{ errores.marcaId }}</p>
+        <div v-if="mostrandoNueva && !bloqueado" class="mt-2 flex gap-2">
+          <input
+            v-model="nuevaMarca"
+            placeholder="Nueva marca"
+            :class="campo"
+            @keyup.enter="crearMarca"
+          />
+          <button type="button" class="h-12 shrink-0 rounded-xl bg-lyer-accent px-4 text-sm font-bold text-[#1a0633]" @click="crearMarca">
+            OK
+          </button>
         </div>
       </div>
 
-      <div class="col-span-2 md:col-span-1">
-        <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Modelo</label>
-        <input :value="vehiculo.modelo" :disabled="bloqueado" @input="patch('modelo', $event.target.value)"
-          :class="['input input-bordered w-full rounded-xl text-xs font-bold border-none shadow-sm', errores.modelo ? 'bg-red-50' : '', bloqueado ? 'bg-white/70 opacity-80' : '']" />
+      <div>
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+          Modelo
+          <span class="text-lyer-accent">*</span>
+        </label>
+        <input
+          :value="vehiculo.modelo"
+          :disabled="bloqueado"
+          placeholder="ej: Hilux 4x4"
+          :class="[campo, errores.modelo ? 'border-rose-400' : '']"
+          @input="patch('modelo', $event.target.value)"
+        />
+        <p v-if="errores.modelo" class="mt-1 text-xs text-rose-300">{{ errores.modelo }}</p>
       </div>
 
       <div>
-        <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Kilometraje</label>
-        <input :value="vehiculo.kilometraje ?? ''" type="number" :disabled="bloqueado"
-          @input="patch('kilometraje', $event.target.value === '' ? null : $event.target.value)"
-          class="input input-bordered w-full rounded-xl text-xs font-bold border-none shadow-sm text-center"
-          :class="bloqueado ? 'bg-white/70 opacity-80' : ''"
-          placeholder="Opcional" />
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">Kilometraje</label>
+        <div class="relative">
+          <input
+            :value="vehiculo.kilometraje ?? ''"
+            type="number"
+            :disabled="bloqueado"
+            placeholder="Opcional"
+            :class="[campo, 'pr-12 font-mono']"
+            @input="patch('kilometraje', $event.target.value === '' ? null : $event.target.value)"
+          />
+          <span class="absolute right-3.5 top-3.5 font-mono text-xs font-bold text-slate-500">KM</span>
+        </div>
       </div>
 
       <div>
-        <label class="text-[9px] font-bold text-emerald-600 block mb-1 ml-2 uppercase">Horómetro</label>
-        <input :value="vehiculo.horometro ?? ''" type="number" :disabled="bloqueado"
-          @input="patch('horometro', $event.target.value === '' ? null : $event.target.value)"
-          class="input input-bordered w-full rounded-xl text-xs font-bold border-none shadow-sm text-center"
-          :class="bloqueado ? 'bg-white/70 opacity-80' : ''"
-          placeholder="Opcional" />
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">Horómetro</label>
+        <div class="relative">
+          <input
+            :value="vehiculo.horometro ?? ''"
+            type="number"
+            :disabled="bloqueado"
+            placeholder="Opcional"
+            :class="[campo, 'pr-14 font-mono']"
+            @input="patch('horometro', $event.target.value === '' ? null : $event.target.value)"
+          />
+          <span class="absolute right-3.5 top-3.5 font-mono text-xs font-bold text-slate-500">HRS</span>
+        </div>
       </div>
     </div>
   </section>

@@ -79,7 +79,9 @@ export function useDetalleLog(props) {
 
   const CAMPO_LABELS = {
     clienteNombre: 'Cliente', clienteCelular: 'Celular',
-    trabajoSolicitado: 'Trabajo Solicitado', placa: 'Placa',
+    trabajoSolicitado: 'Trabajos a realizar',
+    descripcionInformal: 'Solicitud del cliente',
+    placa: 'Placa',
     marca: 'Marca', modelo: 'Modelo', horometro: 'Horómetro',
     kilometraje: 'Kilometraje', totalFinal: 'Total Final',
     estado: 'Estado', responsable: 'Responsable',

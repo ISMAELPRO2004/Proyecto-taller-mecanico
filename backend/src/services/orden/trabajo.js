@@ -36,6 +36,8 @@ export const aceptarOrden = async (id, { responsableId } = {}, req) => {
     where: { id: parseInt(id) },
     data: {
       estado: 'ACEPTADO',
+      vehiculoEditableEnBorrador: false,
+      clienteEditableEnBorrador: false,
       ...(responsableId ? { responsableId } : {}),
     },
     include: includeOrdenDetalle,
@@ -306,35 +308,34 @@ export const eliminarOrden = async (id, req) => {
   }
 
   const ordenId = parseInt(id);
-  // Solo en borrador incompleto: limpiar vehículo/cliente nacidos en ese borrador
-  const placaABorrar = borradorIncompleto && ordenPrevia.vehiculoEditableEnBorrador
+  // Antes de aceptar, el borrador se considera erróneo: se van la orden, el trabajo y las fotos.
+  // Vehículo y cliente solo si nacieron en este borrador y ninguna otra orden los usa.
+  const esBorrador = ordenPrevia.estado === 'EN_ESPERA';
+  const placaABorrar = esBorrador && ordenPrevia.vehiculoEditableEnBorrador
     ? ordenPrevia.placa
     : null;
-  const clienteABorrar = borradorIncompleto && ordenPrevia.clienteEditableEnBorrador
+  const clienteABorrar = esBorrador && ordenPrevia.clienteEditableEnBorrador
     ? ordenPrevia.clienteId
     : null;
 
   await prisma.$transaction(async (tx) => {
     await tx.logActividad.updateMany({ where: { ordenId }, data: { ordenId: null } });
-    await tx.oTMaterial.deleteMany({ where: { ordenId } });
-    await tx.oTServicio.deleteMany({ where: { ordenId } });
-    await tx.oTTercero.deleteMany({ where: { ordenId } });
     await tx.ordenTrabajo.delete({ where: { id: ordenId } });
-
-    if (placaABorrar) {
-      const otras = await tx.ordenTrabajo.count({ where: { placa: placaABorrar } });
-      if (otras === 0) {
-        await tx.vehiculo.delete({ where: { placa: placaABorrar } }).catch(() => null);
-      }
-    }
-
-    if (clienteABorrar) {
-      const otras = await tx.ordenTrabajo.count({ where: { clienteId: clienteABorrar } });
-      if (otras === 0) {
-        await tx.cliente.delete({ where: { id: clienteABorrar } }).catch(() => null);
-      }
-    }
   });
+
+  if (placaABorrar) {
+    const otras = await prisma.ordenTrabajo.count({ where: { placa: placaABorrar } });
+    if (otras === 0) {
+      await prisma.vehiculo.delete({ where: { placa: placaABorrar } }).catch(() => null);
+    }
+  }
+
+  if (clienteABorrar) {
+    const otras = await prisma.ordenTrabajo.count({ where: { clienteId: clienteABorrar } });
+    if (otras === 0) {
+      await prisma.cliente.delete({ where: { id: clienteABorrar } }).catch(() => null);
+    }
+  }
 
   // Siempre borrar fotos de la orden (registro + desarrollo) para no dejar basura en disco
   await borrarCarpetaOrden(id);

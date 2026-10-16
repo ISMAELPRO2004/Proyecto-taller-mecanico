@@ -55,6 +55,13 @@
   background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
 }
 
+/* DaisyUI activa appearance: base-select. En Chrome el menú no se cierra
+   si Vue actualiza el select al elegir una opción (p. ej. RUC) y deja la página bloqueada. */
+.select,
+.select select {
+  appearance: none !important;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }

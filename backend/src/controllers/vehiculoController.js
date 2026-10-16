@@ -21,6 +21,11 @@ export const upsertVehiculo = asyncHandler(async (req, res) => {
   res.status(201).json(vehiculo);
 });
 
+export const sugerirVehiculos = asyncHandler(async (req, res) => {
+  const vehiculos = await vehiculoService.sugerirVehiculos(req.query.q);
+  res.json(vehiculos);
+}, { defaultStatus: 500, useMessageKey: false });
+
 export const listarVehiculos = asyncHandler(async (req, res) => {
   const vehiculos = await vehiculoService.listarVehiculos();
   res.json(vehiculos);

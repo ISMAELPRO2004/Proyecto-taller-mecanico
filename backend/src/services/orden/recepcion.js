@@ -79,10 +79,7 @@ export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = fals
       });
       if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
       if (ordenPrevia.estado !== 'EN_ESPERA') {
-        throw new AppError('Solo se puede editar el vehículo en un borrador de recepción.');
-      }
-      if (ordenPrevia.pasoRecepcion == null) {
-        throw new AppError('La recepción ya está completa. El vehículo ya no se edita aquí.');
+        throw new AppError('Solo se puede cambiar el vehículo mientras la orden está en espera.');
       }
     }
 
@@ -116,7 +113,9 @@ export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = fals
         where: { id: ordenId },
         data: {
           placa: veh.placa,
-          pasoRecepcion: Math.max(ordenPrevia.pasoRecepcion || 1, 1),
+          pasoRecepcion: ordenPrevia.pasoRecepcion == null
+            ? null
+            : Math.max(ordenPrevia.pasoRecepcion || 1, 1),
           vehiculoEditableEnBorrador: editable,
         },
         include: includeOrdenDetalle,
@@ -150,10 +149,7 @@ export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false 
     });
     if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
     if (ordenPrevia.estado !== 'EN_ESPERA') {
-      throw new AppError('Solo se puede editar el cliente en un borrador de recepción.');
-    }
-    if (ordenPrevia.pasoRecepcion == null) {
-      throw new AppError('La recepción ya está completa. El cliente ya no se edita aquí.');
+      throw new AppError('Solo se puede cambiar el cliente mientras la orden está en espera.');
     }
     if (!ordenPrevia.placa) throw new AppError('Primero registra el vehículo.');
 
@@ -171,7 +167,9 @@ export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false 
       where: { id: ordenId },
       data: {
         clienteId: cli.id,
-        pasoRecepcion: Math.max(ordenPrevia.pasoRecepcion || 1, 2),
+        pasoRecepcion: ordenPrevia.pasoRecepcion == null
+          ? null
+          : Math.max(ordenPrevia.pasoRecepcion || 1, 2),
         clienteEditableEnBorrador: editable,
       },
       include: includeOrdenDetalle,
@@ -206,17 +204,23 @@ export const completarRecepcion = async (id, data, req) => {
     }
     if (!ordenPrevia.placa) throw new AppError('Falta el vehículo.');
     if (!ordenPrevia.clienteId) throw new AppError('Falta el cliente.');
+    if (!data.descripcionInformal?.trim()) {
+      throw new AppError('La solicitud del cliente es obligatoria.');
+    }
+    if (!ordenPrevia.fotoRegistro) {
+      throw new AppError('La foto de registro inicial es obligatoria.');
+    }
 
     const orden = await tx.ordenTrabajo.update({
       where: { id: ordenId },
       data: {
         descripcionInformal: data.descripcionInformal?.trim() || null,
-        trabajoSolicitado: data.trabajoSolicitado?.trim() || null,
+        ...(data.trabajoSolicitado !== undefined && {
+          trabajoSolicitado: data.trabajoSolicitado?.trim() || null,
+        }),
         estadoIngreso: data.estadoIngreso || 'ACEPTADO',
         observacionIngreso: data.observacionIngreso?.trim() || null,
         pasoRecepcion: null,
-        vehiculoEditableEnBorrador: false,
-        clienteEditableEnBorrador: false,
       },
       include: includeOrdenDetalle,
     });

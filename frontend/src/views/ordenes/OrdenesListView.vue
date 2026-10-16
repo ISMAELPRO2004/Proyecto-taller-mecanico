@@ -102,20 +102,20 @@ const guardarFactura = async (payload) => {
 };
 
 const eliminarOrden = async (o) => {
-  const incompleto = o.estado === 'EN_ESPERA' && o.pasoRecepcion != null;
+  const esBorrador = o.estado === 'EN_ESPERA';
   const ok = await notify.confirm(
-    incompleto ? '¿Eliminar borrador pendiente?' : '¿Eliminar orden?',
-    incompleto
-      ? `Se borrará ${o.numeroOrden}, sus fotos y el vehículo/cliente nuevos creados solo en este borrador.`
-      : `Se borrará ${o.numeroOrden} y sus fotos. El cliente y el vehículo se conservan.`
+    esBorrador ? '¿Eliminar borrador?' : '¿Eliminar orden?',
+    esBorrador
+      ? `Se borrará ${o.numeroOrden} con su trabajo, sus fotos y, si se crearon solo para este borrador, el vehículo y el cliente.`
+      : `Se borrará ${o.numeroOrden} y sus fotos. El cliente, el vehículo y los materiales del catálogo se conservan.`
   );
   if (!ok) return;
   try {
     await ordenService.eliminar(o.id);
-    notify.success('Eliminado', incompleto ? 'Borrador y datos temporales eliminados.' : 'Orden y fotos eliminadas.');
+    notify.success('Eliminado', esBorrador ? 'Borrador y datos creados con él eliminados.' : 'Orden y fotos eliminadas.');
     obtenerOrdenes();
   } catch (e) {
-    notify.error('Error', e.response?.data?.message || 'No se pudo eliminar la orden.');
+    notify.error('Error', e.response?.data?.message || e.response?.data?.error || 'No se pudo eliminar la orden.');
   }
 };
 

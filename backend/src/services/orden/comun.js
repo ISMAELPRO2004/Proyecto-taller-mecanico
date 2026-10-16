@@ -14,26 +14,39 @@ export const includeOrdenDetalle = {
   terceros: { include: { tercero: true } },
 };
 
-const normalizarClienteInput = (cliente) => ({
-  tipoCliente: cliente.tipoCliente,
-  tipoDocumento: cliente.tipoDocumento,
-  numeroDocumento: String(cliente.numeroDocumento).trim(),
-  nombreRazonSocial: cliente.nombreRazonSocial.trim(),
-  representante: cliente.representante?.trim() || null,
-  celular: cliente.celular?.trim() || null,
-  correo: cliente.correo?.trim() || null,
-});
+const normalizarClienteInput = (cliente) => {
+  const numero = String(cliente.numeroDocumento ?? '').replace(/\D/g, '');
+  return {
+    tipoCliente: cliente.tipoCliente,
+    tipoDocumento: cliente.tipoDocumento,
+    numeroDocumento: numero || null,
+    nombreRazonSocial: cliente.nombreRazonSocial.trim(),
+    representante: cliente.representante?.trim() || null,
+    celular: cliente.celular?.trim() || null,
+    correo: cliente.correo?.trim() || null,
+  };
+};
 
 export const upsertCliente = async (tx, clienteInput, { actualizarDatos = false } = {}) => {
   const data = normalizarClienteInput(clienteInput);
-  const existente = await tx.cliente.findUnique({ where: { numeroDocumento: data.numeroDocumento } });
+  const id = clienteInput.id ? parseInt(clienteInput.id, 10) : null;
+  let existente = null;
+  if (id) existente = await tx.cliente.findUnique({ where: { id } });
+  if (!existente && data.numeroDocumento) {
+    existente = await tx.cliente.findUnique({ where: { numeroDocumento: data.numeroDocumento } });
+  }
   if (existente) {
     if (!actualizarDatos) return { cliente: existente, eraNuevo: false, seActualizo: false, anterior: null };
+    if (data.numeroDocumento) {
+      const otro = await tx.cliente.findUnique({ where: { numeroDocumento: data.numeroDocumento } });
+      if (otro && otro.id !== existente.id) throw new AppError('Ese documento ya pertenece a otro cliente.');
+    }
     const cliente = await tx.cliente.update({
       where: { id: existente.id },
       data: {
         tipoCliente: data.tipoCliente,
         tipoDocumento: data.tipoDocumento,
+        numeroDocumento: data.numeroDocumento,
         nombreRazonSocial: data.nombreRazonSocial,
         representante: data.representante,
         celular: data.celular,

@@ -3,8 +3,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth.js';
 import { ordenService } from '../../../services/ordenService.js';
 import { vehiculoService } from '../../../services/vehiculoService.js';
-import { clienteService } from '../../../services/clienteService.js';
 import { notify } from '../../../utils/alerts.js';
+import { FORMATO_PLACA, MENSAJE_FORMATO_PLACA, errorPlacaEnCurso } from '../../../utils/placa.js';
 
 /** Estado y pasos del borrador de recepción. La vista solo compone la pantalla. */
 export function useRecepcionOrden() {
@@ -40,17 +40,23 @@ export function useRecepcionOrden() {
   /** true si el cliente se está registrando nuevo (no vino de sugerencia) */
   const clienteEraNuevo = ref(true);
   const clienteConfirmado = ref(false);
+  /** true tras elegir un cliente o confirmar que el nombre no existe */
+  const clienteConsultado = ref(false);
+
+  const clienteVacio = (extra = {}) => ({
+    id: null,
+    tipoCliente: 'PERSONA',
+    tipoDocumento: 'DNI',
+    numeroDocumento: '',
+    nombreRazonSocial: '',
+    representante: '',
+    celular: '',
+    correo: '',
+    ...extra,
+  });
 
   const form = ref({
-    cliente: {
-      tipoCliente: 'PERSONA',
-      tipoDocumento: 'DNI',
-      numeroDocumento: '',
-      nombreRazonSocial: '',
-      representante: '',
-      celular: '',
-      correo: '',
-    },
+    cliente: clienteVacio(),
     vehiculo: {
       placa: '',
       marcaId: '',
@@ -70,7 +76,6 @@ export function useRecepcionOrden() {
   const recepcionCompleta = computed(() => pasoRecepcion.value == null && !!ordenId.value);
   const vehiculoBloqueado = computed(() => {
     if (editandoVehiculo.value) return false;
-    if (recepcionCompleta.value && !esAdmin.value) return true;
     // Vehículo ya existente: solo selección, sin editar datos maestros
     if (!vehiculoEraNuevo.value && placaConsultada.value) return true;
     // Ya guardado en este borrador: bloqueado hasta pulsar Editar
@@ -80,20 +85,20 @@ export function useRecepcionOrden() {
   });
   const clienteBloqueado = computed(() => {
     if (editandoCliente.value) return false;
-    if (recepcionCompleta.value && !esAdmin.value) return true;
-    // Cliente ya existente: solo selección
-    if (!clienteEraNuevo.value && form.value.cliente.numeroDocumento) return true;
+    // Cliente ya existente: solo selección. El nombre grande sigue editable.
+    if (!clienteEraNuevo.value && clienteConsultado.value) return true;
     // Ya guardado en este borrador: bloqueado hasta pulsar Editar
     if (clienteConfirmado.value) return true;
     if (paso.value > 2) return true;
     return false;
   });
-  const puedeEditarVehiculoUI = computed(() =>
-    !recepcionCompleta.value && vehiculoEditable.value
-  );
-  const puedeEditarClienteUI = computed(() =>
-    !recepcionCompleta.value && clienteEditable.value
-  );
+  const puedeEditarVehiculoUI = computed(() => vehiculoEditable.value);
+  const puedeEditarClienteUI = computed(() => clienteEditable.value);
+  const nombreClienteBloqueado = computed(() => {
+    if (editandoCliente.value) return false;
+    if (clienteConfirmado.value) return true;
+    return false;
+  });
   const puedeCambiarRegistro = computed(() =>
     !recepcionCompleta.value || !form.value.fotoRegistro || esAdmin.value
   );
@@ -108,12 +113,25 @@ export function useRecepcionOrden() {
       placa: v.placa,
       marca: marca?.nombre || '—',
       modelo: v.modelo || '—',
+      kilometraje: v.kilometraje,
+      horometro: v.horometro,
     };
   });
 
-  const resumenCliente = computed(() => form.value.cliente.nombreRazonSocial || '—');
+  const resumenCliente = computed(() => {
+    const c = form.value.cliente;
+    const documento = c.numeroDocumento
+      ? `${c.tipoDocumento || 'DOC'}: ${c.numeroDocumento}`
+      : '';
+    return {
+      nombre: c.nombreRazonSocial || '—',
+      documento,
+      representante: c.representante || '',
+    };
+  });
 
   const mapCliente = (cliente) => ({
+    id: cliente.id || null,
     tipoCliente: cliente.tipoCliente || 'PERSONA',
     tipoDocumento: cliente.tipoDocumento || 'DNI',
     numeroDocumento: cliente.numeroDocumento || '',
@@ -154,6 +172,7 @@ export function useRecepcionOrden() {
     vehiculoEraNuevo.value = !!orden.vehiculoEditableEnBorrador;
     clienteEraNuevo.value = !!orden.clienteEditableEnBorrador;
     clienteConfirmado.value = !!orden.clienteId;
+    clienteConsultado.value = !!orden.clienteId;
     placaConsultada.value = true;
     editandoVehiculo.value = false;
     editandoCliente.value = false;
@@ -163,6 +182,49 @@ export function useRecepcionOrden() {
     else paso.value = 3;
 
     cargarFotoRegistro(orden.id, orden.fotoRegistro);
+    recordarGuardado();
+  };
+
+  const vehiculoGuardado = ref(null);
+  const clienteGuardado = ref(null);
+
+  const recordarGuardado = () => {
+    vehiculoGuardado.value = { ...form.value.vehiculo };
+    clienteGuardado.value = { ...form.value.cliente };
+  };
+
+  const pasoAlcanzado = computed(() => {
+    if (!ordenId.value) return 1;
+    if (pasoRecepcion.value == null || pasoRecepcion.value >= 2) return 3;
+    return 2;
+  });
+
+  const cambioPendiente = () => {
+    if (editandoVehiculo.value || editandoCliente.value) return true;
+    if (
+      paso.value === 1
+      && placaConsultada.value
+      && vehiculoGuardado.value
+      && form.value.vehiculo.placa !== vehiculoGuardado.value.placa
+    ) return true;
+    if (paso.value === 2 && clienteConsultado.value && clienteEraNuevo.value && !clienteConfirmado.value) {
+      return true;
+    }
+    return false;
+  };
+
+  const restaurarSeleccionGuardada = () => {
+    if (vehiculoGuardado.value?.placa) {
+      form.value.vehiculo = { ...vehiculoGuardado.value };
+      placaConsultada.value = true;
+      vehiculoEraNuevo.value = vehiculoEditable.value;
+    }
+    if (clienteGuardado.value?.id || clienteGuardado.value?.nombreRazonSocial) {
+      form.value.cliente = { ...clienteGuardado.value };
+      clienteConsultado.value = true;
+      clienteEraNuevo.value = clienteEditable.value;
+      clienteConfirmado.value = !!clienteGuardado.value.id;
+    }
   };
 
   const cargarFotoRegistro = async (id, ruta) => {
@@ -224,12 +286,13 @@ export function useRecepcionOrden() {
 
   const buscarPlaca = async (placa) => {
     const limpia = normalizarPlaca(placa);
-    if (limpia.length < 7 || limpia.length > 8) {
-      errores.value = { ...errores.value, placa: 'Placa inválida (7 u 8 caracteres, puede incluir -)' };
+    if (!limpia) {
+      errores.value = { ...errores.value, placa: MENSAJE_FORMATO_PLACA };
       placaConsultada.value = false;
       return;
     }
 
+    const formatoOk = FORMATO_PLACA.test(limpia);
     form.value.vehiculo.placa = limpia;
     errores.value = { ...errores.value, placa: '' };
     try {
@@ -247,16 +310,20 @@ export function useRecepcionOrden() {
       editandoVehiculo.value = false;
 
       const ultima = data.ordenes?.[0]?.cliente;
-      if (ultima?.numeroDocumento) {
-        try {
-          const cliente = await clienteService.buscarDocumento(ultima.numeroDocumento);
-          form.value.cliente = mapCliente(cliente);
-          clienteEraNuevo.value = false;
-        } catch { /* ok */ }
+      if (ultima?.id) {
+        form.value.cliente = mapCliente(ultima);
+        clienteEraNuevo.value = false;
+        clienteConsultado.value = true;
       }
 
       notify.success('Vehículo encontrado', `${data.marca?.nombre || ''} ${data.modelo}`);
     } catch {
+      if (!formatoOk) {
+        historialOrdenes.value = [];
+        placaConsultada.value = false;
+        errores.value = { ...errores.value, placa: MENSAJE_FORMATO_PLACA };
+        return;
+      }
       historialOrdenes.value = [];
       placaConsultada.value = true;
       vehiculoEraNuevo.value = true;
@@ -274,17 +341,58 @@ export function useRecepcionOrden() {
 
   const onCambioPlaca = (valor) => {
     form.value.vehiculo.placa = valor;
+    const aviso = errorPlacaEnCurso(valor);
     if (placaConsultada.value) {
       placaConsultada.value = false;
       historialOrdenes.value = [];
-      errores.value = { ...errores.value, placa: '', marcaId: '', modelo: '' };
+      errores.value = { ...errores.value, placa: aviso, marcaId: '', modelo: '' };
+      return;
     }
+    errores.value = { ...errores.value, placa: aviso };
+  };
+
+  const onCambioNombre = (valor) => {
+    const cargado = !clienteEraNuevo.value && (clienteConsultado.value || form.value.cliente.id);
+    if (cargado) {
+      const { tipoCliente, tipoDocumento } = form.value.cliente;
+      form.value.cliente = clienteVacio({ nombreRazonSocial: valor, tipoCliente, tipoDocumento });
+      clienteEraNuevo.value = true;
+      clienteConsultado.value = false;
+      editandoCliente.value = false;
+      errores.value = { ...errores.value, nombreRazonSocial: '', numeroDocumento: '' };
+      return;
+    }
+    form.value.cliente.nombreRazonSocial = valor;
+    if (clienteEraNuevo.value && clienteConsultado.value && !form.value.cliente.id) {
+      clienteConsultado.value = false;
+    }
+    if (valor.trim().length < 2) clienteConsultado.value = false;
+  };
+
+  const marcarClienteNuevo = () => {
+    const nombre = form.value.cliente.nombreRazonSocial?.trim() || '';
+    if (nombre.length < 2) {
+      errores.value = { ...errores.value, nombreRazonSocial: 'Escribe el nombre y pulsa Buscar cliente' };
+      return;
+    }
+    errores.value = { ...errores.value, nombreRazonSocial: '' };
+    if (clienteEraNuevo.value && clienteConsultado.value && !form.value.cliente.id) return;
+    if (form.value.cliente.id || !clienteEraNuevo.value) {
+      const { tipoCliente, tipoDocumento } = form.value.cliente;
+      form.value.cliente = clienteVacio({ nombreRazonSocial: nombre, tipoCliente, tipoDocumento });
+    }
+    clienteEraNuevo.value = true;
+    clienteConsultado.value = true;
+    editandoCliente.value = false;
   };
 
   const aplicarCliente = (cliente) => {
     form.value.cliente = mapCliente(cliente);
     clienteEraNuevo.value = false;
-    notify.success('Cliente cargado', cliente.nombreRazonSocial);
+    clienteConsultado.value = true;
+    editandoCliente.value = false;
+    const titulo = cliente.tipoCliente === 'EMPRESA' ? 'Empresa registrada' : 'Persona registrada';
+    notify.success(titulo, cliente.nombreRazonSocial);
   };
 
   const onNuevaMarca = async (nombre) => {
@@ -301,8 +409,8 @@ export function useRecepcionOrden() {
   const validarVehiculo = () => {
     const e = {};
     const { vehiculo } = form.value;
-    if (!vehiculo.placa?.trim() || vehiculo.placa.length < 7 || vehiculo.placa.length > 8) {
-      e.placa = 'Placa obligatoria (7 u 8 caracteres)';
+    if (!FORMATO_PLACA.test(normalizarPlaca(vehiculo.placa))) {
+      e.placa = MENSAJE_FORMATO_PLACA;
     }
     if (!vehiculo.marcaId) e.marcaId = 'Marca obligatoria';
     if (!vehiculo.modelo?.trim()) e.modelo = 'Modelo obligatorio';
@@ -313,17 +421,30 @@ export function useRecepcionOrden() {
   const validarCliente = () => {
     const e = {};
     const { cliente } = form.value;
-    if (!cliente.nombreRazonSocial?.trim()) e.nombreRazonSocial = 'Nombre / razón social obligatorio';
-    if (!cliente.numeroDocumento?.trim()) e.numeroDocumento = 'Documento obligatorio';
-    if (cliente.tipoDocumento === 'DNI' && cliente.numeroDocumento.length !== 8) e.numeroDocumento = 'DNI: 8 dígitos';
-    if (cliente.tipoDocumento === 'RUC' && cliente.numeroDocumento.length !== 11) e.numeroDocumento = 'RUC: 11 dígitos';
+    if (!clienteConsultado.value) e.nombreRazonSocial = 'Elige una recomendación o pulsa Buscar cliente';
+    else if (!cliente.nombreRazonSocial?.trim() || cliente.nombreRazonSocial.trim().length < 2) {
+      e.nombreRazonSocial = 'Nombre / razón social obligatorio';
+    }
+    const doc = (cliente.numeroDocumento || '').trim();
+    if (cliente.tipoCliente === 'EMPRESA' && cliente.tipoDocumento !== 'RUC') {
+      e.tipoDocumento = 'Una empresa solo puede usar RUC';
+    }
+    if (doc && cliente.tipoDocumento === 'DNI' && doc.length !== 8) e.numeroDocumento = 'DNI: 8 dígitos';
+    if (doc && cliente.tipoDocumento === 'RUC' && doc.length !== 11) e.numeroDocumento = 'RUC: 11 dígitos';
+    if (cliente.celular && cliente.celular.length !== 9) e.celular = 'Celular: 9 dígitos';
     errores.value = e;
     return Object.keys(e).length === 0;
   };
 
   const validarTrabajo = () => {
     const e = {};
-    const { estadoIngreso, observacionIngreso } = form.value;
+    const { estadoIngreso, observacionIngreso, descripcionInformal } = form.value;
+    if (!descripcionInformal?.trim()) {
+      e.descripcionInformal = 'Escribe la solicitud del cliente';
+    }
+    if (!archivoRegistro.value && !form.value.fotoRegistro) {
+      e.fotoRegistro = 'La foto de registro inicial es obligatoria';
+    }
     if (estadoIngreso === 'OBSERVADO' && !observacionIngreso?.trim()) {
       e.observacionIngreso = 'Describe la observación de ingreso';
     }
@@ -341,6 +462,8 @@ export function useRecepcionOrden() {
 
   const payloadCliente = () => ({
     ...form.value.cliente,
+    id: !clienteEraNuevo.value && form.value.cliente.id ? form.value.cliente.id : null,
+    numeroDocumento: form.value.cliente.numeroDocumento || null,
     representante: form.value.cliente.representante || null,
     celular: form.value.cliente.celular || null,
     correo: form.value.cliente.correo || null,
@@ -368,6 +491,7 @@ export function useRecepcionOrden() {
       editandoVehiculo.value = false;
       placaConsultada.value = true;
       pasoOrigenEdicion.value = null;
+      recordarGuardado();
 
       if (!esEdicion.value) {
         await router.replace(`/ordenes/editar/${orden.id}`);
@@ -416,10 +540,11 @@ export function useRecepcionOrden() {
       clienteConfirmado.value = true;
       editandoCliente.value = false;
       pasoOrigenEdicion.value = null;
+      recordarGuardado();
       paso.value = 3;
       notify.success(
         eraEdicion ? 'Cliente actualizado' : 'Cliente guardado',
-        eraEdicion ? 'Volviste al detalle del trabajo.' : 'Ahora completa el trabajo a realizar.'
+        eraEdicion ? 'Volviste al detalle de la recepción.' : 'Ahora registra la solicitud del cliente.'
       );
     } catch (e) {
       notify.error('Error', e.response?.data?.message || 'No se pudo guardar el cliente.');
@@ -430,27 +555,29 @@ export function useRecepcionOrden() {
 
   const completarBorrador = async () => {
     if (!ordenId.value) return;
-    if (!validarTrabajo()) return notify.error('Revisa el ingreso', 'Falta la observación.');
+    if (!validarTrabajo()) {
+      return notify.error('Revisa la recepción', 'La solicitud del cliente y la foto inicial son obligatorias.');
+    }
 
     guardando.value = true;
     try {
-      await ordenService.completarRecepcion(ordenId.value, {
-        descripcionInformal: form.value.descripcionInformal || null,
-        trabajoSolicitado: form.value.trabajoSolicitado || null,
-        estadoIngreso: form.value.estadoIngreso,
-        observacionIngreso: form.value.observacionIngreso || null,
-      });
-
       if (archivoRegistro.value) {
         subiendoFoto.value = true;
         try {
-          await ordenService.subirFoto(ordenId.value, 'registro', archivoRegistro.value);
+          const ordenFoto = await ordenService.subirFoto(ordenId.value, 'registro', archivoRegistro.value);
+          form.value.fotoRegistro = ordenFoto.fotoRegistro || form.value.fotoRegistro;
+          archivoRegistro.value = null;
         } catch (e) {
-          notify.error('El borrador se guardó, pero la foto no', e.response?.data?.message || 'Vuelve a subirla.');
-          router.replace(`/ordenes/editar/${ordenId.value}`);
+          notify.error('No se pudo subir la foto', e.response?.data?.message || 'Vuelve a elegirla.');
           return;
         }
       }
+
+      await ordenService.completarRecepcion(ordenId.value, {
+        descripcionInformal: form.value.descripcionInformal.trim(),
+        estadoIngreso: form.value.estadoIngreso,
+        observacionIngreso: form.value.observacionIngreso || null,
+      });
 
       notify.success('Borrador listo', 'La orden quedó en espera de validación.');
       router.push('/ordenes');
@@ -466,9 +593,13 @@ export function useRecepcionOrden() {
   };
 
   const irAPaso = (n) => {
-    if (n < 1 || n > 3) return;
-    if (n > 1 && !ordenId.value) return;
-    if (n > 2 && !clienteConfirmado.value) return;
+    if (n < 1 || n > 3 || n === paso.value) return;
+    if (n > pasoAlcanzado.value) return;
+    if (cambioPendiente()) {
+      notify.info('Hay cambios sin guardar', 'Termina este paso antes de saltar a otro.');
+      return;
+    }
+    restaurarSeleccionGuardada();
     paso.value = n;
     errores.value = {};
     editandoVehiculo.value = false;
@@ -492,15 +623,8 @@ export function useRecepcionOrden() {
     clienteConfirmado.value = false;
     clienteEditable.value = false;
     clienteEraNuevo.value = true;
-    form.value.cliente = {
-      tipoCliente: 'PERSONA',
-      tipoDocumento: 'DNI',
-      numeroDocumento: '',
-      nombreRazonSocial: '',
-      representante: '',
-      celular: '',
-      correo: '',
-    };
+    clienteConsultado.value = false;
+    form.value.cliente = clienteVacio();
     errores.value = {};
   };
 
@@ -555,11 +679,12 @@ export function useRecepcionOrden() {
   });
 
   return {
-    router, ordenId, pasoRecepcion, paso, cargando, vehiculoBloqueado, placaConsultada,
+    router, ordenId, pasoRecepcion, paso, pasoAlcanzado, cargando, vehiculoBloqueado, placaConsultada,
     form, historialOrdenes, errores, onCambioPlaca, buscarPlaca, marcas,
     puedeEditarVehiculoUI, onNuevaMarca, empezarEditarVehiculoEnPaso, editandoVehiculo,
     cancelarEdicionVehiculo, guardandoPaso, guardarPasoVehiculo, pasoOrigenEdicion,
     resumenVehiculo, irAEditarVehiculo, cambiarVehiculo, clienteBloqueado,
+    clienteConsultado, clienteEraNuevo, nombreClienteBloqueado, onCambioNombre, marcarClienteNuevo,
     puedeEditarClienteUI, aplicarCliente, empezarEditarClienteEnPaso, cambiarCliente,
     editandoCliente, clienteConfirmado, cancelarEdicionCliente, irAPaso, guardarPasoCliente,
     resumenCliente, recepcionCompleta, irAEditarCliente, fotoSrc, puedeCambiarRegistro,

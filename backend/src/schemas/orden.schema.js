@@ -1,15 +1,43 @@
 import { z } from 'zod';
 
 const placaSchema = z.string()
-  .min(7, 'Placa requerida (7 u 8 caracteres)')
-  .max(8, 'Placa debe tener máximo 8 caracteres')
-  .regex(/^[A-Z0-9-]{7,8}$/i, 'Formato de placa inválido (letras, números y guion)')
+  .regex(/^[A-Z0-9]{3}-[A-Z0-9]{3}$/i, 'La placa debe tener el formato aaa-aaa')
   .transform((v) => v.trim().toUpperCase());
 
+const documentoOpcional = z.union([z.string(), z.null(), z.undefined()]).optional()
+  .transform((v) => {
+    const limpio = String(v ?? '').replace(/\D/g, '');
+    return limpio || null;
+  });
+
+const validarDocumentoOpcional = (cliente, ctx, pathPrefix = ['cliente']) => {
+  if (cliente?.tipoCliente === 'EMPRESA' && cliente.tipoDocumento !== 'RUC') {
+    ctx.addIssue({
+      code: 'custom',
+      path: [...pathPrefix, 'tipoDocumento'],
+      message: 'Una empresa solo puede usar RUC',
+    });
+  }
+  const doc = cliente?.numeroDocumento;
+  if (!doc) return;
+  if (cliente.tipoDocumento === 'DNI' && doc.length !== 8) {
+    ctx.addIssue({ code: 'custom', path: [...pathPrefix, 'numeroDocumento'], message: 'DNI debe tener 8 dígitos' });
+  }
+  if (cliente.tipoDocumento === 'RUC' && doc.length !== 11) {
+    ctx.addIssue({ code: 'custom', path: [...pathPrefix, 'numeroDocumento'], message: 'RUC debe tener 11 dígitos' });
+  }
+};
+
 const clienteSchema = z.object({
+  id: z.union([z.string(), z.number(), z.null()]).optional()
+    .transform((v) => {
+      if (v === null || v === undefined || v === '') return null;
+      const n = parseInt(v, 10);
+      return Number.isInteger(n) && n > 0 ? n : null;
+    }),
   tipoCliente: z.enum(['PERSONA', 'EMPRESA']),
   tipoDocumento: z.enum(['DNI', 'RUC']),
-  numeroDocumento: z.string().min(8, 'Documento requerido').max(11),
+  numeroDocumento: documentoOpcional,
   nombreRazonSocial: z.string().min(2, 'Nombre / razón social requerido').max(200),
   representante: z.string().max(200).optional().nullable().or(z.literal('')),
   celular: z.union([
@@ -73,12 +101,7 @@ export const crearBorradorOrdenSchema = z.object({
       message: 'La observación es obligatoria si el ingreso está Observado',
     });
   }
-  if (data.cliente.tipoDocumento === 'DNI' && data.cliente.numeroDocumento.length !== 8) {
-    ctx.addIssue({ code: 'custom', path: ['cliente', 'numeroDocumento'], message: 'DNI debe tener 8 dígitos' });
-  }
-  if (data.cliente.tipoDocumento === 'RUC' && data.cliente.numeroDocumento.length !== 11) {
-    ctx.addIssue({ code: 'custom', path: ['cliente', 'numeroDocumento'], message: 'RUC debe tener 11 dígitos' });
-  }
+  validarDocumentoOpcional(data.cliente, ctx);
 });
 
 export const actualizarBorradorOrdenSchema = crearBorradorOrdenSchema;
@@ -95,12 +118,7 @@ export const pasoClienteSchema = z.object({
   cliente: clienteSchema,
   actualizarDatos: z.boolean().optional().default(false),
 }).superRefine((data, ctx) => {
-  if (data.cliente.tipoDocumento === 'DNI' && data.cliente.numeroDocumento.length !== 8) {
-    ctx.addIssue({ code: 'custom', path: ['cliente', 'numeroDocumento'], message: 'DNI debe tener 8 dígitos' });
-  }
-  if (data.cliente.tipoDocumento === 'RUC' && data.cliente.numeroDocumento.length !== 11) {
-    ctx.addIssue({ code: 'custom', path: ['cliente', 'numeroDocumento'], message: 'RUC debe tener 11 dígitos' });
-  }
+  validarDocumentoOpcional(data.cliente, ctx);
 });
 
 /** Paso 3 recepción: trabajo + ingreso */
@@ -110,6 +128,13 @@ export const completarRecepcionSchema = z.object({
   estadoIngreso: z.enum(['ACEPTADO', 'OBSERVADO']).default('ACEPTADO'),
   observacionIngreso: z.string().max(5000).optional().nullable().or(z.literal('')),
 }).superRefine((data, ctx) => {
+  if (!data.descripcionInformal?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['descripcionInformal'],
+      message: 'La solicitud del cliente es obligatoria',
+    });
+  }
   if (data.estadoIngreso === 'OBSERVADO' && !data.observacionIngreso?.trim()) {
     ctx.addIssue({
       code: 'custom',

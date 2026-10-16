@@ -73,12 +73,22 @@ const {
 
       <section class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-6 grid md:grid-cols-2 gap-4">
         <label class="form-control">
-          <span class="label-text text-[10px] font-black text-slate-400 uppercase">Descripción informal</span>
-          <textarea v-model="form.descripcionInformal" rows="3" class="textarea textarea-bordered rounded-2xl text-sm" />
+          <span class="label-text text-[10px] font-black text-slate-400 uppercase">Solicitud del cliente</span>
+          <textarea
+            v-model="form.descripcionInformal"
+            rows="3"
+            placeholder="Lo que pidió el cliente al ingresar la unidad."
+            class="textarea textarea-bordered rounded-2xl text-sm"
+          />
         </label>
         <label class="form-control">
-          <span class="label-text text-[10px] font-black text-slate-400 uppercase">Trabajo solicitado</span>
-          <textarea v-model="form.trabajoSolicitado" rows="3" class="textarea textarea-bordered rounded-2xl text-sm" />
+          <span class="label-text text-[10px] font-black text-slate-400 uppercase">Trabajos a realizar</span>
+          <textarea
+            v-model="form.trabajoSolicitado"
+            rows="3"
+            placeholder="Detalle de lo que el taller va a hacer, una vez verificada la orden."
+            class="textarea textarea-bordered rounded-2xl text-sm"
+          />
         </label>
       </section>
 

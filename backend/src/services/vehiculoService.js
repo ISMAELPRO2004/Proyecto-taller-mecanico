@@ -40,6 +40,30 @@ export const eliminarMarca = async (id, req) => {
   return { message: 'Marca eliminada' };
 };
 
+export const sugerirVehiculos = async (q) => {
+  const texto = String(q || '').trim();
+  const compacto = texto.replace(/[^A-Za-z0-9]/g, '');
+  if (compacto.length < 2) return [];
+
+  return prisma.vehiculo.findMany({
+    where: {
+      OR: [
+        { placa: { contains: texto, mode: 'insensitive' } },
+        { placa: { contains: compacto, mode: 'insensitive' } },
+        { modelo: { contains: texto, mode: 'insensitive' } },
+        { marca: { nombre: { contains: texto, mode: 'insensitive' } } },
+      ],
+    },
+    select: {
+      placa: true,
+      modelo: true,
+      marca: { select: { nombre: true } },
+    },
+    orderBy: { placa: 'asc' },
+    take: 8,
+  });
+};
+
 export const listarVehiculos = async () => {
   return prisma.vehiculo.findMany({
     include: {
@@ -107,8 +131,9 @@ export const buscarPorPlaca = async (placa) => {
     include: {
       marca: true,
       ordenes: {
+        where: { estado: { in: ['TERMINADO', 'CANCELADO'] } },
         include: {
-          cliente: { select: { id: true, nombreRazonSocial: true, numeroDocumento: true } },
+          cliente: true,
         },
         orderBy: { fechaCreacion: 'desc' },
         take: 10,

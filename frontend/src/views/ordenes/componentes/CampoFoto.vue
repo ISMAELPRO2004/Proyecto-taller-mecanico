@@ -9,6 +9,9 @@ const props = defineProps({
   puedeCambiar: { type: Boolean, default: false },
   puedeQuitar: { type: Boolean, default: false },
   subiendo: { type: Boolean, default: false },
+  oscuro: { type: Boolean, default: false },
+  obligatoria: { type: Boolean, default: false },
+  error: { type: String, default: '' },
 });
 
 const emit = defineEmits(['seleccionar', 'quitar']);
@@ -68,31 +71,78 @@ const quitar = () => {
 </script>
 
 <template>
-  <div class="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 space-y-3">
+  <div
+    :class="oscuro
+      ? 'space-y-4 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-7'
+      : 'space-y-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4'"
+  >
     <div class="flex items-start justify-between gap-3">
-      <div>
-        <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">{{ titulo }}</p>
-        <p v-if="ayuda" class="text-[11px] text-slate-400 mt-0.5">{{ ayuda }}</p>
-        <p v-if="puedeCambiar && esMovil" class="text-[10px] text-emerald-600 font-bold mt-1">
-          En el celular puedes tomar la foto o elegirla de la galería.
-        </p>
+      <div class="flex items-start gap-2.5">
+        <div
+          v-if="oscuro"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan"
+        >
+          <Camera class="h-4 w-4" />
+        </div>
+        <div>
+          <p :class="oscuro ? 'font-display text-base font-bold uppercase tracking-wide text-white' : 'text-[10px] font-black uppercase tracking-widest text-slate-500'">
+            {{ titulo }}
+            <span v-if="obligatoria" class="text-lyer-accent">*</span>
+          </p>
+          <p v-if="ayuda" :class="oscuro ? 'mt-0.5 text-xs text-slate-400' : 'mt-0.5 text-[11px] text-slate-400'">{{ ayuda }}</p>
+          <p v-if="puedeCambiar && esMovil" :class="oscuro ? 'mt-1 text-[11px] font-semibold text-lyer-cyan' : 'mt-1 text-[10px] font-bold text-emerald-600'">
+            En el celular puedes tomar la foto o elegirla de la galería.
+          </p>
+        </div>
       </div>
-      <Lock v-if="src && !puedeCambiar" class="w-4 h-4 text-slate-300 shrink-0" />
+      <span
+        v-if="src && !puedeCambiar"
+        :class="oscuro
+          ? 'inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#4a2870]/50 bg-[#140a22] px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-400'
+          : 'shrink-0 text-slate-300'"
+      >
+        <Lock class="h-3.5 w-3.5 text-amber-400" />
+        <span v-if="oscuro">Bloqueado tras registro</span>
+      </span>
     </div>
 
-    <div class="aspect-[4/3] rounded-xl bg-white border border-dashed border-slate-200 overflow-hidden flex items-center justify-center">
-      <img v-if="vista" :src="vista" :alt="titulo" class="w-full h-full object-cover" />
-      <div v-else class="text-center text-slate-300 px-4">
-        <Camera class="w-8 h-8 mx-auto mb-2" />
-        <p class="text-[10px] font-bold uppercase tracking-widest">Sin foto</p>
+    <div
+      :class="oscuro
+        ? ['relative flex min-h-[220px] items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-[#140a22]', error ? 'border-rose-400' : 'border-[#4a2870] hover:border-lyer-cyan/50']
+        : 'flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-200 bg-white'"
+    >
+      <img v-if="vista" :src="vista" :alt="titulo" :class="oscuro ? 'max-h-[300px] w-full object-cover' : 'h-full w-full object-cover'" />
+      <div v-else :class="oscuro ? 'px-4 py-10 text-center text-slate-500' : 'px-4 text-center text-slate-300'">
+        <div :class="oscuro ? 'mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border border-[#4a2870] bg-[#221433] text-slate-400' : ''">
+          <Camera :class="oscuro ? 'h-8 w-8' : 'mx-auto mb-2 h-8 w-8'" />
+        </div>
+        <p :class="oscuro ? 'text-xs font-bold uppercase tracking-widest text-slate-300' : 'text-[10px] font-bold uppercase tracking-widest'">
+          {{ oscuro ? 'Sin foto registrada' : 'Sin foto' }}
+        </p>
+        <p v-if="oscuro" class="mx-auto mt-1 max-w-md text-xs text-slate-500">
+          JPG, PNG o WEBP, hasta 5 MB. Muestra la placa y el frente de la unidad.
+        </p>
+        <p v-if="error && !vista" class="mt-2 text-xs font-medium text-rose-300">{{ error }}</p>
       </div>
+      <button
+        v-if="oscuro && puedeQuitar && vista"
+        type="button"
+        class="absolute right-2 top-2 rounded-lg border border-rose-500/40 bg-rose-950/80 p-2 text-rose-300 hover:bg-rose-900"
+        title="Quitar imagen"
+        :disabled="subiendo"
+        @click="quitar"
+      >
+        <Trash2 class="h-4 w-4" />
+      </button>
     </div>
 
     <div v-if="puedeCambiar || puedeQuitar" class="flex flex-wrap gap-2">
       <template v-if="puedeCambiar && esMovil">
         <button
           type="button"
-          class="btn btn-sm flex-1 min-w-[8rem] bg-lyer-green text-white border-none rounded-xl"
+          :class="oscuro
+          ? 'inline-flex h-11 flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-4 text-xs font-bold uppercase tracking-wider text-white'
+          : 'btn btn-sm min-w-[8rem] flex-1 rounded-xl border-none bg-lyer-green text-white'"
           :disabled="subiendo"
           @click="abrirCamara"
         >
@@ -102,7 +152,9 @@ const quitar = () => {
         </button>
         <button
           type="button"
-          class="btn btn-sm flex-1 min-w-[8rem] bg-white text-lyer-green border border-emerald-100 rounded-xl"
+          :class="oscuro
+          ? 'inline-flex h-11 flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-[#4a2870]/50 bg-[#2a1840] px-4 text-xs font-semibold uppercase tracking-wider text-slate-200'
+          : 'btn btn-sm min-w-[8rem] flex-1 rounded-xl border border-emerald-100 bg-white text-lyer-green'"
           :disabled="subiendo"
           @click="abrirGaleria"
         >
@@ -114,7 +166,9 @@ const quitar = () => {
       <button
         v-else-if="puedeCambiar"
         type="button"
-        class="btn btn-sm flex-1 bg-lyer-green text-white border-none rounded-xl"
+        :class="oscuro
+          ? 'inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-5 text-xs font-bold uppercase tracking-wider text-white'
+          : 'btn btn-sm flex-1 rounded-xl border-none bg-lyer-green text-white'"
         :disabled="subiendo"
         @click="abrirGaleria"
       >
@@ -124,9 +178,9 @@ const quitar = () => {
       </button>
 
       <button
-        v-if="puedeQuitar && vista"
+        v-if="!oscuro && puedeQuitar && vista"
         type="button"
-        class="btn btn-sm btn-ghost text-red-400 rounded-xl"
+        class="btn btn-sm btn-ghost rounded-xl text-red-400"
         :disabled="subiendo"
         @click="quitar"
       >

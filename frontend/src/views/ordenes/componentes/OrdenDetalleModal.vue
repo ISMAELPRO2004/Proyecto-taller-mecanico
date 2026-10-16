@@ -169,7 +169,12 @@ const imprimir = async () => {
                 <span class="text-[10px] bg-lyer-accent text-white px-2 py-0.5 rounded-full font-bold">CONTACTO</span>
                 <p class="text-sm font-bold text-slate-500">{{ orden.cliente?.celular || 'N/A' }}</p>
               </div>
-              <div class="mt-4 p-4 bg-white rounded-2xl border border-slate-100 text-slate-600 text-sm italic leading-relaxed shadow-sm">
+              <div v-if="orden.descripcionInformal" class="mt-4 p-4 bg-white rounded-2xl border border-slate-100 text-slate-600 text-sm italic leading-relaxed shadow-sm">
+                <p class="mb-1 text-[10px] font-black uppercase not-italic tracking-widest text-slate-400">Solicitud del cliente</p>
+                "{{ orden.descripcionInformal }}"
+              </div>
+              <div v-if="orden.trabajoSolicitado" class="mt-3 p-4 bg-white rounded-2xl border border-slate-100 text-slate-600 text-sm italic leading-relaxed shadow-sm">
+                <p class="mb-1 text-[10px] font-black uppercase not-italic tracking-widest text-slate-400">Trabajos a realizar</p>
                 "{{ orden.trabajoSolicitado }}"
               </div>
             </div>
