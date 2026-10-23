@@ -1,6 +1,6 @@
 /**
  * Capas: ruta → vista (compone la pantalla) → composable (reglas) → service (HTTP).
- * Cada pantalla vive en views/<funcionalidad>, con sus componentes al lado.
+ * Cada pantalla vive en views/<funcionalidad>, con sus partes en subcarpetas.
  */
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth.js';
@@ -13,12 +13,12 @@ const routes = [
   {
     path: '/login',
     name: 'login',
-    component: () => import('../views/auth/LoginView.vue'),
+    component: () => import('../views/login/LoginView.vue'),
   },
   {
     path: '/home',
     name: 'dashboard',
-    component: () => import('../views/home/DashboardView.vue'),
+    component: () => import('../views/dashboard/DashboardView.vue'),
     meta: { requiresAuth: true },
   },
   {

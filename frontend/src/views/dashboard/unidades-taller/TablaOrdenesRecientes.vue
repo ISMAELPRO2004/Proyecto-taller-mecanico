@@ -1,10 +1,9 @@
 <script setup>
 import { computed } from 'vue';
-import StatusBadge from '../../../components/ui/StatusBadge.vue';
-import { Car, ArrowUpRight, Eye } from 'lucide-vue-next';
-import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
+import { Car, ArrowUpRight } from 'lucide-vue-next';
 import { useAuthStore } from '../../../stores/auth.js';
-import { puedeVerPrecios, recepcionPendiente } from '../../../utils/roles.js';
+import { puedeVerPrecios } from '../../../utils/roles.js';
+import FilaOrdenReciente from './FilaOrdenReciente.vue';
 
 const props = defineProps({
   ordenesRecientes: { type: Array, default: () => [] },
@@ -15,7 +14,6 @@ const props = defineProps({
 const auth = useAuthStore();
 const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
 const columnas = computed(() => (verPrecios.value ? 6 : 5));
-const vehiculo = (orden) => [marcaVehiculoOrden(orden), modeloVehiculoOrden(orden)].filter(Boolean).join(' ');
 </script>
 
 <template>
@@ -52,45 +50,12 @@ const vehiculo = (orden) => [marcaVehiculoOrden(orden), modeloVehiculoOrden(orde
               <span class="loading loading-ring loading-md text-lyer-accent" />
             </td>
           </tr>
-          <tr
+          <FilaOrdenReciente
             v-for="o in ordenesRecientes"
             :key="o.id"
-            class="cursor-pointer transition-colors hover:bg-white/5"
-            @click="$router.push('/ordenes')"
-          >
-            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs font-bold italic text-sky-400">
-              {{ o.numeroOrden }}
-            </td>
-            <td class="px-3 py-3">
-              <div class="flex flex-col">
-                <span class="font-mono text-sm font-bold tracking-wider text-white">{{ o.placa }}</span>
-                <span class="text-[11px] text-slate-400">{{ vehiculo(o) || '—' }}</span>
-              </div>
-            </td>
-            <td class="hidden px-3 py-3 text-slate-300 sm:table-cell">{{ nombreClienteOrden(o) }}</td>
-            <td class="px-3 py-3">
-              <div class="flex flex-col items-start gap-1">
-                <StatusBadge :estado="o.estado" oscuro />
-                <span
-                  v-if="recepcionPendiente(o)"
-                  class="badge badge-warning badge-sm text-[8px] font-black uppercase"
-                >Pendiente a terminar</span>
-              </div>
-            </td>
-            <td v-if="verPrecios" class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-white">
-              S/ {{ parseFloat(o.totalFinal || 0).toFixed(2) }}
-            </td>
-            <td class="px-3 py-3 text-center">
-              <button
-                type="button"
-                class="mx-auto flex h-7 w-7 items-center justify-center rounded-lg bg-[#321c4c] text-slate-300 transition-colors hover:bg-[#3d2460] hover:text-white"
-                title="Ver en el listado"
-                @click.stop="$router.push('/ordenes')"
-              >
-                <Eye class="h-4 w-4" />
-              </button>
-            </td>
-          </tr>
+            :orden="o"
+            :ver-precios="verPrecios"
+          />
           <tr v-if="!cargando && ordenesRecientes.length === 0">
             <td :colspan="columnas" class="py-12 text-center text-sm text-slate-400">
               No hay órdenes registradas.

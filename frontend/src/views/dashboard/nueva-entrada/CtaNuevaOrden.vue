@@ -12,6 +12,7 @@
         </p>
       </div>
       <button
+        type="button"
         class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 font-display text-sm font-bold tracking-wide text-slate-900 shadow-lg transition-transform hover:bg-lyer-soft active:scale-95"
         @click="$router.push('/ordenes/nueva')"
       >
