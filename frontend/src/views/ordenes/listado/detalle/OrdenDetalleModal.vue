@@ -1,13 +1,13 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { ordenService } from '../../../services/ordenService.js';
-import { generarOrdenPDF } from '../../../utils/ordenPdf.js';
-import { useAuthStore } from '../../../stores/auth.js';
-import { notify } from '../../../utils/alerts.js';
-import { puedeVerPrecios, puedeImprimir } from '../../../utils/roles.js';
-import ModalFacturaOrden from './ModalFacturaOrden.vue';
+import { ordenService } from '../../../../services/ordenService.js';
+import { generarOrdenPDF } from '../../../../utils/ordenPdf.js';
+import { useAuthStore } from '../../../../stores/auth.js';
+import { notify } from '../../../../utils/alerts.js';
+import { puedeVerPrecios, puedeImprimir } from '../../../../utils/roles.js';
+import ModalFacturaOrden from '../factura/ModalFacturaOrden.vue';
 import { facturaPendiente } from '../composables/usePermisosOrden.js';
-import { labelEstadoOrden } from '../../../constants/estadosOrden.js';
+import { labelEstadoOrden } from '../../../../constants/estadosOrden.js';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download, Camera, Clock
 } from 'lucide-vue-next';

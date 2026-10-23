@@ -42,13 +42,13 @@ const routes = [
   {
     path: '/ordenes',
     name: 'listado-ordenes',
-    component: () => import('../views/ordenes/OrdenesListView.vue'),
+    component: () => import('../views/ordenes/listado/ListadoOrdenesView.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/ordenes/nueva',
     name: 'nueva-orden',
-    component: () => import('../views/ordenes/NuevaOrdenView.vue'),
+    component: () => import('../views/ordenes/creacion/NuevaOrdenView.vue'),
     meta: {
       requiresAuth: true,
       roles: ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'],
@@ -57,7 +57,7 @@ const routes = [
   {
     path: '/ordenes/editar/:id',
     name: 'editar-orden',
-    component: () => import('../views/ordenes/NuevaOrdenView.vue'),
+    component: () => import('../views/ordenes/creacion/NuevaOrdenView.vue'),
     meta: {
       requiresAuth: true,
       roles: ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'],

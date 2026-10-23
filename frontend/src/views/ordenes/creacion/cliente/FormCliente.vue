@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
 import { User, Loader2, Edit3, Search, Phone, Mail, ChevronDown, Info, CheckCircle2 } from 'lucide-vue-next';
-import { clienteService } from '../../../services/clienteService.js';
+import { clienteService } from '../../../../services/clienteService.js';
 
 const props = defineProps({
   cliente: { type: Object, required: true },

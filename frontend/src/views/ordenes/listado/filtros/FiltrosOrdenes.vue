@@ -1,6 +1,6 @@
 <script setup>
 import { RefreshCcw } from 'lucide-vue-next';
-import { ESTADO_ORDEN_OPTIONS } from '../../../constants/estadosOrden.js';
+import { ESTADO_ORDEN_OPTIONS } from '../../../../constants/estadosOrden.js';
 
 defineProps({
   busqueda: { type: String, default: '' },

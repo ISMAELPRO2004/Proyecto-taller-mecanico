@@ -1,4 +1,4 @@
-import { recepcionPendiente } from '../../../utils/roles.js';
+import { recepcionPendiente } from '../../../../utils/roles.js';
 
 export const puedeEditar = (o) => !['TERMINADO', 'CANCELADO'].includes(o.estado);
 

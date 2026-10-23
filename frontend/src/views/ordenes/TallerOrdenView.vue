@@ -2,11 +2,11 @@
 import { computed } from 'vue';
 import { Calendar, Car, ClipboardList, MessageSquareText, User } from 'lucide-vue-next';
 import { useTallerOrden } from './composables/useTallerOrden.js';
-import EncabezadoOrdenForm from './componentes/EncabezadoOrdenForm.vue';
+import EncabezadoOrdenForm from './compartido/EncabezadoOrdenForm.vue';
 import ListaItemsOrden from './componentes/ListaItemsOrden.vue';
 import SelectorCatalogoModal from './componentes/SelectorCatalogoModal.vue';
 import FooterResumenOrden from './componentes/FooterResumenOrden.vue';
-import CampoFoto from './componentes/CampoFoto.vue';
+import CampoFoto from './compartido/CampoFoto.vue';
 
 const {
   router, cargando, form, cambiarEstado, fotos, esAdmin, subiendoFoto,

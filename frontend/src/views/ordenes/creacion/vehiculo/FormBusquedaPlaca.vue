@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
 import { Search, History, Info, Loader2 } from 'lucide-vue-next';
-import { nombreClienteOrden } from '../../../utils/ordenDisplay.js';
-import { formatearPlacaEscrita } from '../../../utils/placa.js';
-import { vehiculoService } from '../../../services/vehiculoService.js';
+import { nombreClienteOrden } from '../../../../utils/ordenDisplay.js';
+import { formatearPlacaEscrita } from '../../../../utils/placa.js';
+import { vehiculoService } from '../../../../services/vehiculoService.js';
 
 const props = defineProps({
   placa: { type: String, default: '' },
