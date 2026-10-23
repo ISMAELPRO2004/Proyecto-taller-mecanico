@@ -1,5 +1,6 @@
 <script setup>
 import { ChevronDown, X } from 'lucide-vue-next';
+import { campo, etiqueta } from './campoUsuario.js';
 
 defineProps({
   isOpen: { type: Boolean, default: false },
@@ -8,9 +9,6 @@ defineProps({
 });
 
 defineEmits(['close', 'guardar', 'update:form']);
-
-const campo = 'w-full rounded-xl border border-[#4a2870]/70 bg-[#10041f] px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none';
-const etiqueta = 'font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400';
 </script>
 
 <template>

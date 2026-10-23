@@ -24,7 +24,7 @@ const routes = [
   {
     path: '/usuarios',
     name: 'usuarios-logs',
-    component: () => import('../views/auth/UserManagementView.vue'),
+    component: () => import('../views/seguridad/SeguridadView.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' },
   },
   {
