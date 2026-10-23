@@ -20,6 +20,18 @@ export const categoriaVehiculos = {
       horometro: item.horometro,
     };
   },
+  validar(form) {
+    const e = {};
+    if (!form.marcaId) e.marcaId = 'Selecciona una marca';
+    if (!form.modelo?.trim()) e.modelo = 'El modelo es obligatorio';
+    if (form.kilometraje !== '' && form.kilometraje != null && Number(form.kilometraje) < 0) {
+      e.kilometraje = 'El kilometraje no puede ser negativo';
+    }
+    if (form.horometro !== '' && form.horometro != null && Number(form.horometro) < 0) {
+      e.horometro = 'El horómetro no puede ser negativo';
+    }
+    return e;
+  },
   guardar(form) {
     return vehiculoService.actualizar(form.placa, {
       marcaId: Number(form.marcaId),

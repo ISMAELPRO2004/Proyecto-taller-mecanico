@@ -8,6 +8,7 @@ defineProps({
   isOpen: Boolean,
   tipo: { type: String, required: true },
   form: { type: Object, required: true },
+  errores: { type: Object, default: () => ({}) },
   marcas: { type: Array, default: () => [] },
 });
 
@@ -40,17 +41,20 @@ const titulo = {
         <FormEditarCliente
           v-if="tipo === 'clientes'"
           :form="form"
+          :errores="errores"
           @update:form="$emit('update:form', $event)"
         />
         <FormEditarVehiculo
           v-else-if="tipo === 'vehiculos'"
           :form="form"
           :marcas="marcas"
+          :errores="errores"
           @update:form="$emit('update:form', $event)"
         />
         <FormEditarMarca
           v-else
           :form="form"
+          :errores="errores"
           @update:form="$emit('update:form', $event)"
         />
       </div>

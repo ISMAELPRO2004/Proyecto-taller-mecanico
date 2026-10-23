@@ -20,6 +20,18 @@ export const crearClienteSchema = z.object({
   }
 });
 
+export const consultarDocumentoSchema = z.object({
+  tipo: z.enum(['DNI', 'RUC']),
+  numero: z.string().regex(/^\d+$/, 'Solo dígitos'),
+}).superRefine((data, ctx) => {
+  if (data.tipo === 'DNI' && data.numero.length !== 8) {
+    ctx.addIssue({ code: 'custom', path: ['numero'], message: 'DNI debe tener 8 dígitos' });
+  }
+  if (data.tipo === 'RUC' && data.numero.length !== 11) {
+    ctx.addIssue({ code: 'custom', path: ['numero'], message: 'RUC debe tener 11 dígitos' });
+  }
+});
+
 export const crearMarcaSchema = z.object({
   nombre: z.string().min(1).max(100).transform((v) => v.trim()),
 });

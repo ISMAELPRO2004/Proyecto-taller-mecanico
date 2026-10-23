@@ -21,6 +21,21 @@ export const validateBody = (schema) => {
   };
 };
 
+export const validateQuery = (schema) => {
+  return (req, res, next) => {
+    try {
+      req.validatedQuery = schema.parse({ ...(req.query ?? {}) });
+      next();
+    } catch (error) {
+      const errors = formatZodError(error);
+      if (errors.length > 0) {
+        return res.status(400).json({ message: errors[0]?.mensaje || 'Consulta inválida', errors });
+      }
+      return res.status(400).json({ message: 'Consulta inválida', error: error.message });
+    }
+  };
+};
+
 export const validateParams = (schema) => {
   return (req, res, next) => {
     try {

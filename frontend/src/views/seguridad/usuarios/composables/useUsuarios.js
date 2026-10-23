@@ -34,6 +34,18 @@ export function useUsuarios(loading) {
   };
 
   const guardarUsuario = async () => {
+    if (!form.value.nombreCompleto?.trim()) {
+      return notify.error('Revisa los datos', 'Nombre y apellido obligatorio.');
+    }
+    if (!form.value.username?.trim()) {
+      return notify.error('Revisa los datos', 'El usuario es obligatorio.');
+    }
+    if (!editando.value && (form.value.password || '').length < 6) {
+      return notify.error('Revisa los datos', 'La contraseña debe tener mínimo 6 caracteres.');
+    }
+    if (editando.value && form.value.password && form.value.password.length < 6) {
+      return notify.error('Revisa los datos', 'La contraseña debe tener mínimo 6 caracteres.');
+    }
     try {
       if (editando.value) {
         await usuarioService.editar(form.value.id, form.value);

@@ -15,6 +15,7 @@ export function useRegistros() {
   const marcas = ref([]);
   const modalOpen = ref(false);
   const form = ref({});
+  const errores = ref({});
   const nuevaMarca = ref('');
 
   const categoria = computed(() => categoriaPorId(tab.value));
@@ -54,17 +55,29 @@ export function useRegistros() {
 
   const abrirEditar = (item) => {
     form.value = categoria.value.formDesde(item);
+    errores.value = {};
     modalOpen.value = true;
   };
 
+  const actualizarForm = (next) => {
+    form.value = next;
+    errores.value = {};
+  };
+
   const guardar = async () => {
+    const e = categoria.value.validar?.(form.value) || {};
+    errores.value = e;
+    if (Object.keys(e).length) {
+      return notify.error('Revisa los datos', Object.values(e)[0]);
+    }
     try {
       await categoria.value.guardar(form.value);
       notify.success('Guardado', 'Registro actualizado.');
       modalOpen.value = false;
+      errores.value = {};
       cargar();
-    } catch (e) {
-      notify.error('Error', e.response?.data?.message || 'No se pudo guardar.');
+    } catch (err) {
+      notify.error('Error', err.response?.data?.message || 'No se pudo guardar.');
     }
   };
 
@@ -81,7 +94,9 @@ export function useRegistros() {
   };
 
   const crearMarca = async () => {
-    if (!nuevaMarca.value.trim()) return;
+    if (!nuevaMarca.value.trim()) {
+      return notify.error('Campos incompletos', 'Escribe el nombre de la marca.');
+    }
     try {
       await categoriaMarcas.crear(nuevaMarca.value);
       nuevaMarca.value = '';
@@ -92,7 +107,10 @@ export function useRegistros() {
     }
   };
 
-  const cerrarModal = () => { modalOpen.value = false; };
+  const cerrarModal = () => {
+    modalOpen.value = false;
+    errores.value = {};
+  };
 
   onMounted(cargar);
 
@@ -104,6 +122,8 @@ export function useRegistros() {
     marcas,
     modalOpen,
     form,
+    errores,
+    actualizarForm,
     nuevaMarca,
     listaActiva,
     paginaActual,

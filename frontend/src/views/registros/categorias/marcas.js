@@ -9,6 +9,11 @@ export const categoriaMarcas = {
   formDesde(item) {
     return { id: item.id, nombre: item.nombre };
   },
+  validar(form) {
+    const e = {};
+    if (!form.nombre?.trim()) e.nombre = 'El nombre de la marca es obligatorio';
+    return e;
+  },
   guardar(form) {
     return vehiculoService.actualizarMarca(form.id, form.nombre);
   },

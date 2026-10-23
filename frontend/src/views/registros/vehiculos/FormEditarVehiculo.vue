@@ -5,6 +5,7 @@ import { campo, etiqueta } from '../modal/campoRegistro.js';
 const props = defineProps({
   form: { type: Object, required: true },
   marcas: { type: Array, default: () => [] },
+  errores: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['update:form']);
@@ -27,7 +28,7 @@ const patch = (campoForm, valor) => {
       <span class="relative block">
         <select
           :value="form.marcaId"
-          :class="[campo, 'appearance-none pr-10']"
+          :class="[campo, 'appearance-none pr-10', errores.marcaId ? 'border-rose-400' : '']"
           @change="patch('marcaId', $event.target.value)"
         >
           <option value="">Selecciona una marca</option>
@@ -35,6 +36,7 @@ const patch = (campoForm, valor) => {
         </select>
         <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       </span>
+      <p v-if="errores.marcaId" class="text-xs text-rose-300">{{ errores.marcaId }}</p>
     </label>
 
     <label class="block space-y-1.5">
@@ -42,9 +44,10 @@ const patch = (campoForm, valor) => {
       <input
         :value="form.modelo"
         type="text"
-        :class="campo"
+        :class="[campo, errores.modelo ? 'border-rose-400' : '']"
         @input="patch('modelo', $event.target.value)"
       />
+      <p v-if="errores.modelo" class="text-xs text-rose-300">{{ errores.modelo }}</p>
     </label>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -54,9 +57,10 @@ const patch = (campoForm, valor) => {
           :value="form.kilometraje ?? ''"
           type="number"
           min="0"
-          :class="[campo, 'font-mono']"
+          :class="[campo, 'font-mono', errores.kilometraje ? 'border-rose-400' : '']"
           @input="patch('kilometraje', $event.target.value)"
         />
+        <p v-if="errores.kilometraje" class="text-xs text-rose-300">{{ errores.kilometraje }}</p>
       </label>
       <label class="block space-y-1.5">
         <span :class="etiqueta">Horómetro (h)</span>
@@ -64,9 +68,10 @@ const patch = (campoForm, valor) => {
           :value="form.horometro ?? ''"
           type="number"
           min="0"
-          :class="[campo, 'font-mono']"
+          :class="[campo, 'font-mono', errores.horometro ? 'border-rose-400' : '']"
           @input="patch('horometro', $event.target.value)"
         />
+        <p v-if="errores.horometro" class="text-xs text-rose-300">{{ errores.horometro }}</p>
       </label>
     </div>
   </div>

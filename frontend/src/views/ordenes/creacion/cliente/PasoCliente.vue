@@ -16,6 +16,7 @@ defineProps({
   editando: { type: Boolean, default: false },
   clienteConfirmado: { type: Boolean, default: false },
   guardandoPaso: { type: Boolean, default: false },
+  consultando: { type: Boolean, default: false },
 });
 
 defineEmits([
@@ -23,7 +24,8 @@ defineEmits([
   'cambiar-vehiculo',
   'update:cliente',
   'actualizar-nombre',
-  'sin-coincidencias',
+  'cambiar-busqueda',
+  'buscar-documento',
   'seleccionar-cliente',
   'editar-cliente',
   'cambiar-cliente',
@@ -50,9 +52,11 @@ defineEmits([
       :consultado="consultado"
       :es-nuevo="esNuevo"
       :puede-editar="puedeEditarCliente"
+      :consultando="consultando"
       @update:cliente="$emit('update:cliente', $event)"
       @actualizar-nombre="$emit('actualizar-nombre', $event)"
-      @sin-coincidencias="$emit('sin-coincidencias')"
+      @cambiar-busqueda="$emit('cambiar-busqueda', $event)"
+      @buscar-documento="$emit('buscar-documento')"
       @seleccionar-cliente="$emit('seleccionar-cliente', $event)"
       @editar="$emit('editar-cliente')"
     />

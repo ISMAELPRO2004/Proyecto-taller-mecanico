@@ -14,6 +14,8 @@ const {
   marcas,
   modalOpen,
   form,
+  errores,
+  actualizarForm,
   nuevaMarca,
   listaActiva,
   paginaActual,
@@ -67,10 +69,11 @@ const {
       :is-open="modalOpen"
       :tipo="tab"
       :form="form"
+      :errores="errores"
       :marcas="marcas"
       @close="cerrarModal"
       @guardar="guardar"
-      @update:form="form = $event"
+      @update:form="actualizarForm"
     />
   </div>
 </template>

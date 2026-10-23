@@ -1,4 +1,6 @@
+import { ref } from 'vue';
 import { ordenService } from '../../../../services/ordenService.js';
+import { clienteService } from '../../../../services/clienteService.js';
 import { notify } from '../../../../utils/alerts.js';
 import { clienteVacio, mapCliente } from '../composables/estadoRecepcion.js';
 
@@ -19,39 +21,86 @@ export function usePasoCliente(ctx) {
     recordarGuardado,
   } = ctx;
 
+  const consultandoDocumento = ref(false);
+
   const onCambioNombre = (valor) => {
     const cargado = !clienteEraNuevo.value && (clienteConsultado.value || form.value.cliente.id);
     if (cargado) {
-      const { tipoCliente, tipoDocumento } = form.value.cliente;
-      form.value.cliente = clienteVacio({ nombreRazonSocial: valor, tipoCliente, tipoDocumento });
+      const { tipoCliente, tipoDocumento, numeroDocumento } = form.value.cliente;
+      form.value.cliente = clienteVacio({ nombreRazonSocial: valor, tipoCliente, tipoDocumento, numeroDocumento });
+      clienteEraNuevo.value = true;
+      editandoCliente.value = false;
+      errores.value = { ...errores.value, nombreRazonSocial: '' };
+      return;
+    }
+    form.value.cliente.nombreRazonSocial = valor;
+  };
+
+  const onCambioBusqueda = ({ tipo, numero }) => {
+    const tipoDocumento = tipo === 'RUC' ? 'RUC' : 'DNI';
+    const numeroDocumento = String(numero || '').replace(/\D/g, '');
+    const cargado = !clienteEraNuevo.value && (clienteConsultado.value || form.value.cliente.id);
+    if (cargado) {
+      form.value.cliente = clienteVacio({
+        tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
+        tipoDocumento,
+        numeroDocumento,
+      });
       clienteEraNuevo.value = true;
       clienteConsultado.value = false;
       editandoCliente.value = false;
       errores.value = { ...errores.value, nombreRazonSocial: '', numeroDocumento: '' };
       return;
     }
-    form.value.cliente.nombreRazonSocial = valor;
-    if (clienteEraNuevo.value && clienteConsultado.value && !form.value.cliente.id) {
+    form.value.cliente.tipoDocumento = tipoDocumento;
+    form.value.cliente.numeroDocumento = numeroDocumento;
+    form.value.cliente.tipoCliente = tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA';
+    if (clienteConsultado.value && clienteEraNuevo.value && !form.value.cliente.id) {
       clienteConsultado.value = false;
     }
-    if (valor.trim().length < 2) clienteConsultado.value = false;
+    errores.value = { ...errores.value, numeroDocumento: '' };
   };
 
-  const marcarClienteNuevo = () => {
-    const nombre = form.value.cliente.nombreRazonSocial?.trim() || '';
-    if (nombre.length < 2) {
-      errores.value = { ...errores.value, nombreRazonSocial: 'Escribe el nombre y pulsa Buscar cliente' };
+  const consultarCliente = async () => {
+    const tipo = form.value.cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI';
+    const numero = String(form.value.cliente.numeroDocumento || '').replace(/\D/g, '');
+    if (tipo === 'DNI' && numero.length !== 8) {
+      errores.value = { ...errores.value, numeroDocumento: 'DNI: 8 dígitos' };
       return;
     }
-    errores.value = { ...errores.value, nombreRazonSocial: '' };
-    if (clienteEraNuevo.value && clienteConsultado.value && !form.value.cliente.id) return;
-    if (form.value.cliente.id || !clienteEraNuevo.value) {
-      const { tipoCliente, tipoDocumento } = form.value.cliente;
-      form.value.cliente = clienteVacio({ nombreRazonSocial: nombre, tipoCliente, tipoDocumento });
+    if (tipo === 'RUC' && numero.length !== 11) {
+      errores.value = { ...errores.value, numeroDocumento: 'RUC: 11 dígitos' };
+      return;
     }
-    clienteEraNuevo.value = true;
-    clienteConsultado.value = true;
-    editandoCliente.value = false;
+
+    consultandoDocumento.value = true;
+    try {
+      const data = await clienteService.consultarDocumento(tipo, numero);
+      if (data.fuente === 'local' && data.cliente?.id) {
+        aplicarCliente(data.cliente);
+        return;
+      }
+      form.value.cliente = clienteVacio({
+        tipoCliente: data.cliente?.tipoCliente || (tipo === 'RUC' ? 'EMPRESA' : 'PERSONA'),
+        tipoDocumento: data.cliente?.tipoDocumento || tipo,
+        numeroDocumento: data.cliente?.numeroDocumento || numero,
+        nombreRazonSocial: data.cliente?.nombreRazonSocial || '',
+        celular: data.cliente?.celular || '',
+      });
+      clienteEraNuevo.value = true;
+      clienteConsultado.value = true;
+      editandoCliente.value = false;
+      errores.value = { ...errores.value, nombreRazonSocial: '', numeroDocumento: '' };
+      if (data.cliente?.nombreRazonSocial) {
+        notify.success('Datos encontrados', data.cliente.nombreRazonSocial);
+      } else {
+        notify.info('Sin datos automáticos', data.mensaje || 'Completa el nombre a mano.');
+      }
+    } catch (e) {
+      notify.error('Error', e.response?.data?.message || 'No se pudo consultar el documento.');
+    } finally {
+      consultandoDocumento.value = false;
+    }
   };
 
   const aplicarCliente = (cliente) => {
@@ -66,7 +115,7 @@ export function usePasoCliente(ctx) {
   const validarCliente = () => {
     const e = {};
     const { cliente } = form.value;
-    if (!clienteConsultado.value) e.nombreRazonSocial = 'Elige una recomendación o pulsa Buscar cliente';
+    if (!clienteConsultado.value) e.numeroDocumento = 'Consulta el DNI o RUC para continuar';
     else if (!cliente.nombreRazonSocial?.trim() || cliente.nombreRazonSocial.trim().length < 2) {
       e.nombreRazonSocial = 'Nombre / razón social obligatorio';
     }
@@ -157,7 +206,9 @@ export function usePasoCliente(ctx) {
 
   return {
     onCambioNombre,
-    marcarClienteNuevo,
+    onCambioBusqueda,
+    consultarCliente,
+    consultandoDocumento,
     aplicarCliente,
     guardarPasoCliente,
     cambiarCliente,
