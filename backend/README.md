@@ -8,10 +8,12 @@ La orden no es un solo archivo: está partida en `src/services/orden/` (recepci�
 
 ```bash
 pnpm install
-npx prisma migrate dev
+npx prisma migrate deploy   # aplica prisma/migrations (hoy hay una sola: init)
 pnpm seed
 pnpm dev          # nodemon, puerto 3000 (o PORT)
 ```
+
+Si el esquema cambia, `npx prisma migrate dev --name descripcion` crea **otra** migración encima. No borren `init`.
 
 Variables en `.env` (nombres; no copiar secretos):
 
@@ -35,7 +37,7 @@ backend/
 ├── prisma/
 │   ├── schema.prisma      Modelos y enums
 │   ├── seed.js            Datos iniciales
-│   └── migrations/        Historial SQL
+│   └── migrations/        Una sola baseline (`init`) + las que vengan después
 ├── uploads/ordenes/{id}/  Fotos (registro | desarrollo)
 ├── src/
 │   ├── server.js          listen()

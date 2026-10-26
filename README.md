@@ -68,7 +68,7 @@ Los precios que se copian a la orden (`precioAplicado` / `monto`) son los del mo
 # backend
 cd backend
 pnpm install
-npx prisma migrate dev
+npx prisma migrate deploy
 pnpm seed          # usuarios admin / supervisor / tecnico / recepcion (clave en prisma/seed.js)
 pnpm dev           # http://localhost:3000
 
