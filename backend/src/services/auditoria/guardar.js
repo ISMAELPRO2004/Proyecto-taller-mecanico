@@ -1,11 +1,6 @@
 /** Escribe en LogActividad. Los servicios no arman el JSON: llaman a auditoria/index.js. */
 import prisma from '../../config/prisma.js';
-
-const obtenerIp = (req) => {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) return forwarded.split(',')[0].trim();
-  return req.ip ?? req.socket?.remoteAddress ?? null;
-};
+import { log } from '../../utils/logger.js';
 
 const normalizarItems = (lista = [], tipo) => {
   return lista.map(item => {
@@ -70,7 +65,7 @@ const compararListas = (anteriores = [], nuevos = [], tipo) => {
 
 const compararCampos = (anteriores, nuevos, camposIgnorados = []) => {
   const IGNORAR_SIEMPRE = [
-    'password', 'actualizadoAt', 'creadoAt', 'fechaCreacion',
+    'password', 'contrasena', 'actualizadoAt', 'actualizadoEn', 'creadoAt', 'fechaCreacion',
     'creadorId', 'responsableId', 'estaCerrada', 'numeroOrden', 'id',
     '_nombreItem', // ← ignorar en comparación, se extrae por separado
   ];
@@ -179,13 +174,11 @@ export const registrarLog = async (
         accion,
         detalles:  detallesFinales ?? undefined,
         ordenId:   ordenId ? parseInt(ordenId) : null,
-        ipCliente: obtenerIp(req),
-        userAgent: req.headers['user-agent'] ?? null,
       },
     });
 
   } catch (error) {
-    console.error('❌ Error en auditoría:', error.message);
+    log.error('Auditoría: no se pudo guardar el log', error);
   }
 };
 
@@ -210,12 +203,10 @@ export const registrarGrupo = async (req, grupo, ordenId = null) => {
           resumen: grupo.resumen || null,
           secciones: grupo.secciones,
         },
-        ipCliente: obtenerIp(req),
-        userAgent: req.headers['user-agent'] ?? null,
       },
     });
   } catch (error) {
-    console.error('❌ Error en auditoría:', error.message);
+    log.error('Auditoría: no se pudo guardar el grupo', error);
   }
 };
 
@@ -242,12 +233,10 @@ export const registrarEventos = async (req, eventos = [], ordenId = null) => {
             resumen: evento.resumen || null,
             filas: evento.filas || [],
           },
-          ipCliente: obtenerIp(req),
-          userAgent: req.headers['user-agent'] ?? null,
         },
       });
     }
   } catch (error) {
-    console.error('❌ Error en auditoría:', error.message);
+    log.error('Auditoría: no se pudieron guardar los eventos', error);
   }
 };

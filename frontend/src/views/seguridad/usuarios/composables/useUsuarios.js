@@ -7,7 +7,7 @@ export function useUsuarios(loading) {
   const modalOpen = ref(false);
   const editando = ref(false);
   const form = ref({
-    id: null, nombreCompleto: '', username: '', password: '', rol: 'RECEPCIONISTA',
+    id: null, nombreCompleto: '', nombreUsuario: '', contrasena: '', rol: 'RECEPCIONISTA',
   });
 
   const cargarUsuarios = async () => {
@@ -23,13 +23,13 @@ export function useUsuarios(loading) {
 
   const abrirCrear = () => {
     editando.value = false;
-    form.value = { id: null, nombreCompleto: '', username: '', password: '', rol: 'RECEPCIONISTA' };
+    form.value = { id: null, nombreCompleto: '', nombreUsuario: '', contrasena: '', rol: 'RECEPCIONISTA' };
     modalOpen.value = true;
   };
 
   const abrirEditar = (u) => {
     editando.value = true;
-    form.value = { id: u.id, nombreCompleto: u.nombreCompleto, username: u.username, password: '', rol: u.rol };
+    form.value = { id: u.id, nombreCompleto: u.nombreCompleto, nombreUsuario: u.nombreUsuario, contrasena: '', rol: u.rol };
     modalOpen.value = true;
   };
 
@@ -37,13 +37,13 @@ export function useUsuarios(loading) {
     if (!form.value.nombreCompleto?.trim()) {
       return notify.error('Revisa los datos', 'Nombre y apellido obligatorio.');
     }
-    if (!form.value.username?.trim()) {
+    if (!form.value.nombreUsuario?.trim()) {
       return notify.error('Revisa los datos', 'El usuario es obligatorio.');
     }
-    if (!editando.value && (form.value.password || '').length < 6) {
+    if (!editando.value && (form.value.contrasena || '').length < 6) {
       return notify.error('Revisa los datos', 'La contraseña debe tener mínimo 6 caracteres.');
     }
-    if (editando.value && form.value.password && form.value.password.length < 6) {
+    if (editando.value && form.value.contrasena && form.value.contrasena.length < 6) {
       return notify.error('Revisa los datos', 'La contraseña debe tener mínimo 6 caracteres.');
     }
     try {

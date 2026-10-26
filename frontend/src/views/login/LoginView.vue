@@ -5,7 +5,7 @@ import PanelBienvenida from './bienvenida/PanelBienvenida.vue';
 import { useLogin } from './composables/useLogin.js';
 import fondoLogin from '../../assets/fondo_login.jpg';
 
-const { username, password, verClave, cargando, entrar } = useLogin();
+const { nombreUsuario, contrasena, verClave, cargando, entrar } = useLogin();
 </script>
 
 <template>
@@ -22,8 +22,8 @@ const { username, password, verClave, cargando, entrar } = useLogin();
       <div class="relative z-10 mx-auto w-full max-w-xl py-8 lg:mx-0">
         <EncabezadoLogin />
         <FormLogin
-          v-model:username="username"
-          v-model:password="password"
+          v-model:nombre-usuario="nombreUsuario"
+          v-model:contrasena="contrasena"
           v-model:ver-clave="verClave"
           :cargando="cargando"
           @submit="entrar"

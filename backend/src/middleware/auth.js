@@ -24,14 +24,14 @@ export const authenticateJWT = async (req, res, next) => {
   try {
     const usuario = await prisma.usuario.findUnique({
       where: { id: payload.id },
-      select: { id: true, rol: true, activo: true, sesionVersion: true },
+      select: { id: true, rol: true, activo: true, versionSesion: true },
     });
 
     if (!usuario || !usuario.activo) {
       return responderNoAutorizado(res, 'Sesión inválida', 'SESION_INVALIDA');
     }
 
-    if (payload.sv !== usuario.sesionVersion) {
+    if (payload.sv !== usuario.versionSesion) {
       return responderNoAutorizado(
         res,
         'Se inició sesión en otro dispositivo',

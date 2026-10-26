@@ -9,9 +9,9 @@ export const useAuthStore = defineStore('auth', {
     token: localStorage.getItem('token') || null,
   }),
   actions: {
-    async login(username, password) {
+    async login(nombreUsuario, contrasena) {
       try {
-        const data = await authService.login({ username, password });
+        const data = await authService.login({ nombreUsuario, contrasena });
         this.token = data.token;
         this.usuario = data.usuario;
         localStorage.setItem('token', data.token);

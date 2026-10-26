@@ -41,7 +41,7 @@ const logout = () => {
 };
 
 const nombreUsuario = computed(() =>
-  auth.usuario?.nombre || auth.usuario?.username || 'Usuario'
+  auth.usuario?.nombre || auth.usuario?.nombreUsuario || 'Usuario'
 );
 
 const etiquetaRol = computed(() => {

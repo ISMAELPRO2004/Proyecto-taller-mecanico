@@ -4,34 +4,34 @@ import prisma from '../config/prisma.js';
 import { env } from '../config/env.js';
 import { UnauthorizedError } from '../utils/errors.js';
 
-export const login = async ({ username, password }) => {
+export const login = async ({ nombreUsuario, contrasena }) => {
   const usuario = await prisma.usuario.findUnique({
-    where: { username },
+    where: { nombreUsuario },
   });
 
   if (!usuario || !usuario.activo) {
     throw new UnauthorizedError('Credenciales inválidas o usuario inactivo');
   }
 
-  const passwordValida = await bcrypt.compare(password, usuario.password);
-  if (!passwordValida) {
+  const claveValida = await bcrypt.compare(contrasena, usuario.contrasena);
+  if (!claveValida) {
     throw new UnauthorizedError('Credenciales inválidas');
   }
 
   const actualizado = await prisma.usuario.update({
     where: { id: usuario.id },
-    data: { sesionVersion: { increment: 1 } },
+    data: { versionSesion: { increment: 1 } },
     select: {
       id: true,
-      username: true,
+      nombreUsuario: true,
       rol: true,
       nombreCompleto: true,
-      sesionVersion: true,
+      versionSesion: true,
     },
   });
 
   const token = jwt.sign(
-    { id: actualizado.id, rol: actualizado.rol, sv: actualizado.sesionVersion },
+    { id: actualizado.id, rol: actualizado.rol, sv: actualizado.versionSesion },
     env.jwtSecret,
     { expiresIn: '8h' }
   );
@@ -40,7 +40,7 @@ export const login = async ({ username, password }) => {
     token,
     usuario: {
       id: actualizado.id,
-      username: actualizado.username,
+      nombreUsuario: actualizado.nombreUsuario,
       rol: actualizado.rol,
       nombre: actualizado.nombreCompleto,
     },

@@ -12,7 +12,7 @@ defineEmits(['editar', 'toggle', 'eliminar']);
   <article :class="['rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5', usuario.activo ? '' : 'opacity-60']">
     <div class="flex items-center gap-4">
       <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 font-display text-lg font-bold uppercase text-lyer-cyan">
-        {{ usuario.username.charAt(0) }}
+        {{ (usuario.nombreUsuario || '?').charAt(0) }}
       </div>
       <div class="min-w-0">
         <h4 class="truncate text-sm font-bold uppercase text-white">{{ usuario.nombreCompleto }}</h4>
@@ -34,7 +34,7 @@ defineEmits(['editar', 'toggle', 'eliminar']);
     <div class="mt-4 flex items-center justify-between gap-2 rounded-xl border border-[#4a2870]/40 bg-[#140a22] px-3 py-2.5">
       <div class="min-w-0">
         <p class="font-mono text-[10px] uppercase tracking-wider text-slate-500">Usuario</p>
-        <p class="truncate font-mono text-xs font-semibold text-slate-200">{{ usuario.username }}</p>
+        <p class="truncate font-mono text-xs font-semibold text-slate-200">{{ usuario.nombreUsuario }}</p>
       </div>
       <AccionesUsuario
         :usuario="usuario"

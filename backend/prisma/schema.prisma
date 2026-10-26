@@ -11,13 +11,13 @@ datasource db {
 // ==========================================
 model Usuario {
   id                 Int            @id @default(autoincrement())
-  username           String         @unique
-  password           String
+  nombreUsuario      String         @unique
+  contrasena         String
   nombreCompleto     String?
   rol                Rol            @default(RECEPCIONISTA)
   activo             Boolean        @default(true)
   /** Sube en cada login (y al cambiar clave o desactivar). Invalida el JWT anterior. */
-  sesionVersion      Int            @default(0)
+  versionSesion      Int            @default(0)
   ordenesCreadas     OrdenTrabajo[] @relation("Creador")
   ordenesResponsable OrdenTrabajo[] @relation("Responsable")
   logs               LogActividad[]
@@ -42,7 +42,7 @@ model Cliente {
   representante     String? // Chofer, trabajador o persona que deja el vehículo
   celular           String?
   correo            String?
-  actualizadoAt     DateTime       @updatedAt
+  actualizadoEn     DateTime       @updatedAt
   ordenes           OrdenTrabajo[]
 }
 
@@ -69,7 +69,7 @@ model Vehiculo {
   modelo        String
   horometro     Float?         @default(0)
   kilometraje   Float?         @default(0)
-  actualizadoAt DateTime       @updatedAt
+  actualizadoEn DateTime       @updatedAt
   ordenes       OrdenTrabajo[]
 }
 
@@ -145,7 +145,7 @@ model ContadorOrden {
   id        Int      @id @default(autoincrement())
   anio      Int      @unique
   contador  Int      @default(0)
-  updatedAt DateTime @updatedAt
+  actualizadoEn DateTime @updatedAt
 }
 
 // ==========================================
@@ -155,7 +155,7 @@ model CatalogoMaterial {
   id            Int          @id @default(autoincrement())
   descripcion   String
   precioBase    Decimal?     @db.Decimal(10, 2)
-  actualizadoAt DateTime     @updatedAt
+  actualizadoEn DateTime     @updatedAt
   detalles      OTMaterial[]
 }
 
@@ -163,7 +163,7 @@ model CatalogoServicio {
   id            Int          @id @default(autoincrement())
   descripcion   String
   precioBase    Decimal?     @db.Decimal(10, 2)
-  actualizadoAt DateTime     @updatedAt
+  actualizadoEn DateTime     @updatedAt
   detalles      OTServicio[]
 }
 
@@ -172,7 +172,7 @@ model CatalogoTercero {
   descripcion   String
   responsable   String? // Nombre de la empresa o persona que hace este servicio externo
   precioBase    Decimal?    @db.Decimal(10, 2)
-  actualizadoAt DateTime    @updatedAt
+  actualizadoEn DateTime    @updatedAt
   detalles      OTTercero[]
 }
 
@@ -220,9 +220,6 @@ model LogActividad {
   orden     OrdenTrabajo? @relation(fields: [ordenId], references: [id])
   accion    String
   detalles  Json?
-  /** IP del dispositivo que hizo la acción (X-Forwarded-For o req.ip). */
-  ipCliente String?
-  userAgent String?
   fecha     DateTime      @default(now())
 
   @@index([usuarioId])

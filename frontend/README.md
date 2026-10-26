@@ -162,7 +162,7 @@ Al volver de una recarga, si hay archivo local se reintenta el `POST` de foto.
 
 **4. `localStorage`**
 
-Solo `token` y `user`. El interceptor 401 y el logout los borran. El logout también limpia los borradores de sesión. El JWT dura 8 h, pero un login nuevo en otro dispositivo invalida el token anterior (`sesionVersion` en el servidor). El JWT dura 8 h, pero un login nuevo en otro dispositivo invalida el token anterior (`sesionVersion` en el servidor).
+Solo `token` y `user`. El interceptor 401 y el logout los borran. El logout también limpia los borradores de sesión. El JWT dura 8 h, pero un login nuevo en otro dispositivo invalida el token anterior (`versionSesion` en el servidor).
 
 ### Cuándo se **restaura** el JSON local
 

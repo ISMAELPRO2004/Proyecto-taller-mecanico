@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { env } from '../config/env.js';
 import { AppError, NotFoundError } from '../utils/errors.js';
+import { log } from '../utils/logger.js';
 import { auditarCliente } from './auditoria/index.js';
 
 const plantillaConsulta = (tipoDocumento, numeroDocumento, extra = {}) => ({
@@ -43,12 +44,20 @@ const consultarApisperu = async (tipoDocumento, numeroDocumento) => {
       headers: { Authorization: `Bearer ${env.apisperuToken}` },
       signal: AbortSignal.timeout(10000),
     });
-  } catch {
+  } catch (error) {
+    log.warn('APIsPeru: no se pudo consultar el documento', {
+      tipoDocumento,
+      mensaje: error.message,
+    });
     return { fuente: 'manual', cliente: plantillaConsulta(tipoDocumento, numeroDocumento), mensaje: 'No se pudo consultar el documento. Completa el nombre a mano.' };
   }
 
   const data = await respuesta.json().catch(() => null);
   if (!respuesta.ok || data?.success === false) {
+    log.warn('APIsPeru: documento sin datos o error HTTP', {
+      tipoDocumento,
+      status: respuesta.status,
+    });
     return { fuente: 'manual', cliente: plantillaConsulta(tipoDocumento, numeroDocumento), mensaje: 'No se encontraron datos para ese documento. Completa el nombre a mano.' };
   }
 

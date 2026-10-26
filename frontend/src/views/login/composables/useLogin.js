@@ -6,8 +6,8 @@ import { notify } from '../../../utils/alerts.js';
 const CLAVE_AVISO = 'lyer.aviso.login';
 
 export function useLogin() {
-  const username = ref('');
-  const password = ref('');
+  const nombreUsuario = ref('');
+  const contrasena = ref('');
   const verClave = ref(false);
   const cargando = ref(false);
   const auth = useAuthStore();
@@ -22,7 +22,7 @@ export function useLogin() {
 
   const entrar = async () => {
     cargando.value = true;
-    const ok = await auth.login(username.value, password.value);
+    const ok = await auth.login(nombreUsuario.value, contrasena.value);
     if (ok) {
       notify.success('¡Bienvenido!', 'Acceso concedido al sistema.');
       router.push('/home');
@@ -32,5 +32,5 @@ export function useLogin() {
     cargando.value = false;
   };
 
-  return { username, password, verClave, cargando, entrar };
+  return { nombreUsuario, contrasena, verClave, cargando, entrar };
 }

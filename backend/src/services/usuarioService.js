@@ -3,39 +3,39 @@ import prisma from '../config/prisma.js';
 import { AppError, NotFoundError } from '../utils/errors.js';
 import { registrarLog } from './auditoria/index.js';
 
-export const crearUsuario = async ({ username, password, nombreCompleto, rol }, req) => {
-  const hashedPassword = await bcrypt.hash(password, 10);
+export const crearUsuario = async ({ nombreUsuario, contrasena, nombreCompleto, rol }, req) => {
+  const claveHash = await bcrypt.hash(contrasena, 10);
   const nuevoUsuario = await prisma.usuario.create({
     data: {
-      username,
-      password: hashedPassword,
+      nombreUsuario,
+      contrasena: claveHash,
       nombreCompleto,
       rol: rol.toUpperCase(),
     },
   });
 
-  await registrarLog(req, 'CREAR USUARIO', { username, nombreCompleto, rol });
+  await registrarLog(req, 'CREAR USUARIO', { nombreUsuario, nombreCompleto, rol });
 
   return { message: 'Usuario creado', id: nuevoUsuario.id };
 };
 
-export const editarUsuario = async (id, { username, nombreCompleto, rol, password }, req) => {
+export const editarUsuario = async (id, { nombreUsuario, nombreCompleto, rol, contrasena }, req) => {
   const anterior = await prisma.usuario.findUnique({
     where: { id: parseInt(id) },
-    select: { username: true, nombreCompleto: true, rol: true },
+    select: { nombreUsuario: true, nombreCompleto: true, rol: true },
   });
 
   if (!anterior) throw new NotFoundError('Usuario no encontrado');
 
   const dataActualizar = {
-    username,
+    nombreUsuario,
     nombreCompleto,
     rol: rol.toUpperCase(),
   };
 
-  if (password && password.trim() !== '') {
-    dataActualizar.password = await bcrypt.hash(password, 10);
-    dataActualizar.sesionVersion = { increment: 1 };
+  if (contrasena && contrasena.trim() !== '') {
+    dataActualizar.contrasena = await bcrypt.hash(contrasena, 10);
+    dataActualizar.versionSesion = { increment: 1 };
   }
 
   const actualizado = await prisma.usuario.update({
@@ -46,7 +46,7 @@ export const editarUsuario = async (id, { username, nombreCompleto, rol, passwor
   await registrarLog(
     req,
     'EDITAR USUARIO',
-    { username, nombreCompleto, rol, _nombreItem: anterior.nombreCompleto },
+    { nombreUsuario, nombreCompleto, rol, _nombreItem: anterior.nombreCompleto },
     anterior
   );
 
@@ -56,7 +56,7 @@ export const editarUsuario = async (id, { username, nombreCompleto, rol, passwor
 export const eliminarUsuario = async (id, req) => {
   const usuario = await prisma.usuario.findUnique({
     where: { id: parseInt(id) },
-    select: { nombreCompleto: true, username: true, rol: true },
+    select: { nombreCompleto: true, nombreUsuario: true, rol: true },
   });
 
   if (!usuario) throw new NotFoundError('Usuario no encontrado');
@@ -73,7 +73,7 @@ export const eliminarUsuario = async (id, req) => {
 
   await registrarLog(req, 'ELIMINAR USUARIO', null, {
     nombreCompleto: usuario.nombreCompleto,
-    username: usuario.username,
+    nombreUsuario: usuario.nombreUsuario,
     rol: usuario.rol,
   });
 
@@ -83,14 +83,14 @@ export const eliminarUsuario = async (id, req) => {
 export const toggleActivarUsuario = async (id, req) => {
   const anterior = await prisma.usuario.findUnique({
     where: { id: parseInt(id) },
-    select: { activo: true, username: true, nombreCompleto: true },
+    select: { activo: true, nombreUsuario: true, nombreCompleto: true },
   });
 
   if (!anterior) throw new NotFoundError('Usuario no encontrado');
 
   const data = { activo: !anterior.activo };
   if (anterior.activo) {
-    data.sesionVersion = { increment: 1 };
+    data.versionSesion = { increment: 1 };
   }
 
   const actualizado = await prisma.usuario.update({
@@ -117,7 +117,7 @@ export const listarUsuarios = async () => {
   return prisma.usuario.findMany({
     select: {
       id: true,
-      username: true,
+      nombreUsuario: true,
       nombreCompleto: true,
       rol: true,
       activo: true,

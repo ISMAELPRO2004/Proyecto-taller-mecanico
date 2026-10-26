@@ -85,7 +85,7 @@ Usuarios de prueba: `admin`, `supervisor`, `tecnico`, `recepcion`. Contraseña d
 
 Un mismo usuario **solo puede estar logueado en un dispositivo**. Si entra en el celular, la PC se cierra en la siguiente acción (y al revés).
 
-Un mismo usuario **solo puede estar logueado en un dispositivo**. Si entra en el celular, la PC se cierra en la siguiente acción (y al revés).
+Campos de la base en español (`nombreUsuario`, `contrasena`, `actualizadoEn`). Los códigos de rol y estado (`ADMIN`, `EN_ESPERA`) se quedan igual.
 
 ## Dónde vive el “borrador” al recargar
 

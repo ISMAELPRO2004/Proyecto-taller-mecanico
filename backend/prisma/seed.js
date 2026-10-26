@@ -2,27 +2,27 @@ import prisma from '../src/config/prisma.js';
 import bcrypt from 'bcryptjs';
 
 async function main() {
-  const password = await bcrypt.hash('admin123', 10);
+  const claveHash = await bcrypt.hash('admin123', 10);
 
   const usuarios = [
-    { username: 'admin', nombreCompleto: 'Administrador Sistema', rol: 'ADMIN' },
-    { username: 'supervisor', nombreCompleto: 'Supervisor Taller', rol: 'SUPERVISOR' },
-    { username: 'tecnico', nombreCompleto: 'Técnico Taller', rol: 'TECNICO' },
-    { username: 'recepcion', nombreCompleto: 'Recepcionista', rol: 'RECEPCIONISTA' },
+    { nombreUsuario: 'admin', nombreCompleto: 'Administrador Sistema', rol: 'ADMIN' },
+    { nombreUsuario: 'supervisor', nombreCompleto: 'Supervisor Taller', rol: 'SUPERVISOR' },
+    { nombreUsuario: 'tecnico', nombreCompleto: 'Técnico Taller', rol: 'TECNICO' },
+    { nombreUsuario: 'recepcion', nombreCompleto: 'Recepcionista', rol: 'RECEPCIONISTA' },
   ];
 
   for (const u of usuarios) {
     await prisma.usuario.upsert({
-      where: { username: u.username },
+      where: { nombreUsuario: u.nombreUsuario },
       update: {
         nombreCompleto: u.nombreCompleto,
         rol: u.rol,
-        password,
+        contrasena: claveHash,
         activo: true,
       },
       create: {
-        username: u.username,
-        password,
+        nombreUsuario: u.nombreUsuario,
+        contrasena: claveHash,
         nombreCompleto: u.nombreCompleto,
         rol: u.rol,
         activo: true,
@@ -192,14 +192,14 @@ async function main() {
     }
   }
 
-  console.log('✅ Seed OK. Usuarios: admin / supervisor / tecnico / recepcion (pass: admin123)');
+  console.log('Seed OK. Usuarios: admin / supervisor / tecnico / recepcion');
   console.log('   Clientes: Juan Pérez, María Huamán, Carlos Mendoza, Transportes Andinos, Valle Verde');
   console.log('   Placas: T4K-392, B8F-2145, P3H-881, A7C-450, H2M-1908, XYZ-100');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error en seed:', e);
+    console.error('Error en seed:', e);
     process.exit(1);
   })
   .finally(async () => {

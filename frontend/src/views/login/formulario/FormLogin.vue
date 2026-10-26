@@ -2,51 +2,51 @@
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-vue-next';
 
 defineProps({
-  username: { type: String, default: '' },
-  password: { type: String, default: '' },
+  nombreUsuario: { type: String, default: '' },
+  contrasena: { type: String, default: '' },
   verClave: { type: Boolean, default: false },
   cargando: { type: Boolean, default: false },
 });
 
-defineEmits(['update:username', 'update:password', 'update:verClave', 'submit']);
+defineEmits(['update:nombreUsuario', 'update:contrasena', 'update:verClave', 'submit']);
 </script>
 
 <template>
   <form class="space-y-4" @submit.prevent="$emit('submit')">
     <div>
-      <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-300 sm:text-xs" for="username">
+      <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-300 sm:text-xs" for="nombreUsuario">
         Usuario
       </label>
       <div class="relative rounded-xl border border-slate-800 bg-slate-900/80 transition-all focus-within:border-lyer-cyan focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-lyer-cyan/25">
         <User class="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
         <input
-          id="username"
-          :value="username"
+          id="nombreUsuario"
+          :value="nombreUsuario"
           type="text"
           autocomplete="username"
           required
           placeholder="Usuario del taller"
           class="block w-full border-0 bg-transparent py-3.5 pl-11 pr-4 text-base font-medium text-white placeholder-slate-500 focus:outline-none focus:ring-0"
-          @input="$emit('update:username', $event.target.value)"
+          @input="$emit('update:nombreUsuario', $event.target.value)"
         />
       </div>
     </div>
 
     <div>
-      <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-300 sm:text-xs" for="password">
+      <label class="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-300 sm:text-xs" for="contrasena">
         Contraseña
       </label>
       <div class="relative rounded-xl border border-slate-800 bg-slate-900/80 transition-all focus-within:border-lyer-cyan focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-lyer-cyan/25">
         <Lock class="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
         <input
-          id="password"
-          :value="password"
+          id="contrasena"
+          :value="contrasena"
           :type="verClave ? 'text' : 'password'"
           autocomplete="current-password"
           required
           placeholder="Ingrese su clave"
           class="block w-full border-0 bg-transparent py-3.5 pl-11 pr-12 text-base font-medium text-white placeholder-slate-500 focus:outline-none focus:ring-0"
-          @input="$emit('update:password', $event.target.value)"
+          @input="$emit('update:contrasena', $event.target.value)"
         />
         <button
           type="button"

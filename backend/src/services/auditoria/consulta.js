@@ -31,7 +31,7 @@ export const listarLogs = async (query = {}) => {
     prisma.logActividad.findMany({
       where,
       include: {
-        usuario: { select: { username: true, nombreCompleto: true, rol: true } },
+        usuario: { select: { nombreUsuario: true, nombreCompleto: true, rol: true } },
         orden: {
           select: {
             numeroOrden: true,

@@ -44,10 +44,11 @@ defineEmits(['close', 'guardar', 'update:form']);
           <label class="block space-y-1.5">
             <span :class="etiqueta">Usuario</span>
             <input
-              :value="form.username"
+              :value="form.nombreUsuario"
               type="text"
               :class="[campo, 'font-mono']"
-              @input="$emit('update:form', { ...form, username: $event.target.value })"
+              autocomplete="username"
+              @input="$emit('update:form', { ...form, nombreUsuario: $event.target.value })"
             />
           </label>
           <label class="block space-y-1.5">
@@ -71,12 +72,12 @@ defineEmits(['close', 'guardar', 'update:form']);
         <label class="block space-y-1.5">
           <span :class="etiqueta">Contraseña</span>
           <input
-            :value="form.password"
+            :value="form.contrasena"
             type="password"
             :placeholder="editando ? 'Solo si quieres cambiarla' : 'Mínimo 6 caracteres'"
-            autocomplete="off"
+            autocomplete="new-password"
             :class="campo"
-            @input="$emit('update:form', { ...form, password: $event.target.value })"
+            @input="$emit('update:form', { ...form, contrasena: $event.target.value })"
           />
           <span v-if="editando" class="block text-xs text-amber-200">Déjala en blanco para mantener la contraseña actual.</span>
         </label>

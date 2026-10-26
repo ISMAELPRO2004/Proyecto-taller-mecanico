@@ -1,15 +1,25 @@
-import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import pg from 'pg'
-import dotenv from 'dotenv'
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
+import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
-dotenv.config()
+dotenv.config();
 
-// Creamos un pool de conexiones con Postgres
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
-const adapter = new PrismaPg(pool)
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
-// Instanciamos Prisma pasando el adaptador
-const prisma = new PrismaClient({ adapter })
+pool.on('error', (error) => {
+  log.error('PostgreSQL: error en el pool de conexiones', error);
+});
 
-export default prisma
+let avisoConexion = false;
+pool.on('connect', () => {
+  if (avisoConexion) return;
+  avisoConexion = true;
+  log.info('PostgreSQL: conexión lista');
+});
+
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
+export default prisma;

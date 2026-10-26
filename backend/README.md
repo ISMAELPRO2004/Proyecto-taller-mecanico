@@ -48,7 +48,7 @@ backend/
 │   │   └── auditoria/     eventos, guardar, registros, consulta de logs
 │   ├── schemas/           Zod por entidad
 │   ├── middleware/        JWT, roles, Zod, multer, audit, errores
-│   └── utils/             AppError, asyncHandler, money
+│   └── utils/             logger, AppError, asyncHandler, money
 ```
 
 ### `src/app.js`
@@ -89,8 +89,8 @@ Los errores se lanzan en el servicio (`NotFoundError`, `UnauthorizedError`, etc.
 
 | Módulo | Responsabilidad |
 | --- | --- |
-| `authService.js` | Login: sube `sesionVersion` y firma un JWT de 8 h. Un login nuevo cierra el anterior |
-| `usuarioService.js` | Alta/edición (password ≥ 6), no borrar la propia cuenta |
+| `authService.js` | Login: sube `versionSesion` y firma un JWT de 8 h. Un login nuevo cierra el anterior |
+| `usuarioService.js` | Alta/edición (`contrasena` ≥ 6), no borrar la propia cuenta |
 | `clienteService.js` | CRUD; `consultarDocumento`: Prisma por documento, si no APIsPeru |
 | `vehiculoService.js` | Marcas y vehículos; `reconocerPlaca` (stub del modelo de placas) |
 | `catalogoService.js` | Factory CRUD; técnico recibe ítems **sin** `precioBase` |
@@ -120,17 +120,20 @@ Zod. El middleware parsea y, si falla, 400 con `{ message, errors: [{ campo, men
 
 | Archivo | Qué hace |
 | --- | --- |
-| `auth.js` | Bearer JWT; compara `sv` del token con `Usuario.sesionVersion`; `authorize(roles)` |
+| `auth.js` | Bearer JWT; compara `sv` del token con `Usuario.versionSesion`; `authorize(roles)` |
 | `validateBody.js` | Body, query (`req.validatedQuery`, Express 5 no deja asignar `req.query`) y params |
 | `uploadFoto.js` | Multer memoria, 5 MB, jpeg/png/webp |
 | `audit.js` | Avisa en consola si una ruta de escritura no dejó log |
-| `errorHandler.js` | AppError → status; el resto 500 genérico |
+| `errorHandler.js` | AppError → status; Prisma/conexión → log + 400/503; el resto 500 |
 
 ### `src/utils/`
 
+- `logger.js`: consola con `[INFO|WARN|ERROR]` e ISO date. No imprime secretos.
 - `errors.js`: `AppError` (400) y subclases 401/403/404/409.
 - `asyncHandler.js`: `catch(next)`.
 - `money.js`: total de la orden.
+
+Errores de PostgreSQL (pool), Prisma (`P1001` conexión, `P2002` duplicado, etc.), APIsPeru y excepciones no capturadas se registran ahí. El cliente recibe un mensaje corto, no el stack.
 
 ## HTTP de órdenes (resumen)
 
@@ -170,7 +173,7 @@ Enums: `Rol`, `EstadoOrden`, `EstadoIngreso`, `TipoCliente`, `TipoDocumento`.
 
 ## Sesión única
 
-Un usuario solo puede tener **una sesión viva**. En cada login se incrementa `Usuario.sesionVersion` y el JWT lleva ese número (`sv`). El middleware lo compara con la base: si no coincide, responde 401 `SESION_REEMPLAZADA` y el dispositivo anterior cae al login.
+Un usuario solo puede tener **una sesión viva**. En cada login se incrementa `Usuario.versionSesion` y el JWT lleva ese número (`sv`). El middleware lo compara con la base: si no coincide, responde 401 `SESION_REEMPLAZADA` y el dispositivo anterior cae al login.
 
 También sube la versión (y cierra sesiones) al **cambiar la contraseña** o **desactivar** al usuario.
 
@@ -178,14 +181,10 @@ No es un cierre instantáneo en el otro celular: ocurre en la **siguiente petici
 
 ## Auditoría
 
-Los servicios llaman a `src/services/auditoria`. Un log tiene `accion`, `detalles` (JSON de cambios), `usuarioId`, `ordenId` opcional, **`ipCliente`** y user-agent.
-
-`ipCliente` es la IP **desde la que se hizo esa acción**, no la del vehículo ni la del cliente del taller. Se toma así:
-
-1. Primer valor de `X-Forwarded-For` (túnel Cloudflare / proxy).
-2. Si no hay, `req.ip` (con `trust proxy` es el cliente visto por Express).
-3. Si no, `req.socket.remoteAddress`.
-
-En localhost verás `127.0.0.1` o `::1`. Detrás del túnel suele ser la IP pública del dispositivo (casa, datos móviles). No es geolocalización precisa: varios usuarios detrás del mismo Wi‑Fi del taller aparecen con la misma IP.
+Los servicios llaman a `src/services/auditoria`. Un log de actividad tiene `accion`, `detalles` (JSON de cambios), `usuarioId`, `ordenId` opcional y `fecha`. No se guarda IP ni user-agent.
 
 Listado: `GET /api/auditoria/logs` (admin, paginado).
+
+## Nombres en español
+
+Las columnas van en español (`nombreUsuario`, `contrasena`, `versionSesion`, `actualizadoEn`). Los enums de negocio (`ADMIN`, `EN_ESPERA`, `DNI`) se quedan como códigos estables. El login y el CRUD de usuarios usan el mismo contrato JSON.
