@@ -1,7 +1,7 @@
 <script setup>
 defineProps({
-  modelValue: { type: String, required: true },
-  items: { type: Array, required: true },
+  modelValue: { type: String, default: '' },
+  items: { type: Array, default: () => [] },
   oscuro: { type: Boolean, default: false },
 });
 

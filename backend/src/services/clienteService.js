@@ -1,7 +1,7 @@
 import prisma from '../config/prisma.js';
 import { env } from '../config/env.js';
-import { AppError } from '../utils/errors.js';
-import { auditarCliente } from '../auditoria/index.js';
+import { AppError, NotFoundError } from '../utils/errors.js';
+import { auditarCliente } from './auditoria/index.js';
 
 const plantillaConsulta = (tipoDocumento, numeroDocumento, extra = {}) => ({
   id: null,
@@ -98,7 +98,7 @@ export const listarClientes = async (q, { todos = false } = {}) => {
 
 export const actualizarCliente = async (id, data, req) => {
   const existente = await prisma.cliente.findUnique({ where: { id: parseInt(id) } });
-  if (!existente) throw new AppError('Cliente no encontrado', 404);
+  if (!existente) throw new NotFoundError('Cliente no encontrado');
 
   const payload = {
     tipoCliente: data.tipoCliente,
@@ -127,7 +127,7 @@ export const eliminarCliente = async (id, req) => {
     where: { id: parseInt(id) },
     include: { _count: { select: { ordenes: true } } },
   });
-  if (!cliente) throw new AppError('Cliente no encontrado', 404);
+  if (!cliente) throw new NotFoundError('Cliente no encontrado');
   if (cliente._count.ordenes > 0) {
     throw new AppError('No se puede eliminar: el cliente tiene órdenes asociadas.');
   }
@@ -141,7 +141,7 @@ export const buscarPorDocumento = async (numeroDocumento) => {
   const cliente = await prisma.cliente.findUnique({
     where: { numeroDocumento: String(numeroDocumento).trim() },
   });
-  if (!cliente) throw new AppError('Cliente no encontrado', 404);
+  if (!cliente) throw new NotFoundError('Cliente no encontrado');
   return cliente;
 };
 

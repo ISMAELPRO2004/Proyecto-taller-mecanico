@@ -1,3 +1,4 @@
+/** Solo HTTP. loading/error/datos viven en los composables. */
 import api from '../api/axios.js';
 
 export const catalogoService = {

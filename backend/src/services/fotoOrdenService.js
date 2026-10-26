@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { AppError } from '../utils/errors.js';
+import { NotFoundError, BadRequestError } from '../utils/errors.js';
 
 const uploadsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../uploads');
 
@@ -25,19 +25,19 @@ const carpetaOrden = (ordenId) => path.join(uploadsRoot, 'ordenes', String(orden
 const resolver = (rutaRelativa) => {
   if (!rutaRelativa || typeof rutaRelativa !== 'string') return null;
   const normalizada = rutaRelativa.replace(/\\/g, '/').replace(/^\/+/, '');
-  if (normalizada.includes('..')) throw new AppError('Ruta de imagen inválida', 400);
+  if (normalizada.includes('..')) throw new BadRequestError('Ruta de imagen inválida');
   const abs = path.resolve(uploadsRoot, normalizada);
   if (!abs.startsWith(uploadsRoot + path.sep) && abs !== uploadsRoot) {
-    throw new AppError('Ruta de imagen inválida', 400);
+    throw new BadRequestError('Ruta de imagen inválida');
   }
   return abs;
 };
 
 export const guardarFotoArchivo = async (ordenId, tipo, file) => {
-  if (!TIPOS_FOTO.includes(tipo)) throw new AppError('Tipo de foto inválido', 400);
+  if (!TIPOS_FOTO.includes(tipo)) throw new BadRequestError('Tipo de foto inválido');
   const ext = MIME_EXT[file?.mimetype];
-  if (!ext) throw new AppError('Formato no permitido. Usa JPG, PNG o WEBP.', 400);
-  if (!file.buffer?.length) throw new AppError('La imagen está vacía', 400);
+  if (!ext) throw new BadRequestError('Formato no permitido. Usa JPG, PNG o WEBP.');
+  if (!file.buffer?.length) throw new BadRequestError('La imagen está vacía');
 
   const dir = carpetaOrden(ordenId);
   await fs.mkdir(dir, { recursive: true });
@@ -89,11 +89,11 @@ export const esRutaAuditoria = (rutaRelativa) => {
 
 export const leerFotoArchivo = async (rutaRelativa) => {
   const abs = resolver(rutaRelativa);
-  if (!abs) throw new AppError('Imagen no encontrada', 404);
+  if (!abs) throw new NotFoundError('Imagen no encontrada');
   try {
     await fs.access(abs);
   } catch {
-    throw new AppError('Imagen no encontrada', 404);
+    throw new NotFoundError('Imagen no encontrada');
   }
   const ext = path.extname(abs).slice(1).toLowerCase();
   return { abs, mime: EXT_MIME[ext] || 'application/octet-stream' };

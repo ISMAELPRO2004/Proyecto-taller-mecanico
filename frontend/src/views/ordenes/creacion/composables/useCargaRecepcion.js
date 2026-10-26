@@ -2,6 +2,7 @@ import { ordenService } from '../../../../services/ordenService.js';
 import { notify } from '../../../../utils/alerts.js';
 import { leerBorradorLocal } from '../../../../utils/borradorRecepcion.js';
 import { mapCliente } from './estadoRecepcion.js';
+import { ESTADO } from '../../../../constants/estadosOrden.js';
 
 /** Carga inicial: servidor, recarga del navegador y redirección si ya no es borrador. */
 export function useCargaRecepcion(ctx) {
@@ -67,7 +68,7 @@ export function useCargaRecepcion(ctx) {
   };
 
   const redirigirSiYaNoEsBorrador = (orden) => {
-    if (orden.estado === 'EN_ESPERA') return false;
+    if (orden.estado === ESTADO.EN_ESPERA) return false;
     const puedeTaller = ['ADMIN', 'SUPERVISOR', 'TECNICO'].includes(auth.usuario?.rol);
     if (puedeTaller) router.replace(`/ordenes/taller/${orden.id}`);
     else {

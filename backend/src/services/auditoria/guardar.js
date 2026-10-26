@@ -1,5 +1,5 @@
 /** Escribe en LogActividad. Los servicios no arman el JSON: llaman a auditoria/index.js. */
-import prisma from '../config/prisma.js';
+import prisma from '../../config/prisma.js';
 
 const obtenerIp = (req) => {
   const forwarded = req.headers['x-forwarded-for'];

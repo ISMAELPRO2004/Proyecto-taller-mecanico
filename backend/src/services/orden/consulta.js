@@ -1,5 +1,5 @@
 import prisma from '../../config/prisma.js';
-import { AppError } from '../../utils/errors.js';
+import { NotFoundError } from '../../utils/errors.js';
 import { includeOrdenLista, includeOrdenDetalle } from './comun.js';
 
 export const listarOrdenes = async () => {
@@ -14,6 +14,6 @@ export const obtenerOrdenPorId = async (id) => {
     where: { id: parseInt(id) },
     include: includeOrdenDetalle,
   });
-  if (!orden) throw new AppError('Orden no encontrada', 404);
+  if (!orden) throw new NotFoundError('Orden no encontrada');
   return orden;
 };

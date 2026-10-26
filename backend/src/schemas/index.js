@@ -13,7 +13,20 @@ export {
 export {
   crearClienteSchema,
   consultarDocumentoSchema,
+} from './cliente.schema.js';
+export {
   crearMarcaSchema,
   upsertVehiculoSchema,
-} from './cliente.schema.js';
+  placaParamSchema,
+} from './vehiculo.schema.js';
+export {
+  crearUsuarioSchema,
+  editarUsuarioSchema,
+} from './user.schema.js';
+export {
+  crearItemCatalogoSchema,
+  actualizarItemCatalogoSchema,
+  crearTerceroSchema,
+  actualizarTerceroSchema,
+} from './inventario.schema.js';
 export { idParamSchema, fotoParamSchema } from './common.schema.js';

@@ -1,6 +1,7 @@
 import { recepcionPendiente } from '../../../../utils/roles.js';
+import { ESTADO, ESTADOS_CERRADOS } from '../../../../constants/estadosOrden.js';
 
-export const puedeEditar = (o) => !['TERMINADO', 'CANCELADO'].includes(o.estado);
+export const puedeEditar = (o) => !ESTADOS_CERRADOS.includes(o.estado);
 
 /** Admin: cualquier orden. Resto: solo borradores incompletos de recepción. */
 export const puedeEliminar = (o, rol) => {
@@ -9,7 +10,7 @@ export const puedeEliminar = (o, rol) => {
 };
 
 export const facturaPendiente = (o) =>
-  o?.estado === 'CANCELADO' && !!o.requiereFactura && !String(o.numeroFactura || '').trim();
-export const puedeCancelarTerminado = (o) => o?.estado === 'TERMINADO';
+  o?.estado === ESTADO.CANCELADO && !!o.requiereFactura && !String(o.numeroFactura || '').trim();
+export const puedeCancelarTerminado = (o) => o?.estado === ESTADO.TERMINADO;
 export const puedeAceptar = (o) =>
-  o?.estado === 'EN_ESPERA' && o?.pasoRecepcion == null && !!o?.clienteId;
+  o?.estado === ESTADO.EN_ESPERA && o?.pasoRecepcion == null && !!o?.clienteId;

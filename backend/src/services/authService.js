@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
 import { env } from '../config/env.js';
-import { AppError } from '../utils/errors.js';
+import { UnauthorizedError } from '../utils/errors.js';
 
 export const login = async ({ username, password }) => {
   const usuario = await prisma.usuario.findUnique({
@@ -10,12 +10,12 @@ export const login = async ({ username, password }) => {
   });
 
   if (!usuario || !usuario.activo) {
-    throw new AppError('Credenciales inválidas o usuario inactivo', 401);
+    throw new UnauthorizedError('Credenciales inválidas o usuario inactivo');
   }
 
   const passwordValida = await bcrypt.compare(password, usuario.password);
   if (!passwordValida) {
-    throw new AppError('Credenciales inválidas', 401);
+    throw new UnauthorizedError('Credenciales inválidas');
   }
 
   const token = jwt.sign(

@@ -14,7 +14,7 @@ import {
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validateBody, validateParams } from '../middleware/validateBody.js';
-import { crearMarcaSchema, upsertVehiculoSchema, idParamSchema } from '../schemas/index.js';
+import { crearMarcaSchema, upsertVehiculoSchema, placaParamSchema, idParamSchema } from '../schemas/index.js';
 
 const router = Router();
 const ROLES = ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'];
@@ -47,7 +47,12 @@ router.delete('/marcas/:id',
 
 router.get('/', authenticateJWT, authorize(SOLO_ADMIN), listarVehiculos);
 router.get('/sugerencias', authenticateJWT, authorize(ROLES), sugerirVehiculos);
-router.get('/:placa', authenticateJWT, authorize(ROLES), buscarPorPlaca);
+router.get('/:placa',
+  authenticateJWT,
+  authorize(ROLES),
+  validateParams(placaParamSchema),
+  buscarPorPlaca
+);
 router.post('/',
   authenticateJWT,
   authorize(ROLES_ESCRITURA),
@@ -58,6 +63,7 @@ router.post('/',
 router.put('/:placa',
   authenticateJWT,
   authorize(SOLO_ADMIN),
+  validateParams(placaParamSchema),
   validateBody(upsertVehiculoSchema.omit({ placa: true })),
   auditLog('EDITAR VEHICULO'),
   actualizarVehiculo
@@ -65,6 +71,7 @@ router.put('/:placa',
 router.delete('/:placa',
   authenticateJWT,
   authorize(SOLO_ADMIN),
+  validateParams(placaParamSchema),
   auditLog('ELIMINAR VEHICULO'),
   eliminarVehiculo
 );

@@ -1,3 +1,4 @@
+/** Solo HTTP. El estado de sesión vive en el store. */
 import api from '../api/axios.js';
 
 export const authService = {

@@ -2,11 +2,13 @@
 import { computed } from 'vue';
 import { ChevronLeft, ChevronRight, ListOrdered } from 'lucide-vue-next';
 
+const esEntero = (v) => v == null || (typeof v === 'number' && Number.isFinite(v));
+
 const props = defineProps({
-  modelValue: { type: Number, required: true },
-  itemsPorPagina: { type: Number, required: true },
-  totalPaginas: { type: Number, required: true },
-  total: { type: Number, default: null },
+  modelValue: { type: Number, default: 1, validator: esEntero },
+  itemsPorPagina: { type: Number, default: 10, validator: esEntero },
+  totalPaginas: { type: Number, default: 1, validator: esEntero },
+  total: { type: Number, default: null, validator: esEntero },
   opcionesItems: { type: Array, default: () => [5, 10, 20, 50] },
   labelItems: { type: String, default: 'filas' },
   mostrarLabelVer: { type: Boolean, default: false },
@@ -17,17 +19,19 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'update:itemsPorPagina']);
 
+const totalPaginasSeguro = computed(() => Math.max(1, Number(props.totalPaginas) || 1));
+
 const paginas = computed(() =>
-  props.paginasVisibles ?? Array.from({ length: props.totalPaginas }, (_, i) => i + 1)
+  props.paginasVisibles ?? Array.from({ length: totalPaginasSeguro.value }, (_, i) => i + 1)
 );
 
 const paginaActual = computed({
-  get: () => props.modelValue,
+  get: () => Number(props.modelValue) || 1,
   set: (v) => emit('update:modelValue', v),
 });
 
 const itemsPorPaginaLocal = computed({
-  get: () => props.itemsPorPagina,
+  get: () => Number(props.itemsPorPagina) || 10,
   set: (v) => emit('update:itemsPorPagina', Number(v)),
 });
 </script>
@@ -69,7 +73,7 @@ const itemsPorPaginaLocal = computed({
         ]">
         {{ p }}
       </button>
-      <button @click="paginaActual++" :disabled="paginaActual === totalPaginas"
+      <button @click="paginaActual++" :disabled="paginaActual === totalPaginasSeguro"
         :class="['join-item btn btn-sm border-none', oscuro ? 'bg-transparent text-slate-300 disabled:text-slate-600' : 'bg-white disabled:text-slate-200']">
         <ChevronRight class="w-4 h-4" />
       </button>

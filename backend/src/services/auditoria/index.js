@@ -9,6 +9,7 @@ import { registrarGrupo } from './guardar.js';
 import { grupoDeEventos } from './eventos.js';
 
 export { registrarLog, registrarEventos, registrarGrupo } from './guardar.js';
+export { listarLogs, obtenerFotoAuditoria } from './consulta.js';
 export {
   eventosPasoVehiculo,
   eventosPasoCliente,

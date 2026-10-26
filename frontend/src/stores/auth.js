@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import api from '../api/axios.js';
+import { authService } from '../services/authService.js';
 import { limpiarBorradorLocal } from '../utils/borradorRecepcion.js';
 import { limpiarBorradorTaller } from '../utils/borradorTaller.js';
 
@@ -11,14 +11,14 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(username, password) {
       try {
-        const { data } = await api.post('/auth/login', { username, password });
+        const data = await authService.login({ username, password });
         this.token = data.token;
         this.usuario = data.usuario;
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.usuario));
         return true;
       } catch (error) {
-        console.error("Error en login:", error.response?.data?.message);
+        console.error('Error en login:', error.response?.data?.message);
         return false;
       }
     },

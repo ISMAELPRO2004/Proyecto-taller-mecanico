@@ -6,6 +6,7 @@ import { usePaginacion } from '../../../../composables/usePaginacion.js';
 import { notify } from '../../../../utils/alerts.js';
 import { generarOrdenPDF } from '../../../../utils/ordenPdf.js';
 import { nombreClienteOrden } from '../../../../utils/ordenDisplay.js';
+import { ESTADO } from '../../../../constants/estadosOrden.js';
 
 export function useListadoOrdenes() {
   const router = useRouter();
@@ -81,10 +82,10 @@ export function useListadoOrdenes() {
   const guardarFactura = async (payload) => {
     if (!ordenFactura.value) return;
     guardandoFactura.value = true;
-    const esCancelacion = ordenFactura.value.estado === 'TERMINADO';
+    const esCancelacion = ordenFactura.value.estado === ESTADO.TERMINADO;
     try {
       if (esCancelacion) {
-        await ordenService.cambiarEstado(ordenFactura.value.id, { estado: 'CANCELADO', ...payload });
+        await ordenService.cambiarEstado(ordenFactura.value.id, { estado: ESTADO.CANCELADO, ...payload });
         notify.success('Orden cancelada', 'La facturación quedó registrada.');
       } else {
         await ordenService.actualizarFactura(ordenFactura.value.id, payload);
@@ -100,7 +101,7 @@ export function useListadoOrdenes() {
   };
 
   const eliminarOrden = async (o) => {
-    const esBorrador = o.estado === 'EN_ESPERA';
+    const esBorrador = o.estado === ESTADO.EN_ESPERA;
     const ok = await notify.confirm(
       esBorrador ? '¿Eliminar borrador?' : '¿Eliminar orden?',
       esBorrador
@@ -134,7 +135,7 @@ export function useListadoOrdenes() {
   };
 
   const irAEditar = (o) => {
-    if (o.estado === 'EN_ESPERA') {
+    if (o.estado === ESTADO.EN_ESPERA) {
       router.push(`/ordenes/editar/${o.id}`);
       return;
     }

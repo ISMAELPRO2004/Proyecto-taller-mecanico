@@ -6,6 +6,7 @@ import { catalogoService } from '../../../services/catalogoService.js';
 import { usuarioService } from '../../../services/usuarioService.js';
 import { notify } from '../../../utils/alerts.js';
 import { puedeVerPrecios } from '../../../utils/roles.js';
+import { ESTADO, ESTADOS_CERRADOS } from '../../../constants/estadosOrden.js';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
 import {
   leerBorradorTaller,
@@ -41,7 +42,7 @@ export function useTallerOrden() {
     modelo: '',
     descripcionInformal: '',
     trabajoSolicitado: '',
-    estado: 'ACEPTADO',
+    estado: ESTADO.ACEPTADO,
     responsableId: '',
     materiales: [],
     servicios: [],
@@ -53,7 +54,7 @@ export function useTallerOrden() {
 
 const selector = ref({ abierto: false, tipo: 'materiales', titulo: '' });
 const modalFactura = ref(false);
-const estadoAntes = ref('ACEPTADO');
+const estadoAntes = ref(ESTADO.ACEPTADO);
 
   const titulosCatalogo = {
     materiales: 'Repuestos e insumos',
@@ -85,7 +86,7 @@ const estadoAntes = ref('ACEPTADO');
 
   const facturaPendiente = computed(
     () => esAdmin.value
-      && form.value.estado === 'CANCELADO'
+      && form.value.estado === ESTADO.CANCELADO
       && form.value.requiereFactura
       && !String(form.value.numeroFactura || '').trim()
   );
@@ -195,7 +196,7 @@ const estadoAntes = ref('ACEPTADO');
   };
 
   const cambiarEstado = (nuevo) => {
-    if (!nuevo || nuevo === 'CANCELADO' || nuevo === form.value.estado) return;
+    if (!nuevo || nuevo === ESTADO.CANCELADO || nuevo === form.value.estado) return;
     form.value.estado = nuevo;
   };
 
@@ -203,7 +204,7 @@ const aplicarFactura = ({ requiereFactura, numeroFactura, montoFactura }) => {
   form.value.requiereFactura = requiereFactura;
   form.value.numeroFactura = numeroFactura || '';
   form.value.montoFactura = montoFactura ?? '';
-  form.value.estado = 'CANCELADO';
+  form.value.estado = ESTADO.CANCELADO;
   modalFactura.value = false;
 };
 
@@ -235,7 +236,7 @@ const aplicarFactura = ({ requiereFactura, numeroFactura, montoFactura }) => {
       })),
     };
 
-    if (form.value.estado === 'CANCELADO') {
+    if (form.value.estado === ESTADO.CANCELADO) {
       body.requiereFactura = form.value.requiereFactura;
       body.numeroFactura = form.value.numeroFactura || null;
       body.montoFactura = form.value.montoFactura === '' ? null : form.value.montoFactura;
@@ -246,7 +247,7 @@ const aplicarFactura = ({ requiereFactura, numeroFactura, montoFactura }) => {
 
   const guardar = async () => {
     if (modalFactura.value) return;
-    if (form.value.estado === 'CANCELADO' && form.value.requiereFactura === undefined) {
+    if (form.value.estado === ESTADO.CANCELADO && form.value.requiereFactura === undefined) {
       modalFactura.value = true;
       return;
     }
@@ -362,7 +363,7 @@ const aplicarFactura = ({ requiereFactura, numeroFactura, montoFactura }) => {
     form.value = {
       ...form.value,
       trabajoSolicitado: local.trabajoSolicitado ?? form.value.trabajoSolicitado,
-      estado: local.estado && local.estado !== 'CANCELADO' ? local.estado : form.value.estado,
+      estado: local.estado && local.estado !== ESTADO.CANCELADO ? local.estado : form.value.estado,
       responsableId: local.responsableId ?? form.value.responsableId,
       materiales: Array.isArray(local.materiales) ? local.materiales : form.value.materiales,
       servicios: Array.isArray(local.servicios) ? local.servicios : form.value.servicios,
@@ -392,11 +393,11 @@ const aplicarFactura = ({ requiereFactura, numeroFactura, montoFactura }) => {
         catalogoService.listarTerceros().catch(() => []),
       ]);
 
-      if (orden.estado === 'EN_ESPERA') {
+      if (orden.estado === ESTADO.EN_ESPERA) {
         router.replace(`/ordenes/editar/${orden.id}`);
         return;
       }
-      if (orden.estaCerrada || ['TERMINADO', 'CANCELADO'].includes(orden.estado)) {
+      if (orden.estaCerrada || ESTADOS_CERRADOS.includes(orden.estado)) {
         notify.info('Orden no editable', 'Esta orden ya no se puede completar.');
         router.replace('/ordenes');
         return;

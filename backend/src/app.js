@@ -7,6 +7,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 
 import { env } from './config/env.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import auditoriaRoutes from './routes/auditoriaRoutes.js';
@@ -19,6 +20,9 @@ import clienteRoutes from './routes/clienteRoutes.js';
 
 export const createApp = () => {
   const app = express();
+
+  // Cloudflare / túnel envían X-Forwarded-For. Confiar en el primer proxy.
+  app.set('trust proxy', 1);
 
   app.use(cors({
     origin: env.allowedOrigins.length > 0 ? env.allowedOrigins : env.frontendUrl,
@@ -47,6 +51,9 @@ export const createApp = () => {
   app.use('/api/ordenes', ordenRoutes);
   app.use('/api/vehiculos', vehiculoRoutes);
   app.use('/api/clientes', clienteRoutes);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 };

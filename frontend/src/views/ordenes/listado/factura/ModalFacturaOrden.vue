@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { AlertTriangle, Check, Receipt, X } from 'lucide-vue-next';
+import { ESTADO } from '../../../../constants/estadosOrden.js';
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -9,7 +10,7 @@ const props = defineProps({
   intencion: { type: String, default: '' },
 });
 
-const cancelando = computed(() => props.intencion === 'cancelar' || props.orden?.estado === 'TERMINADO');
+const cancelando = computed(() => props.intencion === 'cancelar' || props.orden?.estado === ESTADO.TERMINADO);
 
 const emit = defineEmits(['close', 'guardar']);
 
@@ -18,7 +19,7 @@ const form = ref({ decision: '', numero: '', monto: '' });
 watch(() => props.isOpen, (abierto) => {
   if (!abierto || !props.orden) return;
   form.value = {
-    decision: props.orden.requiereFactura ? 'si' : (props.orden.estado === 'CANCELADO' ? 'no' : ''),
+    decision: props.orden.requiereFactura ? 'si' : (props.orden.estado === ESTADO.CANCELADO ? 'no' : ''),
     numero: props.orden.numeroFactura || '',
     monto: props.orden.montoFactura ?? '',
   };

@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
-import { AppError } from '../utils/errors.js';
-import { auditarMarca, auditarVehiculo } from '../auditoria/index.js';
+import { AppError, NotFoundError } from '../utils/errors.js';
+import { auditarMarca, auditarVehiculo } from './auditoria/index.js';
 
 export const listarMarcas = async () => {
   return prisma.marcaVehiculo.findMany({
@@ -11,7 +11,7 @@ export const listarMarcas = async () => {
 
 export const actualizarMarca = async (id, { nombre }, req) => {
   const anterior = await prisma.marcaVehiculo.findUnique({ where: { id: parseInt(id) } });
-  if (!anterior) throw new AppError('Marca no encontrada', 404);
+  if (!anterior) throw new NotFoundError('Marca no encontrada');
 
   try {
     const marca = await prisma.marcaVehiculo.update({
@@ -30,7 +30,7 @@ export const eliminarMarca = async (id, req) => {
     where: { id: parseInt(id) },
     include: { _count: { select: { vehiculos: true } } },
   });
-  if (!marca) throw new AppError('Marca no encontrada', 404);
+  if (!marca) throw new NotFoundError('Marca no encontrada');
   if (marca._count.vehiculos > 0) {
     throw new AppError('No se puede eliminar: hay vehículos con esta marca.');
   }
@@ -80,10 +80,10 @@ export const actualizarVehiculo = async (placa, data, req) => {
     where: { placa: placaNorm },
     include: { marca: true },
   });
-  if (!anterior) throw new AppError('Vehículo no encontrado', 404);
+  if (!anterior) throw new NotFoundError('Vehículo no encontrado');
 
   const marca = await prisma.marcaVehiculo.findUnique({ where: { id: parseInt(data.marcaId) } });
-  if (!marca) throw new AppError('Marca no encontrada', 404);
+  if (!marca) throw new NotFoundError('Marca no encontrada');
 
   const vehiculo = await prisma.vehiculo.update({
     where: { placa: placaNorm },
@@ -106,7 +106,7 @@ export const eliminarVehiculo = async (placa, req) => {
     where: { placa: placaNorm },
     include: { _count: { select: { ordenes: true } }, marca: true },
   });
-  if (!vehiculo) throw new AppError('Vehículo no encontrado', 404);
+  if (!vehiculo) throw new NotFoundError('Vehículo no encontrado');
   if (vehiculo._count.ordenes > 0) {
     throw new AppError('No se puede eliminar: el vehículo tiene órdenes asociadas.');
   }
@@ -141,14 +141,14 @@ export const buscarPorPlaca = async (placa) => {
     },
   });
 
-  if (!vehiculo) throw new AppError('Vehículo no encontrado', 404);
+  if (!vehiculo) throw new NotFoundError('Vehículo no encontrado');
   return vehiculo;
 };
 
 export const upsertVehiculo = async (data, req) => {
   const placa = data.placa.trim().toUpperCase();
   const marca = await prisma.marcaVehiculo.findUnique({ where: { id: parseInt(data.marcaId) } });
-  if (!marca) throw new AppError('Marca no encontrada', 404);
+  if (!marca) throw new NotFoundError('Marca no encontrada');
 
   const anterior = await prisma.vehiculo.findUnique({
     where: { placa },

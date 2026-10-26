@@ -39,7 +39,11 @@ export const validateQuery = (schema) => {
 export const validateParams = (schema) => {
   return (req, res, next) => {
     try {
-      req.params = schema.parse(req.params);
+      const parsed = schema.parse(req.params ?? {});
+      req.validatedParams = parsed;
+      for (const [key, value] of Object.entries(parsed)) {
+        req.params[key] = value;
+      }
       next();
     } catch (error) {
       const errors = formatZodError(error);

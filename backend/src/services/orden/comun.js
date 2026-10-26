@@ -1,4 +1,4 @@
-import { AppError } from '../../utils/errors.js';
+import { AppError, NotFoundError } from '../../utils/errors.js';
 
 export const includeOrdenLista = {
   cliente: true,
@@ -63,7 +63,7 @@ export const upsertVehiculo = async (tx, vehiculoInput, { actualizarDatos = fals
   const placa = vehiculoInput.placa.trim().toUpperCase();
   const marcaId = parseInt(vehiculoInput.marcaId);
   const marca = await tx.marcaVehiculo.findUnique({ where: { id: marcaId } });
-  if (!marca) throw new AppError('Marca de vehículo no encontrada', 404);
+  if (!marca) throw new NotFoundError('Marca de vehículo no encontrada');
 
   const existente = await tx.vehiculo.findUnique({
     where: { placa },

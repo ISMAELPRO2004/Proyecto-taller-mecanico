@@ -1,5 +1,5 @@
 import prisma from '../../config/prisma.js';
-import { AppError } from '../../utils/errors.js';
+import { AppError, NotFoundError, ForbiddenError } from '../../utils/errors.js';
 import { calcularTotalOrden } from '../../utils/money.js';
 import {
   registrarLog,
@@ -8,7 +8,7 @@ import {
   eventosEliminarBorrador,
   eventosActualizarTaller,
   eventoEstado,
-} from '../../auditoria/index.js';
+} from '../auditoria/index.js';
 import { borrarCarpetaOrden } from '../fotoOrdenService.js';
 import {
   includeOrdenLista,
@@ -20,7 +20,7 @@ import {
 /** Validar borrador → ACEPTADO (supervisor/admin) */
 export const aceptarOrden = async (id, { responsableId } = {}, req) => {
   const orden = await prisma.ordenTrabajo.findUnique({ where: { id: parseInt(id) } });
-  if (!orden) throw new AppError('Orden no encontrada', 404);
+  if (!orden) throw new NotFoundError('Orden no encontrada');
   if (orden.estaCerrada) throw new AppError('La orden está cerrada.');
   if (orden.estado !== 'EN_ESPERA') {
     throw new AppError('Solo se pueden aceptar órdenes en estado EN_ESPERA.');
@@ -60,7 +60,7 @@ export const actualizarOrden = async (id, data, req) => {
     include: includeOrdenDetalle,
   });
 
-  if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+  if (!ordenPrevia) throw new NotFoundError('Orden no encontrada');
   if (ordenPrevia.estaCerrada) {
     throw new AppError('Esta orden está cerrada permanentemente y no puede modificarse.');
   }
@@ -254,7 +254,7 @@ export const actualizarEstadoOrden = async (id, payload, req) => {
     },
   });
 
-  if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+  if (!ordenPrevia) throw new NotFoundError('Orden no encontrada');
   const cancelarTerminado = ordenPrevia.estado === 'TERMINADO'
     && estado === 'CANCELADO'
     && req.user?.rol === 'ADMIN';
@@ -302,12 +302,12 @@ export const eliminarOrden = async (id, req) => {
     include: includeOrdenDetalle,
   });
 
-  if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+  if (!ordenPrevia) throw new NotFoundError('Orden no encontrada');
 
   const esAdmin = req.user?.rol === 'ADMIN';
   const borradorIncompleto = ordenPrevia.estado === 'EN_ESPERA' && ordenPrevia.pasoRecepcion != null;
   if (!esAdmin && !borradorIncompleto) {
-    throw new AppError('Solo puedes eliminar borradores pendientes de terminar. Las demás órdenes solo las borra el administrador.', 403);
+    throw new ForbiddenError('Solo puedes eliminar borradores pendientes de terminar. Las demás órdenes solo las borra el administrador.');
   }
 
   const ordenId = parseInt(id);
@@ -368,7 +368,7 @@ export const eliminarOrden = async (id, req) => {
 
 export const actualizarFacturaOrden = async (id, data, req) => {
   if (req.user?.rol !== 'ADMIN') {
-    throw new AppError('Solo el administrador puede completar o cambiar la factura.', 403);
+    throw new ForbiddenError('Solo el administrador puede completar o cambiar la factura.');
   }
 
   const orden = await prisma.ordenTrabajo.findUnique({
@@ -382,7 +382,7 @@ export const actualizarFacturaOrden = async (id, data, req) => {
       montoFactura: true,
     },
   });
-  if (!orden) throw new AppError('Orden no encontrada', 404);
+  if (!orden) throw new NotFoundError('Orden no encontrada');
   if (orden.estado !== 'CANCELADO') {
     throw new AppError('La factura solo se gestiona cuando la orden está cancelada.');
   }

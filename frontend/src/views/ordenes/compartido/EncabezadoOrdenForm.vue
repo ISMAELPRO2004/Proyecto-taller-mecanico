@@ -1,11 +1,11 @@
 <script setup>
 import { ArrowLeft, ChevronDown, Receipt } from 'lucide-vue-next';
-import { ESTADO_ORDEN_OPTIONS, ESTADOS_OPERATIVOS, labelEstadoOrden } from '../../../constants/estadosOrden.js';
+import { ESTADO, ESTADO_ORDEN_OPTIONS, ESTADOS_OPERATIVOS, labelEstadoOrden } from '../../../constants/estadosOrden.js';
 import { notify } from '../../../utils/alerts.js';
 
 const props = defineProps({
   esEdicion: { type: Boolean, default: false },
-  estado: { type: String, default: 'EN_ESPERA' },
+  estado: { type: String, default: ESTADO.EN_ESPERA },
   numeroOrden: { type: String, default: '' },
   modo: { type: String, default: 'recepcion' }, // recepcion | taller
   paso: { type: Number, default: 1 },
@@ -15,7 +15,7 @@ const emit = defineEmits(['back', 'update:estado']);
 
 const alCambiarEstado = async (event) => {
   const nuevo = event.target.value;
-  if (nuevo === 'TERMINADO' && nuevo !== props.estado) {
+  if (nuevo === ESTADO.TERMINADO && nuevo !== props.estado) {
     const ok = await notify.confirm(
       'La orden pasará a Terminada',
       'Es decir, no se podrá editar. ¿Estás seguro?'
@@ -95,7 +95,7 @@ const opcionesEstado = ESTADO_ORDEN_OPTIONS.filter((o) => ESTADOS_OPERATIVOS.inc
             class="cursor-pointer appearance-none bg-transparent py-1 pr-6 font-mono text-xs font-bold uppercase text-lyer-soft focus:outline-none"
             @change="alCambiarEstado"
           >
-            <option v-if="estado === 'ACEPTADO'" value="ACEPTADO">Aceptado</option>
+            <option v-if="estado === ESTADO.ACEPTADO" :value="ESTADO.ACEPTADO">Aceptado</option>
             <option v-for="opt in opcionesEstado" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </option>

@@ -1,11 +1,11 @@
 import prisma from '../../config/prisma.js';
-import { AppError } from '../../utils/errors.js';
+import { AppError, NotFoundError } from '../../utils/errors.js';
 import {
   auditarBorrador,
   eventosPasoVehiculo,
   eventosPasoCliente,
   eventosTrabajoBorrador,
-} from '../../auditoria/index.js';
+} from '../auditoria/index.js';
 import {
   includeOrdenDetalle,
   upsertCliente,
@@ -77,7 +77,7 @@ export const guardarPasoVehiculo = async (id, { vehiculo, actualizarDatos = fals
         where: { id: ordenId },
         include: { vehiculo: { include: { marca: true } } },
       });
-      if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+      if (!ordenPrevia) throw new NotFoundError('Orden no encontrada');
       if (ordenPrevia.estado !== 'EN_ESPERA') {
         throw new AppError('Solo se puede cambiar el vehículo mientras la orden está en espera.');
       }
@@ -147,7 +147,7 @@ export const guardarPasoCliente = async (id, { cliente, actualizarDatos = false 
       where: { id: ordenId },
       include: { cliente: true },
     });
-    if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+    if (!ordenPrevia) throw new NotFoundError('Orden no encontrada');
     if (ordenPrevia.estado !== 'EN_ESPERA') {
       throw new AppError('Solo se puede cambiar el cliente mientras la orden está en espera.');
     }
@@ -198,7 +198,7 @@ export const completarRecepcion = async (id, data, req) => {
 
   const { orden, eventos } = await prisma.$transaction(async (tx) => {
     const ordenPrevia = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } });
-    if (!ordenPrevia) throw new AppError('Orden no encontrada', 404);
+    if (!ordenPrevia) throw new NotFoundError('Orden no encontrada');
     if (ordenPrevia.estado !== 'EN_ESPERA') {
       throw new AppError('Solo se completa la recepción en borradores EN_ESPERA.');
     }

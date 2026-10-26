@@ -1,5 +1,5 @@
 import { createReadStream } from 'fs';
-import * as auditoriaService from '../services/auditoriaService.js';
+import * as auditoriaService from '../services/auditoria/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const listarLogs = asyncHandler(async (req, res) => {

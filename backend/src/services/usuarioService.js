@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
-import { AppError } from '../utils/errors.js';
-import { registrarLog } from '../auditoria/index.js';
+import { AppError, NotFoundError } from '../utils/errors.js';
+import { registrarLog } from './auditoria/index.js';
 
 export const crearUsuario = async ({ username, password, nombreCompleto, rol }, req) => {
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -25,7 +25,7 @@ export const editarUsuario = async (id, { username, nombreCompleto, rol, passwor
     select: { username: true, nombreCompleto: true, rol: true },
   });
 
-  if (!anterior) throw new AppError('Usuario no encontrado', 404);
+  if (!anterior) throw new NotFoundError('Usuario no encontrado');
 
   const dataActualizar = {
     username,
@@ -58,7 +58,7 @@ export const eliminarUsuario = async (id, req) => {
     select: { nombreCompleto: true, username: true, rol: true },
   });
 
-  if (!usuario) throw new AppError('Usuario no encontrado', 404);
+  if (!usuario) throw new NotFoundError('Usuario no encontrado');
 
   if (parseInt(id) === req.user.id) {
     throw new AppError('No puedes eliminar tu propia cuenta.');
@@ -85,7 +85,7 @@ export const toggleActivarUsuario = async (id, req) => {
     select: { activo: true, username: true, nombreCompleto: true },
   });
 
-  if (!anterior) throw new AppError('Usuario no encontrado', 404);
+  if (!anterior) throw new NotFoundError('Usuario no encontrado');
 
   const actualizado = await prisma.usuario.update({
     where: { id: parseInt(id) },

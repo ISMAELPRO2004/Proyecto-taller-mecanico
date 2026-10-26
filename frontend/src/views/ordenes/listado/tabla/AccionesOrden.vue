@@ -4,6 +4,7 @@ import {
 } from 'lucide-vue-next';
 import { useTablaOrdenes } from './useTablaOrdenes.js';
 import { accionBtn } from './ordenTabla.js';
+import { ESTADO } from '../../../../constants/estadosOrden.js';
 
 defineProps({
   orden: { type: Object, required: true },
@@ -51,7 +52,7 @@ const {
       v-if="mostrarEditar(orden)"
       type="button"
       :class="[accionBtn, 'text-sky-300 hover:border-sky-400/50 hover:bg-sky-500/10']"
-      :title="orden.pasoRecepcion != null ? 'Continuar' : (orden.estado === 'EN_ESPERA' ? 'Editar' : 'Completar')"
+      :title="orden.pasoRecepcion != null ? 'Continuar' : (orden.estado === ESTADO.EN_ESPERA ? 'Editar' : 'Completar')"
       @click="$emit('editar', orden)"
     >
       <Edit3 class="h-4 w-4" />

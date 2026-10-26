@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
-import { AppError } from '../utils/errors.js';
-import { registrarLog } from '../auditoria/index.js';
+import { AppError, NotFoundError } from '../utils/errors.js';
+import { registrarLog } from './auditoria/index.js';
 
 /**
  * Factory CRUD para catálogos (materiales, servicios, terceros).
@@ -54,7 +54,7 @@ export const createCatalogoService = ({
 
   const actualizar = async (id, { descripcion, precioBase, responsable }, req) => {
     const anterior = await repo().findUnique({ where: { id: parseInt(id) } });
-    if (!anterior) throw new AppError(`${labels.entidad} no encontrado`, 404);
+    if (!anterior) throw new NotFoundError(`${labels.entidad} no encontrado`);
 
     const precio = parseFloat(precioBase);
     if (!Number.isFinite(precio) || precio <= 0) throw new AppError('Ingresa un precio válido.');
@@ -86,7 +86,7 @@ export const createCatalogoService = ({
 
   const eliminar = async (id, req) => {
     const anterior = await repo().findUnique({ where: { id: parseInt(id) } });
-    if (!anterior) throw new AppError(`${labels.entidad} no encontrado`, 404);
+    if (!anterior) throw new NotFoundError(`${labels.entidad} no encontrado`);
 
     try {
       await repo().delete({ where: { id: parseInt(id) } });

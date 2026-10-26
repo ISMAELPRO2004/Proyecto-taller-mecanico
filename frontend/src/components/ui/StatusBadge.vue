@@ -1,26 +1,35 @@
 <script setup>
+import { ESTADO, ESTADOS_ORDEN } from '../../constants/estadosOrden.js';
+
 const props = defineProps({
-  estado: { type: String, required: true },
+  estado: { type: String, default: '' },
   cerrada: { type: Boolean, default: false },
-  size: { type: String, default: 'sm' },
+  size: {
+    type: String,
+    default: 'sm',
+    validator: (v) => ['sm', 'md'].includes(v),
+  },
   oscuro: { type: Boolean, default: false },
 });
 
-const ESTADO_CONFIG = {
-  EN_ESPERA: { label: 'En Espera', badge: 'badge-ghost text-slate-600' },
-  ACEPTADO: { label: 'Aceptado', badge: 'badge-primary text-primary-content' },
-  EN_REPARACION: { label: 'En Reparación', badge: 'badge-warning text-warning-content' },
-  CAMBIO_ACEITE: { label: 'Cambio de Aceite', badge: 'badge-info text-info-content' },
-  ESPERANDO_REPUESTO: { label: 'Esperando Repuesto', badge: 'badge-info text-info-content' },
-  TERMINADO: { label: 'Terminado', badge: 'badge-success text-success-content' },
-  CANCELADO: { label: 'Cancelado', badge: 'badge-error text-error-content' },
+const BADGE = {
+  [ESTADO.EN_ESPERA]: 'badge-ghost text-slate-600',
+  [ESTADO.ACEPTADO]: 'badge-primary text-primary-content',
+  [ESTADO.EN_REPARACION]: 'badge-warning text-warning-content',
+  [ESTADO.CAMBIO_ACEITE]: 'badge-info text-info-content',
+  [ESTADO.ESPERANDO_REPUESTO]: 'badge-info text-info-content',
+  [ESTADO.TERMINADO]: 'badge-success text-success-content',
+  [ESTADO.CANCELADO]: 'badge-error text-error-content',
 };
 
 const badgeClass = (estado) => {
-  if (props.oscuro && estado === 'EN_ESPERA') return 'bg-slate-700 text-slate-100 border border-slate-500';
-  return ESTADO_CONFIG[estado]?.badge || 'badge-ghost';
+  if (props.oscuro && estado === ESTADO.EN_ESPERA) {
+    return 'bg-slate-700 text-slate-100 border border-slate-500';
+  }
+  return BADGE[estado] || 'badge-ghost';
 };
-const label = (estado) => ESTADO_CONFIG[estado]?.label || estado;
+
+const label = (estado) => ESTADOS_ORDEN[estado] || estado || '—';
 </script>
 
 <template>

@@ -7,7 +7,7 @@ import { notify } from '../../../../utils/alerts.js';
 import { puedeVerPrecios, puedeImprimir } from '../../../../utils/roles.js';
 import ModalFacturaOrden from '../factura/ModalFacturaOrden.vue';
 import { facturaPendiente } from '../composables/usePermisosOrden.js';
-import { labelEstadoOrden } from '../../../../constants/estadosOrden.js';
+import { ESTADO, labelEstadoOrden } from '../../../../constants/estadosOrden.js';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download, Camera, Clock
 } from 'lucide-vue-next';
@@ -65,9 +65,9 @@ const fechaIngreso = computed(() => {
 });
 
 const tonoEstado = (estado) => {
-  if (estado === 'TERMINADO') return 'border-green-500/40 bg-green-500/10 text-green-300';
-  if (estado === 'CANCELADO') return 'border-rose-500/40 bg-rose-500/10 text-rose-300';
-  if (estado === 'ESPERANDO_REPUESTO') return 'border-amber-500/40 bg-amber-500/10 text-amber-300';
+  if (estado === ESTADO.TERMINADO) return 'border-green-500/40 bg-green-500/10 text-green-300';
+  if (estado === ESTADO.CANCELADO) return 'border-rose-500/40 bg-rose-500/10 text-rose-300';
+  if (estado === ESTADO.ESPERANDO_REPUESTO) return 'border-amber-500/40 bg-amber-500/10 text-amber-300';
   return 'border-lyer-cyan/40 bg-lyer-cyan/10 text-lyer-cyan';
 };
 
@@ -127,8 +127,8 @@ watch(() => props.isOpen, (newVal) => {
 const guardarFactura = async (payload) => {
   guardandoFactura.value = true;
   try {
-    if (orden.value.estado === 'TERMINADO') {
-      orden.value = await ordenService.cambiarEstado(props.ordenId, { estado: 'CANCELADO', ...payload });
+    if (orden.value.estado === ESTADO.TERMINADO) {
+      orden.value = await ordenService.cambiarEstado(props.ordenId, { estado: ESTADO.CANCELADO, ...payload });
       notify.success('Orden cancelada', 'La facturación quedó registrada.');
     } else {
       orden.value = await ordenService.actualizarFactura(props.ordenId, payload);
@@ -269,7 +269,7 @@ const imprimir = async () => {
           </section>
 
           <section
-            v-if="orden.estado === 'TERMINADO' && esAdmin"
+            v-if="orden.estado === ESTADO.TERMINADO && esAdmin"
             class="flex flex-col justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 sm:flex-row sm:items-center"
           >
             <div>
@@ -286,7 +286,7 @@ const imprimir = async () => {
           </section>
 
           <section
-            v-if="esAdmin && orden.estado === 'CANCELADO'"
+            v-if="esAdmin && orden.estado === ESTADO.CANCELADO"
             :class="[
               'flex flex-col justify-between gap-3 rounded-xl border p-4 sm:flex-row sm:items-center',
               pendienteFactura ? 'border-amber-500/30 bg-amber-500/10' : 'border-[#4a2870]/45 bg-[#160a24]',

@@ -1,5 +1,6 @@
 import { ref, onMounted } from 'vue';
 import { ordenService } from '../../../services/ordenService.js';
+import { ESTADO } from '../../../constants/estadosOrden.js';
 
 export function useDashboard() {
   const cargando = ref(true);
@@ -21,11 +22,11 @@ export function useDashboard() {
       ordenes.value = data;
       stats.value = {
         total: data.length,
-        enReparacion: data.filter((o) => o.estado === 'EN_REPARACION').length,
-        esperandoRepuesto: data.filter((o) => o.estado === 'ESPERANDO_REPUESTO').length,
-        cambioAceite: data.filter((o) => o.estado === 'CAMBIO_ACEITE').length,
-        terminadas: data.filter((o) => o.estado === 'TERMINADO').length,
-        canceladas: data.filter((o) => o.estado === 'CANCELADO').length,
+        enReparacion: data.filter((o) => o.estado === ESTADO.EN_REPARACION).length,
+        esperandoRepuesto: data.filter((o) => o.estado === ESTADO.ESPERANDO_REPUESTO).length,
+        cambioAceite: data.filter((o) => o.estado === ESTADO.CAMBIO_ACEITE).length,
+        terminadas: data.filter((o) => o.estado === ESTADO.TERMINADO).length,
+        canceladas: data.filter((o) => o.estado === ESTADO.CANCELADO).length,
       };
       ordenesRecientes.value = data.slice(0, 5);
     } catch (e) {
