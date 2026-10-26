@@ -23,8 +23,6 @@ Variables en `.env` (nombres; no copiar secretos):
 | `JWT_SECRET` | Firma de tokens |
 | `PORT` | Por defecto 3000 |
 | `FRONTEND_URL` | Origen CORS (puede ser lista separada por comas; incluye el túnel si aplica) |
-| `APISPERU_BASE_URL` | Consulta DNI/RUC (opcional) |
-| `APISPERU_TOKEN` | JWT de APIsPeru. Solo backend, nunca `VITE_` |
 
 Prisma 7 usa el adaptador `PrismaPg`. El cliente se crea en `src/config/prisma.js`.
 
@@ -62,7 +60,7 @@ backend/
 
 ### `src/config/`
 
-- `env.js`: lee `process.env`. No loguea el token de APIsPeru ni el JWT.
+- `env.js`: lee `process.env`. No loguea `JWT_SECRET`.
 - `prisma.js`: única conexión.
 
 ### `src/routes/`
@@ -79,7 +77,7 @@ Cada ruta declara **quién entra** (`authenticateJWT` + `authorize`) y **qué cu
 | `serviciosTercerosRoutes.js` | `/api/terceros` | Trabajos externos |
 | `ordenRoutes.js` | `/api/ordenes` | Borrador, taller, fotos, factura |
 | `vehiculoRoutes.js` | `/api/vehiculos` | Placa, marcas, `POST /reconocer` |
-| `clienteRoutes.js` | `/api/clientes` | CRUD + `GET /consulta` DNI/RUC |
+| `clienteRoutes.js` | `/api/clientes` | CRUD y búsqueda local |
 
 ### `src/controllers/`
 
@@ -93,7 +91,7 @@ Los errores se lanzan en el servicio (`NotFoundError`, `UnauthorizedError`, etc.
 | --- | --- |
 | `authService.js` | Login: sube `versionSesion` y firma un JWT de 8 h. Un login nuevo cierra el anterior |
 | `usuarioService.js` | Alta/edición (`contrasena` ≥ 6), no borrar la propia cuenta |
-| `clienteService.js` | CRUD; `consultarDocumento`: Prisma por documento, si no APIsPeru |
+| `clienteService.js` | CRUD y listado local por nombre/documento |
 | `vehiculoService.js` | Marcas y vehículos; `reconocerPlaca` (stub del modelo de placas) |
 | `catalogoService.js` | Factory CRUD; técnico recibe ítems **sin** `precioBase` |
 | `fotoOrdenService.js` | Guarda/lee JPG-PNG-WEBP ≤ 5 MB en `uploads/ordenes/{id}/` |
@@ -112,7 +110,7 @@ Zod. El middleware parsea y, si falla, 400 con `{ message, errors: [{ campo, men
 
 - `auth.schema.js` — login
 - `orden.schema.js` — borrador, taller, factura, pasos
-- `cliente.schema.js` — alta y consulta documento
+- `cliente.schema.js` — alta de cliente
 - `vehiculo.schema.js` — marca, upsert, param placa
 - `inventario.schema.js` — material/servicio/tercero
 - `user.schema.js` — crear/editar usuario
@@ -135,7 +133,7 @@ Zod. El middleware parsea y, si falla, 400 con `{ message, errors: [{ campo, men
 - `asyncHandler.js`: `catch(next)`.
 - `money.js`: total de la orden.
 
-Errores de PostgreSQL (pool), Prisma (`P1001` conexión, `P2002` duplicado, etc.), APIsPeru y excepciones no capturadas se registran ahí. El cliente recibe un mensaje corto, no el stack.
+Errores de PostgreSQL (pool), Prisma (`P1001` conexión, `P2002` duplicado, etc.) y excepciones no capturadas se registran ahí. El cliente recibe un mensaje corto, no el stack.
 
 ## HTTP de órdenes (resumen)
 
@@ -152,16 +150,6 @@ Errores de PostgreSQL (pool), Prisma (`P1001` conexión, `P2002` duplicado, etc.
 | POST/GET/DELETE | `/ordenes/:id/foto/:tipo` | según reglas | `registro` (casi inmutable) / `desarrollo` |
 
 Fotos en disco, no en PostgreSQL. La columna guarda la ruta relativa.
-
-## Consulta DNI/RUC
-
-`GET /api/clientes/consulta?tipo=DNI|RUC&numero=...`
-
-1. Si `numeroDocumento` existe en Prisma → `{ fuente: 'local', cliente }`.
-2. Si no, APIsPeru (`/dni/{n}` o `/ruc/{n}`) con el token del `.env`.
-3. Si falla → plantilla vacía para carga manual.
-
-El front **nunca** ve el token.
 
 ## Escaneo de placas (preparado)
 

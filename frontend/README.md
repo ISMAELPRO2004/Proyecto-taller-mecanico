@@ -55,7 +55,7 @@ Login vía `authService`. Logout limpia `localStorage` **y** los borradores loca
 | `authService.js` | `POST /auth/login` |
 | `ordenService.js` | Órdenes, borrador, fotos, factura |
 | `vehiculoService.js` | Placa, marcas, `reconocerPlaca` |
-| `clienteService.js` | CRUD + consulta DNI/RUC |
+| `clienteService.js` | CRUD + listado por nombre/documento |
 | `catalogoService.js` | inventario / servicios / terceros |
 | `usuarioService.js` | Usuarios |
 
@@ -106,7 +106,7 @@ Wizard de recepción (`NuevaOrdenView` también sirve en `/ordenes/editar/:id`).
 | Carpeta | Paso |
 | --- | --- |
 | `vehiculo/` | Elegir escanear o escribir, buscar placa, historial, marca/modelo |
-| `cliente/` | DNI/RUC, APIsPeru vía backend, datos |
+| `cliente/` | Búsqueda por nombre en clientes del taller, datos (documento opcional) |
 | `recepcion/` | Solicitud, foto de registro, observaciones |
 | `pasos/` | Indicador 1-2-3 |
 | `composables/` | Junta el estado, el borrador local y la carga inicial |

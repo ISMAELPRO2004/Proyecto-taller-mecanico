@@ -12,8 +12,7 @@ const {
   puedeEditarVehiculoUI, onNuevaMarca, empezarEditarVehiculoEnPaso, editandoVehiculo,
   cancelarEdicionVehiculo, guardandoPaso, guardarPasoVehiculo, pasoOrigenEdicion,
   resumenVehiculo, irAEditarVehiculo, cambiarVehiculo, clienteBloqueado,
-  clienteConsultado, clienteEraNuevo, nombreClienteBloqueado, onCambioNombre, onCambioBusqueda,
-  consultarCliente, consultandoDocumento,
+  clienteConsultado, clienteEraNuevo, nombreClienteBloqueado, onCambioNombre, marcarClienteNuevo,
   puedeEditarClienteUI, aplicarCliente, empezarEditarClienteEnPaso, cambiarCliente,
   editandoCliente, clienteConfirmado, cancelarEdicionCliente, irAPaso, guardarPasoCliente,
   resumenCliente, recepcionCompleta, irAEditarCliente, fotoSrc, puedeCambiarRegistro,
@@ -85,13 +84,11 @@ const {
         :editando="editandoCliente"
         :cliente-confirmado="clienteConfirmado"
         :guardando-paso="guardandoPaso"
-        :consultando="consultandoDocumento"
         @editar-vehiculo="irAEditarVehiculo"
         @cambiar-vehiculo="cambiarVehiculo"
         @update:cliente="form.cliente = $event"
         @actualizar-nombre="onCambioNombre"
-        @cambiar-busqueda="onCambioBusqueda"
-        @buscar-documento="consultarCliente"
+        @marcar-cliente-nuevo="marcarClienteNuevo"
         @seleccionar-cliente="aplicarCliente"
         @editar-cliente="empezarEditarClienteEnPaso"
         @cambiar-cliente="cambiarCliente"

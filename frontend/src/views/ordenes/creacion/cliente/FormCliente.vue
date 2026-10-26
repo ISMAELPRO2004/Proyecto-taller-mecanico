@@ -10,14 +10,12 @@ const props = defineProps({
   consultado: { type: Boolean, default: false },
   esNuevo: { type: Boolean, default: true },
   puedeEditar: { type: Boolean, default: false },
-  consultando: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
   'update:cliente',
   'actualizar-nombre',
-  'cambiar-busqueda',
-  'buscar-documento',
+  'marcar-cliente-nuevo',
   'seleccionar-cliente',
   'editar',
 ]);
@@ -42,28 +40,17 @@ const patch = (campo, valor) => {
   emit('update:cliente', next);
 };
 
-const onTipoBusqueda = (tipo) => {
-  emit('cambiar-busqueda', { tipo, numero: digitosDocumento(tipo, props.cliente.numeroDocumento) });
-};
-
-const onNumeroBusqueda = (numero) => {
-  emit('cambiar-busqueda', { tipo: props.cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI', numero });
-};
-
 const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none disabled:cursor-not-allowed disabled:opacity-80';
 </script>
 
 <template>
   <section class="space-y-8 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10">
     <FormBusquedaCliente
-      :tipo-documento="cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI'"
-      :numero-documento="cliente.numeroDocumento"
+      :nombre="cliente.nombreRazonSocial"
       :bloqueado="nombreBloqueado"
-      :consultando="consultando"
-      :error="errores.numeroDocumento"
-      @update:tipo-documento="onTipoBusqueda"
-      @update:numero-documento="onNumeroBusqueda"
-      @buscar="$emit('buscar-documento')"
+      :error="errores.nombreRazonSocial"
+      @update:nombre="$emit('actualizar-nombre', $event)"
+      @marcar-nuevo="$emit('marcar-cliente-nuevo')"
       @seleccionar="$emit('seleccionar-cliente', $event)"
     />
 
@@ -74,7 +61,7 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
         <Info class="mt-0.5 h-4 w-4 shrink-0 text-lyer-cyan" />
         <span>
           {{ cliente.tipoCliente === 'EMPRESA' ? 'Nueva empresa' : 'Nueva persona' }}.
-          Completa los datos para registrarla. El nombre se rellena si la consulta lo encuentra.
+          Completa los datos para registrarla. El documento es opcional.
         </span>
       </p>
       <p v-else class="flex items-start gap-2 text-sm text-lyer-cyan">
@@ -108,21 +95,6 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
         </div>
 
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <div class="md:col-span-2">
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
-              {{ cliente.tipoCliente === 'EMPRESA' ? 'Razón social' : 'Nombre y apellidos' }}
-              <span class="text-lyer-accent">*</span>
-            </label>
-            <input
-              :value="cliente.nombreRazonSocial"
-              :disabled="bloqueado"
-              placeholder="Se completa al consultar el documento"
-              :class="[campo, errores.nombreRazonSocial ? 'border-rose-400' : '']"
-              @input="$emit('actualizar-nombre', $event.target.value)"
-            />
-            <p v-if="errores.nombreRazonSocial" class="mt-1 text-sm font-medium text-rose-300">{{ errores.nombreRazonSocial }}</p>
-          </div>
-
           <div>
             <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
               Tipo
@@ -140,6 +112,37 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
               </select>
               <ChevronDown class="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-lyer-muted" />
             </div>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">Documento</label>
+            <div class="relative">
+              <select
+                :value="cliente.tipoCliente === 'EMPRESA' ? 'RUC' : cliente.tipoDocumento"
+                :disabled="bloqueado || cliente.tipoCliente === 'EMPRESA'"
+                :class="[campo, 'appearance-none pr-10', errores.tipoDocumento ? 'border-rose-400' : '']"
+                @change="patch('tipoDocumento', $event.target.value)"
+              >
+                <option v-if="cliente.tipoCliente !== 'EMPRESA'" value="DNI">DNI</option>
+                <option value="RUC">RUC</option>
+              </select>
+              <p v-if="errores.tipoDocumento" class="mt-1 text-xs text-rose-300">{{ errores.tipoDocumento }}</p>
+              <ChevronDown class="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-lyer-muted" />
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">N° documento</label>
+            <input
+              :value="cliente.numeroDocumento"
+              :disabled="bloqueado"
+              inputmode="numeric"
+              :maxlength="cliente.tipoDocumento === 'RUC' ? 11 : 8"
+              placeholder="Opcional"
+              :class="[campo, 'font-mono', errores.numeroDocumento ? 'border-rose-400' : '']"
+              @input="patch('numeroDocumento', $event.target.value)"
+            />
+            <p v-if="errores.numeroDocumento" class="mt-1 text-xs text-rose-300">{{ errores.numeroDocumento }}</p>
           </div>
 
           <div>

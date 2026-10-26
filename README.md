@@ -54,7 +54,7 @@ EN_ESPERA ──aceptar──► ACEPTADO ──► EN_REPARACION
 
 - **Orden**: número anual, placa, cliente opcional hasta el paso 2, fotos, ítems, total, factura.
 - **Vehículo**: placa `AAA-AAA` (clave), marca, modelo, km, horómetro.
-- **Cliente**: persona/empresa, DNI (8) o RUC (11). En recepción el documento se consulta (local o APIsPeru); en registros maestros es obligatorio.
+- **Cliente**: persona/empresa, DNI (8) o RUC (11). En recepción se busca por nombre entre los clientes del taller (documento opcional). En registros maestros el documento es obligatorio.
 - **Catálogos**: materiales, servicios del taller, terceros (con responsable). Precio base opcional al crear; al editar se pide precio.
 - **Auditoría**: un log JSON por acción (quién, cuándo, IP, cambios).
 

@@ -14,6 +14,4 @@ export const env = {
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),
-  apisperuBaseUrl: (process.env.APISPERU_BASE_URL || 'https://dniruc.apisperu.com/api/v1').replace(/\/$/, ''),
-  apisperuToken: process.env.APISPERU_TOKEN || '',
 };

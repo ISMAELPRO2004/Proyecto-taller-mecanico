@@ -22,12 +22,6 @@ export const buscarPorDocumento = asyncHandler(async (req, res) => {
   res.json(cliente);
 }, { defaultStatus: 500 });
 
-export const consultarDocumento = asyncHandler(async (req, res) => {
-  const { tipo, numero } = req.validatedQuery;
-  const resultado = await clienteService.consultarDocumento(tipo, numero);
-  res.json(resultado);
-}, { defaultStatus: 500 });
-
 export const upsertCliente = asyncHandler(async (req, res) => {
   const cliente = await clienteService.crearOActualizarCliente(req.body, req);
   res.status(201).json(cliente);
