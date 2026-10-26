@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, computed } from 'vue';
 import { ordenService } from '../../../../services/ordenService.js';
 import { generarOrdenPDF } from '../../../../utils/ordenPdf.js';
 import { useAuthStore } from '../../../../stores/auth.js';
@@ -8,6 +8,7 @@ import { puedeVerPrecios, puedeImprimir } from '../../../../utils/roles.js';
 import ModalFacturaOrden from '../factura/ModalFacturaOrden.vue';
 import { facturaPendiente } from '../composables/usePermisosOrden.js';
 import { ESTADO, labelEstadoOrden } from '../../../../constants/estadosOrden.js';
+import { useCargaDetalleOrden } from './useCargaDetalleOrden.js';
 import {
   X, Printer, User, Car, Wrench, Package, FileText, Download, Camera, Clock
 } from 'lucide-vue-next';
@@ -22,9 +23,7 @@ const auth = useAuthStore();
 const verPrecios = computed(() => puedeVerPrecios(auth.usuario?.rol));
 const puedeVerImprimir = computed(() => puedeImprimir(auth.usuario?.rol));
 const esAdmin = computed(() => auth.usuario?.rol === 'ADMIN');
-const fotos = ref({ registro: '', desarrollo: '' });
-const orden   = ref(null);
-const loading = ref(false);
+const { orden, loading, fotos } = useCargaDetalleOrden(props);
 const facturaAbierta = ref(false);
 const guardandoFactura = ref(false);
 const pendienteFactura = computed(() =>
@@ -81,47 +80,6 @@ const totalDetalle = computed(() => {
   const servicios = (actual.servicios || []).reduce((acc, s) => acc + Number(s.monto || 0), 0);
   const terceros = (actual.terceros || []).reduce((acc, t) => acc + Number(t.monto || 0), 0);
   return Math.round((materiales + servicios + terceros) * 100) / 100;
-});
-
-const revocarFotos = () => {
-  if (fotos.value.registro) URL.revokeObjectURL(fotos.value.registro);
-  if (fotos.value.desarrollo) URL.revokeObjectURL(fotos.value.desarrollo);
-  fotos.value = { registro: '', desarrollo: '' };
-};
-
-const cargarFoto = async (tipo, ruta) => {
-  if (!ruta || !props.ordenId) return;
-  try {
-    const blob = await ordenService.descargarFoto(props.ordenId, tipo);
-    if (fotos.value[tipo]) URL.revokeObjectURL(fotos.value[tipo]);
-    fotos.value[tipo] = URL.createObjectURL(blob);
-  } catch {
-    fotos.value[tipo] = '';
-  }
-};
-
-const cargarDetalle = async () => {
-  if (!props.ordenId) return;
-  loading.value = true;
-  try {
-    orden.value = await ordenService.obtener(props.ordenId);
-    await Promise.all([
-      cargarFoto('registro', orden.value.fotoRegistro),
-      cargarFoto('desarrollo', orden.value.fotoDesarrollo),
-    ]);
-  } catch (error) {
-    console.error('Error al cargar detalle:', error);
-  } finally {
-    loading.value = false;
-  }
-};
-
-watch(() => props.isOpen, (newVal) => {
-  if (newVal) cargarDetalle();
-  else {
-    orden.value = null;
-    revocarFotos();
-  }
 });
 
 const guardarFactura = async (payload) => {

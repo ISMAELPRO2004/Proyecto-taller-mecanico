@@ -17,6 +17,7 @@ export function useListadoOrdenes() {
   const cargando = ref(true);
   const idSeleccionado = ref(null);
   const modalAbierto = ref(false);
+  const modalBorradorAbierto = ref(false);
   const facturaAbierta = ref(false);
   const ordenFactura = ref(null);
   const guardandoFactura = ref(false);
@@ -49,9 +50,24 @@ export function useListadoOrdenes() {
   const { paginaActual, itemsPorPagina, opcionesItems, totalPaginas, itemsPaginados: ordenesPaginadas, filasVacias } =
     usePaginacion(ordenesFiltradas);
 
-  const verDetalle = (id) => {
-    idSeleccionado.value = id;
+  const verDetalle = (ordenOId) => {
+    const o = typeof ordenOId === 'object' && ordenOId
+      ? ordenOId
+      : ordenes.value.find((item) => item.id === ordenOId);
+    if (!o) return;
+    idSeleccionado.value = o.id;
+    if (o.estado === ESTADO.EN_ESPERA) {
+      modalBorradorAbierto.value = true;
+      modalAbierto.value = false;
+      return;
+    }
+    modalBorradorAbierto.value = false;
     modalAbierto.value = true;
+  };
+
+  const continuarBorrador = (o) => {
+    modalBorradorAbierto.value = false;
+    irAEditar(o);
   };
 
   const abrirFactura = (o) => {
@@ -150,6 +166,7 @@ export function useListadoOrdenes() {
     cargando,
     idSeleccionado,
     modalAbierto,
+    modalBorradorAbierto,
     facturaAbierta,
     ordenFactura,
     guardandoFactura,
@@ -163,6 +180,7 @@ export function useListadoOrdenes() {
     totalPaginas,
     obtenerOrdenes,
     verDetalle,
+    continuarBorrador,
     abrirFactura,
     aceptarOrden,
     cancelarTerminado,

@@ -189,9 +189,9 @@ Si igual ves el formulario vacío:
 
 Suele ser una de estas, no un timer interno del taller:
 
-1. **Vite en `pnpm dev`**. Si un archivo no se puede parchar en caliente, hace *full reload* (en consola: `page reload src/...`). Con el backend en nodemon y el agente/editor guardando, se ve seguido. En un build de producción no pasa.
-2. **401 del API.** `axios.js` hace `window.location.href = '/login'`: recarga dura. Pasa si el JWT caducó, si **el mismo usuario entró en otro dispositivo**, si el túnel del API se cayó, o si el usuario se desactivó.
-3. **Túnel.** Si recargas el proceso de Cloudflare, la URL del front o del API cambia: hay que actualizar `.env` y volver a entrar. El storage de la URL vieja no sirve.
+1. **Vite en `pnpm dev`**. Si un archivo no se puede parchar en caliente, hace *full reload* (en consola: `page reload src/...`). El túnel Cloudflare a veces corta el websocket de HMR y Vite recarga igual. En un build de producción no pasa.
+2. **401 del API.** Solo si el JSON es del taller (sesión vencida, otro dispositivo, usuario desactivado). Un 401 HTML del túnel ya no recarga.
+3. **Túnel.** Si recargas el proceso de Cloudflare, la URL del front o del API cambia: hay que actualizar `.env` y volver a entrar.
 4. Recarga manual / F5 / “tirar para actualizar” en el celular.
 
 En producción, con API y front fijos y sin Vite, el caso 1 desaparece.

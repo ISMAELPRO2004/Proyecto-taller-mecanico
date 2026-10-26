@@ -2,15 +2,17 @@
 import { computed } from 'vue';
 import MainLayout from './components/layout/MainLayout.vue';
 import { useRoute } from 'vue-router';
+import { useAuthStore } from './stores/auth.js';
 
 const route = useRoute();
-const needsLayout = computed(() => route.name !== 'login');
+const auth = useAuthStore();
+const esLogin = computed(() => route.name === 'login');
+const needsLayout = computed(() => !esLogin.value && !!auth.token);
 </script>
 
 <template>
-  <!-- MainLayout ya renderiza su propio <router-view /> -->
   <MainLayout v-if="needsLayout" />
-  <router-view v-else />
+  <router-view v-else-if="esLogin" />
 </template>
 
 <style>
@@ -18,6 +20,7 @@ html, body, #app {
   height: 100%;
   margin: 0;
   padding: 0;
+  background: #080d1a;
 }
 
 .swal2-container {

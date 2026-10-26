@@ -3,6 +3,7 @@ import EncabezadoListado from './encabezado/EncabezadoListado.vue';
 import FiltrosOrdenes from './filtros/FiltrosOrdenes.vue';
 import TablaOrdenes from './tabla/TablaOrdenes.vue';
 import OrdenDetalleModal from './detalle/OrdenDetalleModal.vue';
+import OrdenDetalleBorradorModal from './detalle/OrdenDetalleBorradorModal.vue';
 import ModalFacturaOrden from './factura/ModalFacturaOrden.vue';
 import Paginador from '../../../components/ui/Paginador.vue';
 import { useListadoOrdenes } from './composables/useListadoOrdenes.js';
@@ -13,6 +14,7 @@ const {
   cargando,
   idSeleccionado,
   modalAbierto,
+  modalBorradorAbierto,
   facturaAbierta,
   ordenFactura,
   guardandoFactura,
@@ -26,6 +28,7 @@ const {
   totalPaginas,
   obtenerOrdenes,
   verDetalle,
+  continuarBorrador,
   abrirFactura,
   aceptarOrden,
   cancelarTerminado,
@@ -75,6 +78,12 @@ const {
       </div>
     </div>
 
+    <OrdenDetalleBorradorModal
+      :orden-id="idSeleccionado"
+      :is-open="modalBorradorAbierto"
+      @close="modalBorradorAbierto = false"
+      @continuar="continuarBorrador"
+    />
     <OrdenDetalleModal :orden-id="idSeleccionado" :is-open="modalAbierto" @close="modalAbierto = false" @actualizada="obtenerOrdenes" />
     <ModalFacturaOrden
       :is-open="facturaAbierta"

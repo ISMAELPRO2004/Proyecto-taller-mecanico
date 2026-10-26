@@ -16,8 +16,10 @@ api.interceptors.response.use(
     const url = String(error.config?.url || '');
     const esLogin = url.includes('/auth/login');
 
-    if (error.response?.status === 401 && !esLogin) {
-      if (error.response?.data?.error === 'SESION_REEMPLAZADA') {
+    const cuerpo = error.response?.data;
+    const esApi = cuerpo && typeof cuerpo === 'object' && (cuerpo.error || cuerpo.message);
+    if (error.response?.status === 401 && !esLogin && esApi) {
+      if (cuerpo.error === 'SESION_REEMPLAZADA') {
         sessionStorage.setItem(
           'lyer.aviso.login',
           'Se inició sesión en otro dispositivo. Esta sesión se cerró.'
@@ -26,7 +28,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+        window.location.replace('/login');
       }
     }
     return Promise.reject(error);

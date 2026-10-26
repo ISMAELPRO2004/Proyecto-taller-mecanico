@@ -2,13 +2,11 @@
 import { computed } from 'vue';
 import { ChevronLeft, ChevronRight, ListOrdered } from 'lucide-vue-next';
 
-const esEntero = (v) => v == null || (typeof v === 'number' && Number.isFinite(v));
-
 const props = defineProps({
-  modelValue: { type: Number, default: 1, validator: esEntero },
-  itemsPorPagina: { type: Number, default: 10, validator: esEntero },
-  totalPaginas: { type: Number, default: 1, validator: esEntero },
-  total: { type: Number, default: null, validator: esEntero },
+  modelValue: { type: Number, default: 1 },
+  itemsPorPagina: { type: Number, default: 10 },
+  totalPaginas: { type: Number, default: 1 },
+  total: { type: Number, default: null },
   opcionesItems: { type: Array, default: () => [5, 10, 20, 50] },
   labelItems: { type: String, default: 'filas' },
   mostrarLabelVer: { type: Boolean, default: false },

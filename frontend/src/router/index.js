@@ -8,7 +8,7 @@ import { useAuthStore } from '../stores/auth.js';
 const routes = [
   {
     path: '/',
-    redirect: '/home',
+    redirect: () => (localStorage.getItem('token') ? '/home' : '/login'),
   },
   {
     path: '/login',
@@ -83,17 +83,22 @@ router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
 
   if (to.meta.requiresAuth && !auth.token) {
-    next('/login');
+    next({ name: 'login', replace: true });
+    return;
+  }
+
+  if (to.name === 'login' && auth.token) {
+    next({ name: 'dashboard', replace: true });
     return;
   }
 
   const rol = auth.usuario?.rol;
   if (to.meta.role && rol !== to.meta.role) {
-    next('/home');
+    next({ name: 'dashboard', replace: true });
     return;
   }
   if (to.meta.roles && !to.meta.roles.includes(rol)) {
-    next('/home');
+    next({ name: 'dashboard', replace: true });
     return;
   }
 

@@ -25,7 +25,7 @@ const {
 
 <template>
   <div class="flex items-center justify-center gap-1.5">
-    <button type="button" :class="[accionBtn, 'text-lyer-cyan hover:border-lyer-cyan/50 hover:bg-lyer-cyan/10']" title="Ver detalle" @click="$emit('verDetalle', orden.id)">
+    <button type="button" :class="[accionBtn, 'text-lyer-cyan hover:border-lyer-cyan/50 hover:bg-lyer-cyan/10']" title="Ver detalle" @click="$emit('verDetalle', orden)">
       <Eye class="h-4 w-4" />
     </button>
     <button
