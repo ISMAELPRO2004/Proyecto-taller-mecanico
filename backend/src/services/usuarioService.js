@@ -35,6 +35,7 @@ export const editarUsuario = async (id, { username, nombreCompleto, rol, passwor
 
   if (password && password.trim() !== '') {
     dataActualizar.password = await bcrypt.hash(password, 10);
+    dataActualizar.sesionVersion = { increment: 1 };
   }
 
   const actualizado = await prisma.usuario.update({
@@ -87,9 +88,14 @@ export const toggleActivarUsuario = async (id, req) => {
 
   if (!anterior) throw new NotFoundError('Usuario no encontrado');
 
+  const data = { activo: !anterior.activo };
+  if (anterior.activo) {
+    data.sesionVersion = { increment: 1 };
+  }
+
   const actualizado = await prisma.usuario.update({
     where: { id: parseInt(id) },
-    data: { activo: !anterior.activo },
+    data,
   });
 
   const accion = actualizado.activo ? 'ACTIVAR USUARIO' : 'DESACTIVAR USUARIO';

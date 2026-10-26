@@ -16,6 +16,8 @@ model Usuario {
   nombreCompleto     String?
   rol                Rol            @default(RECEPCIONISTA)
   activo             Boolean        @default(true)
+  /** Sube en cada login (y al cambiar clave o desactivar). Invalida el JWT anterior. */
+  sesionVersion      Int            @default(0)
   ordenesCreadas     OrdenTrabajo[] @relation("Creador")
   ordenesResponsable OrdenTrabajo[] @relation("Responsable")
   logs               LogActividad[]
@@ -218,6 +220,7 @@ model LogActividad {
   orden     OrdenTrabajo? @relation(fields: [ordenId], references: [id])
   accion    String
   detalles  Json?
+  /** IP del dispositivo que hizo la acción (X-Forwarded-For o req.ip). */
   ipCliente String?
   userAgent String?
   fecha     DateTime      @default(now())

@@ -18,8 +18,20 @@ export const login = async ({ username, password }) => {
     throw new UnauthorizedError('Credenciales inválidas');
   }
 
+  const actualizado = await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: { sesionVersion: { increment: 1 } },
+    select: {
+      id: true,
+      username: true,
+      rol: true,
+      nombreCompleto: true,
+      sesionVersion: true,
+    },
+  });
+
   const token = jwt.sign(
-    { id: usuario.id, rol: usuario.rol },
+    { id: actualizado.id, rol: actualizado.rol, sv: actualizado.sesionVersion },
     env.jwtSecret,
     { expiresIn: '8h' }
   );
@@ -27,10 +39,10 @@ export const login = async ({ username, password }) => {
   return {
     token,
     usuario: {
-      id: usuario.id,
-      username: usuario.username,
-      rol: usuario.rol,
-      nombre: usuario.nombreCompleto,
+      id: actualizado.id,
+      username: actualizado.username,
+      rol: actualizado.rol,
+      nombre: actualizado.nombreCompleto,
     },
   };
 };

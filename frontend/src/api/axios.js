@@ -13,10 +13,21 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = String(error.config?.url || '');
+    const esLogin = url.includes('/auth/login');
+
+    if (error.response?.status === 401 && !esLogin) {
+      if (error.response?.data?.error === 'SESION_REEMPLAZADA') {
+        sessionStorage.setItem(
+          'lyer.aviso.login',
+          'Se inició sesión en otro dispositivo. Esta sesión se cerró.'
+        );
+      }
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

@@ -1,78 +1,106 @@
-# 🛠️ Sistema de Gestión - Mecánica LYER
+# Sistema de gestión — Mecánica LYER
 
-Este documento centraliza la lógica de negocio, arquitectura y requerimientos técnicos del sistema de gestión para el taller mecánico de vehículos pesados **Mecánica LYER**.
+Aplicación para digitalizar las **órdenes de trabajo** del taller: recepción del vehículo, trabajo en piso, catálogo de insumos, registros maestros y auditoría.
 
-## 📝 Descripción del Proyecto
+El repositorio es un **cliente-servidor desacoplado**:
 
-El sistema tiene como objetivo digitalizar el proceso de creación y seguimiento de **Órdenes de Trabajo (OT)**, permitiendo un control estricto sobre el inventario de materiales con precios volátiles, la mano de obra y los servicios de terceros, manteniendo siempre una trazabilidad completa de las acciones de los usuarios.
+- **Backend** (`/backend`): API REST en Node.js + Express, capas Controller → Service → Prisma (PostgreSQL).
+- **Frontend** (`/frontend`): SPA Vue 3. Pantallas por característica (órdenes, inventario, registros, seguridad).
 
-## 🚀 Stack Tecnológico
+Detalle de cada carpeta: [backend/README.md](backend/README.md) y [frontend/README.md](frontend/README.md).
 
-* **Frontend:** Vue.js 3 (Vite) + Pinia (Gestión de estado) + Tailwind CSS.
-* **Backend:** Node.js (Express/NestJS).
-* **Base de Datos:** PostgreSQL (Relacional).
-* **Gestor de Paquetes:** `pnpm`.
-* **Arquitectura:** API REST con Backend y Frontend separados.
+## Qué resuelve
 
-## 💼 Lógica de Negocio
+1. La recepcionista identifica la placa (a mano o con cámara), carga cliente y evidencia, y deja un **borrador** `EN_ESPERA`.
+2. Supervisor o admin **acepta** el borrador. Pasa a taller (`ACEPTADO` y estados de trabajo).
+3. El técnico registra materiales, servicios, terceros y foto de desarrollo. **No ve precios**.
+4. `TERMINADO` bloquea la orden. Solo el admin puede pasarla a `CANCELADO` y cargar factura.
 
-### 1. Entidades Principales
+## Stack
 
-* **Orden de Trabajo (OT):** Documento central. Contiene número único, datos del cliente (nombre, celular), trabajos solicitados y estados.
-* **Vehículo:** Vinculado a la OT. Campos críticos: Placa (ID único), Marca, Modelo, Horómetro y Kilometraje.
-* **Catálogo de Materiales:** Lista de insumos (repuestos, aceites, etc.). Los precios son configurables por el Admin debido a fluctuaciones del mercado (ej. precio del dólar).
-* **Auditoría (Logs):** Registro histórico de "quién hizo qué y cuándo". Es vital para el control interno.
-
-### 2. Flujo de Estados de la Orden
-
-Una orden debe transitar obligatoriamente por los siguientes estados:
-
-1. **En reparación** (Estado inicial).
-2. **Cambio de aceite**.
-3. **Esperando repuesto**.
-4. **Terminado**.
-5. **Cancelado**.
-
-### 3. Gestión de Costos
-
-El total de la orden se calcula mediante la suma de tres sub-secciones:
-
-* **Materiales:** `Cantidad * Precio del día` (El precio se congela al momento de agregar el material a la OT).
-* **Mano de Obra / Servicios:** Descripción y monto fijo por trabajo realizado en el taller.
-* **Trabajos Terceros:** Servicios externos (ej. soldadura fuera del taller) con su respectivo monto.
-
-## 🔐 Roles y Permisos
-
-| Rol | Capacidades |
+| Capa | Tecnología |
 | --- | --- |
-| **Administrador** | Acceso total. Gestión de usuarios. **Único** capaz de modificar precios base en el catálogo. |
-| **Responsable** | Registro de OTs. Cambio de estados. Edición de montos por error humano. Cierre de órdenes. |
-| **Usuario General** | Registro de datos básicos. Sin permisos para cambiar estados o precios sensibles. |
+| Front | Vue 3.5, Vite 7, Pinia, Vue Router, Tailwind CSS 4, DaisyUI 5, Axios, Lucide, SweetAlert2, jsPDF |
+| Back | Node.js, Express 5, Prisma 7 + PostgreSQL, Zod, JWT, Multer, bcryptjs |
+| Paquetes | pnpm |
 
-> **Regla de Oro:** Una vez que una orden se marca como **"Cerrada"**, no se permite ninguna edición adicional para garantizar la integridad de los datos financieros.
+## Roles
 
-## 📊 Estructura de Datos (Esquema SQL)
+| Rol | Qué puede hacer |
+| --- | --- |
+| **ADMIN** | Todo: usuarios, logs, precios, borrar, factura, cancelar un Terminado. |
+| **SUPERVISOR** | Aceptar borradores, taller, catálogo, ve precios. No gestiona usuarios ni logs. |
+| **TECNICO** | Taller y crear ítems de catálogo. **Sin precios.** |
+| **RECEPCIONISTA** | Crear/editar borradores de recepción. **Sin precios.** No entra a taller. |
 
-El sistema se basa en una estructura relacional que prioriza la integridad:
+Precios visibles solo para ADMIN y SUPERVISOR.
 
-* `usuarios`: Manejo interno por `username` (sin obligatoriedad de email).
-* `ordenes_trabajo`: Cabecera de la orden y datos del vehículo.
-* `ot_materiales` / `ot_servicios` / `ot_terceros`: Tablas de detalle vinculadas a la OT.
-* `logs_actividad`: Tabla de auditoría para trazabilidad.
+## Flujo de una orden
 
----
+```
+Recepción (borrador)          Taller                         Cierre
+EN_ESPERA ──aceptar──► ACEPTADO ──► EN_REPARACION
+                                      CAMBIO_ACEITE
+                                      ESPERANDO_REPUESTO
+                                      TERMINADO ──(solo admin)──► CANCELADO + factura
+```
 
-## 🛠️ Instrucciones de Inicialización
+- `EN_ESPERA`: wizard de 3 pasos (vehículo → cliente → recepción). `pasoRecepcion` 1, 2 o `null` (completo).
+- Al aceptar debe estar la recepción completa (cliente, solicitud y foto de registro).
+- `TERMINADO` cierra la orden (`estaCerrada`). Nadie edita el trabajo.
+- `CANCELADO` después de Terminado es **solo admin**, con decisión de factura.
 
-### Backend
+## Datos principales
 
-1. Entrar a `/backend`.
-2. Ejecutar `pnpm install`.
-3. Configurar `.env` con las credenciales de PostgreSQL.
-4. `pnpm dev`.
+- **Orden**: número anual, placa, cliente opcional hasta el paso 2, fotos, ítems, total, factura.
+- **Vehículo**: placa `AAA-AAA` (clave), marca, modelo, km, horómetro.
+- **Cliente**: persona/empresa, DNI (8) o RUC (11). En recepción el documento se consulta (local o APIsPeru); en registros maestros es obligatorio.
+- **Catálogos**: materiales, servicios del taller, terceros (con responsable). Precio base opcional al crear; al editar se pide precio.
+- **Auditoría**: un log JSON por acción (quién, cuándo, IP, cambios).
 
-### Frontend
+Los precios que se copian a la orden (`precioAplicado` / `monto`) son los del momento; el catálogo puede cambiar después.
 
-1. Entrar a `/frontend`.
-2. Ejecutar `pnpm install`.
-3. `pnpm dev`.
+## Arranque local
+
+**Base de datos:** PostgreSQL. En `backend/.env` hace falta `DATABASE_URL` y `JWT_SECRET`.
+
+```bash
+# backend
+cd backend
+pnpm install
+npx prisma migrate dev
+pnpm seed          # usuarios admin / supervisor / tecnico / recepcion (clave en prisma/seed.js)
+pnpm dev           # http://localhost:3000
+
+# frontend (otra terminal)
+cd frontend
+pnpm install
+# .env: VITE_API_URL=http://localhost:3000/api
+pnpm dev           # http://localhost:5173
+```
+
+`FRONTEND_URL` del backend debe coincidir con el origen del front (si usan túnel Cloudflare, esa URL, no localhost).
+
+Usuarios de prueba: `admin`, `supervisor`, `tecnico`, `recepcion`. Contraseña de seed: `admin123`.
+
+Un mismo usuario **solo puede estar logueado en un dispositivo**. Si entra en el celular, la PC se cierra en la siguiente acción (y al revés).
+
+Un mismo usuario **solo puede estar logueado en un dispositivo**. Si entra en el celular, la PC se cierra en la siguiente acción (y al revés).
+
+## Dónde vive el “borrador” al recargar
+
+Hay **dos capas**, no se mezclan:
+
+| Qué | Dónde | Para qué |
+| --- | --- | --- |
+| Borrador de recepción ya guardado | PostgreSQL (`OrdenTrabajo` en `EN_ESPERA`) | Fuente de verdad. Sobrevive a cualquier recarga. |
+| Lo que aún no se mandó al API | Navegador: `sessionStorage` + IndexedDB | Recarga (F5), cámara en el celular, Vite. **Solo esa pestaña.** |
+| Sesión | `localStorage` (`token`, `user`) | Login. Persiste al cerrar el navegador. |
+
+Claves del navegador: `lyer.recepcion.borrador` y `lyer.taller.borrador`. Las fotos pendientes van a IndexedDB (`lyer-recepcion`, `lyer-taller`).
+
+Si sales del listado y vuelves a “Crear orden”, Vue destruye la pantalla: el restore local **solo corre si hubo recarga de página**, no un simple cambio de ruta. Detalle en [frontend/README.md](frontend/README.md#persistencia-y-recargas).
+
+## Túnel (celular / red)
+
+El front llama a `VITE_API_URL`. El back acepta CORS de `FRONTEND_URL`. Si el túnel rota, hay que actualizar ambos `.env`. No suban tokens ni `JWT_SECRET` al repositorio.

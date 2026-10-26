@@ -1,7 +1,9 @@
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth.js';
 import { notify } from '../../../utils/alerts.js';
+
+const CLAVE_AVISO = 'lyer.aviso.login';
 
 export function useLogin() {
   const username = ref('');
@@ -10,6 +12,13 @@ export function useLogin() {
   const cargando = ref(false);
   const auth = useAuthStore();
   const router = useRouter();
+
+  onMounted(() => {
+    const aviso = sessionStorage.getItem(CLAVE_AVISO);
+    if (!aviso) return;
+    sessionStorage.removeItem(CLAVE_AVISO);
+    notify.info('Sesión cerrada', aviso);
+  });
 
   const entrar = async () => {
     cargando.value = true;
