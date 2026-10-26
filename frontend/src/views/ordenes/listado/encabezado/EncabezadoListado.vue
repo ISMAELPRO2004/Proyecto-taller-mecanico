@@ -6,7 +6,7 @@ import { Plus } from 'lucide-vue-next';
   <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
     <div>
       <p class="text-xs font-semibold uppercase tracking-wider text-lyer-cyan">Mecánica LYER Motors</p>
-      <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+      <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-tight text-lyer-fg md:text-3xl">
         Listado de órdenes de trabajo
       </h2>
     </div>

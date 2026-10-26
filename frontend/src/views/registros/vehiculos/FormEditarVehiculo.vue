@@ -34,7 +34,7 @@ const patch = (campoForm, valor) => {
           <option value="">Selecciona una marca</option>
           <option v-for="m in marcas" :key="m.id" :value="m.id">{{ m.nombre }}</option>
         </select>
-        <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-lyer-muted" />
       </span>
       <p v-if="errores.marcaId" class="text-xs text-rose-300">{{ errores.marcaId }}</p>
     </label>

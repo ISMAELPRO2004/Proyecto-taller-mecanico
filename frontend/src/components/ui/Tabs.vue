@@ -18,7 +18,7 @@ const elegir = (id) => {
     <div class="w-full lg:w-auto overflow-x-auto custom-scroll-sm pb-1">
       <div
         :class="oscuro
-          ? 'flex min-w-max flex-nowrap gap-1 rounded-2xl border border-[#4a2870]/50 bg-[#160a24] p-1'
+          ? 'flex min-w-max flex-nowrap gap-1 rounded-2xl border border-lyer-linea/50 bg-lyer-panel p-1'
           : 'tabs tabs-boxed flex min-w-max flex-nowrap rounded-2xl border border-slate-200 bg-slate-100 p-1'"
       >
         <button
@@ -29,8 +29,8 @@ const elegir = (id) => {
           :class="[
             'inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2 text-sm font-bold md:px-6 md:py-2.5',
             modelValue === item.id
-              ? (oscuro ? 'border border-lyer-accent/40 bg-[#2a0a4a] text-white' : 'bg-white text-lyer-green shadow-sm')
-              : (oscuro ? 'text-slate-400 hover:text-slate-200' : 'text-slate-400'),
+              ? (oscuro ? 'border border-lyer-accent/40 bg-lyer-boton text-lyer-fg' : 'bg-white text-lyer-green shadow-sm')
+              : (oscuro ? 'text-lyer-muted hover:text-lyer-fg' : 'text-lyer-muted'),
           ]"
         >
           <component :is="item.icon" v-if="item.icon" class="w-4 h-4" />

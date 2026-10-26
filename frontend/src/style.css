@@ -1,7 +1,38 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* Paleta: violeta profundo, rosa vivo, cian pálido y azul ftalo. */
+/* Superficies: variables para oscuro/claro. Marca (violeta, rosa, cian) no cambia. */
+:root,
+html[data-tema="oscuro"] {
+  --lyer-fondo: #140a22;
+  --lyer-sidebar: #160428;
+  --lyer-barra: #10041f;
+  --lyer-card: #221433;
+  --lyer-panel: #160a24;
+  --lyer-hueco: #120818;
+  --lyer-linea: #4a2870;
+  --lyer-linea2: #3d1570;
+  --lyer-boton: #2a0a4a;
+  --lyer-hover: #2a1840;
+  --lyer-fg: #f1f5f9;
+  --lyer-muted: #94a3b8;
+}
+
+html[data-tema="claro"] {
+  --lyer-fondo: #f3eef8;
+  --lyer-sidebar: #ffffff;
+  --lyer-barra: #efe6f5;
+  --lyer-card: #ffffff;
+  --lyer-panel: #faf7fc;
+  --lyer-hueco: #eee6f5;
+  --lyer-linea: #c9addc;
+  --lyer-linea2: #d4bce6;
+  --lyer-boton: #eadcf4;
+  --lyer-hover: #f3e9fa;
+  --lyer-fg: #001860;
+  --lyer-muted: #5c5270;
+}
+
 @theme {
   --color-primary: #480078;
   --color-secondary: #ff6080;
@@ -11,6 +42,18 @@
   --color-lyer-cyan: #80ffff;
   --color-lyer-ink: #001860;
   --color-lyer-soft: #f0a8c0;
+  --color-lyer-fondo: var(--lyer-fondo);
+  --color-lyer-sidebar: var(--lyer-sidebar);
+  --color-lyer-barra: var(--lyer-barra);
+  --color-lyer-card: var(--lyer-card);
+  --color-lyer-panel: var(--lyer-panel);
+  --color-lyer-hueco: var(--lyer-hueco);
+  --color-lyer-linea: var(--lyer-linea);
+  --color-lyer-linea2: var(--lyer-linea2);
+  --color-lyer-boton: var(--lyer-boton);
+  --color-lyer-hover: var(--lyer-hover);
+  --color-lyer-fg: var(--lyer-fg);
+  --color-lyer-muted: var(--lyer-muted);
 
   --color-emerald-50: #fff4f7;
   --color-emerald-100: #f0a8c0;
@@ -34,6 +77,20 @@
   --color-neutral-content: #ffffff;
 }
 
+@plugin "daisyui/theme" {
+  name: "lyer-claro";
+  --color-primary: #480078;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff6080;
+  --color-secondary-content: #480078;
+  --color-accent: #80ffff;
+  --color-accent-content: #001860;
+  --color-neutral: #001860;
+  --color-neutral-content: #ffffff;
+  --color-base-100: #faf7fc;
+  --color-base-content: #001860;
+}
+
 .custom-scroll-sm::-webkit-scrollbar {
   display: none;
 }
@@ -55,8 +112,20 @@
   background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
 }
 
-/* DaisyUI activa appearance: base-select. En Chrome el menú no se cierra
-   si Vue actualiza el select al elegir una opción (p. ej. RUC) y deja la página bloqueada. */
+html[data-tema="claro"] .mesh-pattern {
+  background-image: radial-gradient(circle at 1px 1px, rgba(0, 24, 96, 0.1) 1px, transparent 0);
+}
+
+html[data-tema="claro"] .logo-colapsado {
+  filter: none;
+}
+
+.lyer-toast,
+.lyer-confirm {
+  background: var(--lyer-panel) !important;
+  color: var(--lyer-fg) !important;
+}
+
 .select,
 .select select {
   appearance: none !important;

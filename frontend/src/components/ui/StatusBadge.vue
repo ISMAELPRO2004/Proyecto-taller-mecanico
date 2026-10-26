@@ -24,7 +24,7 @@ const BADGE = {
 
 const badgeClass = (estado) => {
   if (props.oscuro && estado === ESTADO.EN_ESPERA) {
-    return 'bg-slate-700 text-slate-100 border border-slate-500';
+    return 'bg-slate-700 text-lyer-fg border border-slate-500';
   }
   return BADGE[estado] || 'badge-ghost';
 };

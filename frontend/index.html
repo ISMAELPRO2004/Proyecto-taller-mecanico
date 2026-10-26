@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-theme="lyer">
+<html lang="es" data-theme="lyer" data-tema="oscuro">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/iconCamion.svg" />
@@ -10,8 +10,15 @@
     <meta name="description" content="Sistema de gestión de taller Mecánica LYER" />
     <title>Sistema Lyer</title>
   </head>
-  <body style="margin:0;background:#080d1a">
+  <body style="margin:0">
     <div id="app"></div>
+    <script>
+      (function () {
+        var claro = localStorage.getItem('lyer.tema') === 'claro';
+        document.documentElement.dataset.tema = claro ? 'claro' : 'oscuro';
+        document.documentElement.dataset.theme = claro ? 'lyer-claro' : 'lyer';
+      })();
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

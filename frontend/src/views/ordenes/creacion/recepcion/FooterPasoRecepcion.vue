@@ -10,10 +10,10 @@ defineEmits(['atras', 'finalizar']);
 </script>
 
 <template>
-  <footer class="flex flex-col gap-4 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:flex-row sm:items-center sm:justify-between">
+  <footer class="flex flex-col gap-4 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:flex-row sm:items-center sm:justify-between">
     <div class="min-w-0">
       <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Al finalizar</p>
-      <p class="mt-1 text-sm text-slate-300">
+      <p class="mt-1 text-sm text-lyer-muted">
         La orden queda
         <span class="font-semibold text-lyer-soft">en espera</span>
         hasta que un supervisor la valide.
@@ -22,7 +22,7 @@ defineEmits(['atras', 'finalizar']);
     <div class="flex w-full shrink-0 gap-3 sm:w-auto">
       <button
         type="button"
-        class="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-[#4a2870]/50 px-5 text-xs font-bold uppercase tracking-wider text-slate-200 hover:text-white sm:flex-none"
+        class="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-lyer-linea/50 px-5 text-xs font-bold uppercase tracking-wider text-lyer-fg hover:text-lyer-fg sm:flex-none"
         @click="$emit('atras')"
       >
         <ArrowLeft class="h-4 w-4" />

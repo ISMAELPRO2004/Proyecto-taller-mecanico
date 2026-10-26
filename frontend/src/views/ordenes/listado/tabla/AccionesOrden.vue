@@ -31,7 +31,7 @@ const {
     <button
       v-if="puedeVerImprimir"
       type="button"
-      :class="[accionBtn, 'text-slate-300 hover:text-white']"
+      :class="[accionBtn, 'text-lyer-muted hover:text-lyer-fg']"
       :disabled="imprimiendoId === orden.id"
       title="Imprimir"
       @click="$emit('imprimir', orden)"

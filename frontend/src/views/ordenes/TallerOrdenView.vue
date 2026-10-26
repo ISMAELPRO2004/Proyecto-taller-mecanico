@@ -40,35 +40,35 @@ const fechaIngreso = computed(() => {
       />
 
       <section class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-        <article class="flex items-center gap-3.5 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-4">
+        <article class="flex items-center gap-3.5 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-4">
           <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
             <Car class="h-5 w-5" />
           </div>
           <div class="min-w-0">
-            <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Placa</span>
-            <span class="block font-mono text-base font-bold tracking-wide text-white">{{ form.placa || '—' }}</span>
-            <span class="block truncate text-[11px] text-slate-400">{{ form.marca }} {{ form.modelo }}</span>
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-lyer-muted">Placa</span>
+            <span class="block font-mono text-base font-bold tracking-wide text-lyer-fg">{{ form.placa || '—' }}</span>
+            <span class="block truncate text-[11px] text-lyer-muted">{{ form.marca }} {{ form.modelo }}</span>
           </div>
         </article>
 
-        <article class="flex items-center gap-3.5 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-4">
-          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-lyer-soft">
+        <article class="flex items-center gap-3.5 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-4">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lyer-linea/50 bg-lyer-fondo text-lyer-soft">
             <User class="h-5 w-5" />
           </div>
           <div class="min-w-0">
-            <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Cliente</span>
-            <span class="block truncate text-sm font-semibold text-white">{{ form.cliente || '—' }}</span>
-            <span class="block truncate font-mono text-[11px] text-slate-400">{{ form.documento || 'Sin documento' }}</span>
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-lyer-muted">Cliente</span>
+            <span class="block truncate text-sm font-semibold text-lyer-fg">{{ form.cliente || '—' }}</span>
+            <span class="block truncate font-mono text-[11px] text-lyer-muted">{{ form.documento || 'Sin documento' }}</span>
           </div>
         </article>
 
-        <article class="flex items-center gap-3.5 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-4">
-          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-lyer-cyan">
+        <article class="flex items-center gap-3.5 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-4">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lyer-linea/50 bg-lyer-fondo text-lyer-cyan">
             <Calendar class="h-5 w-5" />
           </div>
           <div class="min-w-0">
-            <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ingreso</span>
-            <span class="block font-mono text-base font-bold text-white">{{ fechaIngreso || '—' }}</span>
+            <span class="block text-[10px] font-semibold uppercase tracking-wider text-lyer-muted">Ingreso</span>
+            <span class="block font-mono text-base font-bold text-lyer-fg">{{ fechaIngreso || '—' }}</span>
           </div>
         </article>
       </section>
@@ -99,33 +99,33 @@ const fechaIngreso = computed(() => {
       </section>
 
       <section class="space-y-6">
-        <article class="rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-6">
+        <article class="rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-6">
           <div class="mb-3 flex items-center gap-2">
             <MessageSquareText class="h-4 w-4 text-lyer-cyan" />
-            <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white">Solicitud del cliente</h3>
+            <h3 class="font-display text-sm font-bold uppercase tracking-wider text-lyer-fg">Solicitud del cliente</h3>
           </div>
-          <p class="mb-3 text-xs text-slate-400">Lo que pidió al ingresar la unidad. Quedó registrado en recepción.</p>
-          <div class="min-h-32 rounded-xl border border-[#4a2870]/50 bg-[#140a22] p-4 text-sm leading-relaxed text-white">
+          <p class="mb-3 text-xs text-lyer-muted">Lo que pidió al ingresar la unidad. Quedó registrado en recepción.</p>
+          <div class="min-h-32 rounded-xl border border-lyer-linea/50 bg-lyer-fondo p-4 text-sm leading-relaxed text-lyer-fg">
             {{ form.descripcionInformal?.trim() || 'Sin solicitud registrada.' }}
           </div>
         </article>
 
-        <article class="rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-6">
+        <article class="rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-6">
           <div class="mb-3 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <ClipboardList class="h-4 w-4 text-lyer-cyan" />
-              <h3 class="font-display text-sm font-bold uppercase tracking-wider text-white">Trabajos a realizar</h3>
+              <h3 class="font-display text-sm font-bold uppercase tracking-wider text-lyer-fg">Trabajos a realizar</h3>
             </div>
             <span class="rounded-md border border-lyer-cyan/30 bg-lyer-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-lyer-cyan">
               En taller
             </span>
           </div>
-          <p class="mb-3 text-xs text-slate-400">El detalle de lo que hay que hacer, una vez aceptada la orden.</p>
+          <p class="mb-3 text-xs text-lyer-muted">El detalle de lo que hay que hacer, una vez aceptada la orden.</p>
           <textarea
             v-model="form.trabajoSolicitado"
             rows="6"
             placeholder="Por ejemplo: desmontaje de la caja de cambios y revisión del embrague."
-            class="min-h-40 w-full resize-y rounded-xl border border-[#4a2870]/50 bg-[#140a22] p-4 text-sm leading-relaxed text-white placeholder:text-slate-600 focus:border-lyer-cyan focus:outline-none"
+            class="min-h-40 w-full resize-y rounded-xl border border-lyer-linea/50 bg-lyer-fondo p-4 text-sm leading-relaxed text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none"
           />
         </article>
       </section>
@@ -185,7 +185,7 @@ const fechaIngreso = computed(() => {
       @confirmar="confirmarCatalogo"
     />
 
-    <div v-if="guardando" class="fixed inset-0 z-40 flex items-center justify-center bg-[#140a22]/50">
+    <div v-if="guardando" class="fixed inset-0 z-40 flex items-center justify-center bg-lyer-fondo/50">
       <span class="loading loading-spinner loading-lg text-lyer-accent" />
     </div>
   </div>

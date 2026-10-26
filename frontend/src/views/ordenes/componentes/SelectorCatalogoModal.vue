@@ -159,25 +159,25 @@ const guardarNuevo = async () => {
 
 <template>
   <div :class="['modal modal-bottom sm:modal-middle', { 'modal-open': isOpen }]">
-    <div class="modal-box flex max-h-[90vh] max-w-xl flex-col overflow-hidden !border !border-[#4a2870]/60 !bg-[#160a24] p-0 text-slate-100 shadow-2xl sm:rounded-2xl">
+    <div class="modal-box flex max-h-[90vh] max-w-xl flex-col overflow-hidden !border !border-lyer-linea/60 !bg-lyer-panel p-0 text-lyer-fg shadow-2xl sm:rounded-2xl">
       <div class="h-1 w-full shrink-0 bg-gradient-to-r from-lyer-green via-lyer-accent to-lyer-cyan" />
 
-      <div class="flex shrink-0 items-center justify-between gap-2 border-b border-[#4a2870]/50 bg-[#10041f] px-4 py-4 sm:px-5">
+      <div class="flex shrink-0 items-center justify-between gap-2 border-b border-lyer-linea/50 bg-lyer-barra px-4 py-4 sm:px-5">
         <div class="flex min-w-0 items-center gap-2.5">
           <button
             v-if="vista === 'crear'"
             type="button"
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#140a22] text-slate-300 hover:text-white"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-lyer-linea/50 bg-lyer-fondo text-lyer-muted hover:text-lyer-fg"
             title="Volver"
             @click="volverSeleccion"
           >
             <ArrowLeft class="h-4 w-4" />
           </button>
           <div class="min-w-0">
-            <h3 class="truncate font-display text-base font-bold uppercase tracking-wide text-white">
+            <h3 class="truncate font-display text-base font-bold uppercase tracking-wide text-lyer-fg">
               {{ vista === 'crear' ? `Nuevo ${nombreTipo}` : titulo }}
             </h3>
-            <p class="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            <p class="text-[11px] font-medium uppercase tracking-wider text-lyer-muted">
               {{ vista === 'crear' ? (verPrecios ? 'Alta rápida' : 'Solo el nombre') : 'Busca o selecciona' }}
             </p>
           </div>
@@ -186,7 +186,7 @@ const guardarNuevo = async () => {
           <button
             v-if="vista === 'seleccionar'"
             type="button"
-            class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-3 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-[#3a1260]"
+            class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-lyer-accent/40 bg-lyer-boton px-3 text-[11px] font-bold uppercase tracking-wider text-lyer-fg hover:bg-lyer-boton"
             @click="abrirCrear()"
           >
             <Plus class="h-4 w-4" />
@@ -194,7 +194,7 @@ const guardarNuevo = async () => {
           </button>
           <button
             type="button"
-            class="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4a2870]/50 text-slate-400 hover:border-rose-400/40 hover:text-rose-300"
+            class="flex h-9 w-9 items-center justify-center rounded-xl border border-lyer-linea/50 text-lyer-muted hover:border-rose-400/40 hover:text-rose-300"
             title="Cerrar"
             @click="cerrar"
           >
@@ -206,7 +206,7 @@ const guardarNuevo = async () => {
       <!-- SELECCIONAR -->
       <template v-if="vista === 'seleccionar'">
         <!-- Buscador + autocomplete -->
-        <div class="relative z-20 shrink-0 border-b border-[#4a2870]/40 bg-[#120818] p-3 sm:p-4">
+        <div class="relative z-20 shrink-0 border-b border-lyer-linea/40 bg-lyer-hueco p-3 sm:p-4">
           <div class="relative">
             <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-lyer-cyan" />
             <input
@@ -215,7 +215,7 @@ const guardarNuevo = async () => {
               type="search"
               autocomplete="off"
               placeholder="Buscar..."
-              class="h-11 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] pl-10 pr-9 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan focus:outline-none"
+              class="h-11 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo pl-10 pr-9 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none"
               @focus="mostrarSugerencias = true"
               @input="mostrarSugerencias = true"
               @blur="ocultarSugerencias"
@@ -223,7 +223,7 @@ const guardarNuevo = async () => {
             <button
               v-if="filtro"
               type="button"
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-lyer-muted hover:text-lyer-fg"
               @mousedown.prevent="filtro = ''; inputRef?.focus()"
             >
               <X class="h-3.5 w-3.5" />
@@ -231,24 +231,24 @@ const guardarNuevo = async () => {
 
             <div
               v-if="mostrarSugerencias && sugerencias.length"
-              class="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-[#4a2870]/50 bg-[#140a22] shadow-xl"
+              class="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-lyer-linea/50 bg-lyer-fondo shadow-xl"
             >
               <button
                 v-for="item in sugerencias"
                 :key="'sug-' + item.id"
                 type="button"
-                class="flex w-full items-center gap-2 border-b border-[#4a2870]/30 px-3 py-2.5 text-left last:border-0 hover:bg-[#2a1840]"
+                class="flex w-full items-center gap-2 border-b border-lyer-linea/30 px-3 py-2.5 text-left last:border-0 hover:bg-lyer-hover"
                 @mousedown.prevent="elegirSugerencia(item)"
               >
                 <Search class="h-3.5 w-3.5 shrink-0 text-slate-500" />
-                <span class="flex-1 truncate text-xs font-semibold uppercase text-white">{{ item.descripcion }}</span>
+                <span class="flex-1 truncate text-xs font-semibold uppercase text-lyer-fg">{{ item.descripcion }}</span>
                 <span v-if="verPrecios && item.precioBase != null" class="shrink-0 font-mono text-[11px] text-lyer-cyan">S/ {{ parseFloat(item.precioBase).toFixed(2) }}</span>
               </button>
             </div>
           </div>
         </div>
 
-        <div class="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#120818] p-3">
+        <div class="min-h-0 flex-1 space-y-2 overflow-y-auto bg-lyer-hueco p-3">
           <button
             v-for="item in lista"
             :key="item.id"
@@ -256,22 +256,22 @@ const guardarNuevo = async () => {
             :class="[
               'flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-colors',
               estaSeleccionado(item.id)
-                ? 'border-lyer-cyan/50 bg-[#2a1840]'
-                : 'border-[#4a2870]/40 bg-[#140a22] hover:border-lyer-cyan/30',
+                ? 'border-lyer-cyan/50 bg-lyer-hover'
+                : 'border-lyer-linea/40 bg-lyer-fondo hover:border-lyer-cyan/30',
             ]"
             @click="toggleSeleccion(item)"
           >
             <div
               :class="[
                 'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2',
-                estaSeleccionado(item.id) ? 'border-lyer-accent bg-lyer-accent text-[#1a0633]' : 'border-[#4a2870]',
+                estaSeleccionado(item.id) ? 'border-lyer-accent bg-lyer-accent text-[#1a0633]' : 'border-lyer-linea',
               ]"
             >
               <Check v-if="estaSeleccionado(item.id)" class="h-3 w-3" stroke-width="3" />
             </div>
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-semibold uppercase text-white">{{ item.descripcion }}</p>
-              <p v-if="item.responsable" class="truncate text-[11px] text-slate-400">{{ item.responsable }}</p>
+              <p class="truncate text-sm font-semibold uppercase text-lyer-fg">{{ item.descripcion }}</p>
+              <p v-if="item.responsable" class="truncate text-[11px] text-lyer-muted">{{ item.responsable }}</p>
             </div>
             <p v-if="verPrecios && item.precioBase != null" class="shrink-0 text-right font-mono text-sm font-bold text-lyer-cyan">
               S/ {{ parseFloat(item.precioBase).toFixed(2) }}
@@ -285,7 +285,7 @@ const guardarNuevo = async () => {
             <button
               v-if="q"
               type="button"
-              class="inline-flex items-center gap-1.5 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-4 py-2 text-xs font-bold uppercase text-white"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-lyer-accent/40 bg-lyer-boton px-4 py-2 text-xs font-bold uppercase text-lyer-fg"
               @click="abrirCrear(filtro.trim())"
             >
               <Plus class="h-4 w-4" /> Crear “{{ filtro.trim() }}”
@@ -295,33 +295,33 @@ const guardarNuevo = async () => {
 
         <div
           v-if="seleccionTemporales.length"
-          class="max-h-24 shrink-0 overflow-y-auto border-t border-[#4a2870]/40 bg-[#10041f] px-3 py-2.5"
+          class="max-h-24 shrink-0 overflow-y-auto border-t border-lyer-linea/40 bg-lyer-barra px-3 py-2.5"
         >
           <div class="flex flex-wrap gap-1.5">
             <button
               v-for="item in seleccionTemporales"
               :key="'sel-' + item.id"
               type="button"
-              class="inline-flex max-w-full items-center gap-1 rounded-lg border border-lyer-cyan/30 bg-[#140a22] px-2 py-1 text-[10px] font-semibold uppercase text-slate-200"
+              class="inline-flex max-w-full items-center gap-1 rounded-lg border border-lyer-cyan/30 bg-lyer-fondo px-2 py-1 text-[10px] font-semibold uppercase text-lyer-fg"
               @click="quitarSeleccionado(item.id)"
             >
               <span class="truncate">{{ item.descripcion }}</span>
-              <X class="h-3 w-3 text-slate-400" />
+              <X class="h-3 w-3 text-lyer-muted" />
             </button>
           </div>
         </div>
 
-        <div class="flex shrink-0 items-center justify-between gap-3 border-t border-[#4a2870]/50 bg-[#10041f] p-3 sm:p-4">
+        <div class="flex shrink-0 items-center justify-between gap-3 border-t border-lyer-linea/50 bg-lyer-barra p-3 sm:p-4">
           <span class="text-[11px] font-semibold uppercase tracking-widest text-lyer-cyan">
             {{ seleccionTemporales.length }} sel.
           </span>
           <div class="flex gap-2">
-            <button type="button" class="rounded-xl px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-300 hover:text-white" @click="cerrar">
+            <button type="button" class="rounded-xl px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-lyer-muted hover:text-lyer-fg" @click="cerrar">
               Cancelar
             </button>
             <button
               type="button"
-              class="rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-[#3a1260]"
+              class="rounded-xl border border-lyer-accent/40 bg-lyer-boton px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-lyer-fg hover:bg-lyer-boton"
               @click="confirmar"
             >
               Confirmar
@@ -332,9 +332,9 @@ const guardarNuevo = async () => {
 
       <!-- CREAR -->
       <template v-else>
-        <div class="flex-1 space-y-4 overflow-y-auto bg-[#120818] p-5 sm:p-6">
+        <div class="flex-1 space-y-4 overflow-y-auto bg-lyer-hueco p-5 sm:p-6">
           <label class="block space-y-2">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">
+            <span class="text-xs font-semibold uppercase tracking-wider text-lyer-fg">
               Descripción
               <span class="text-lyer-accent">*</span>
             </span>
@@ -343,12 +343,12 @@ const guardarNuevo = async () => {
               v-model="formNuevo.descripcion"
               type="text"
               :placeholder="esTercero ? 'Ej: Rectificado de motor' : 'Ej: Aceite 15W40'"
-              class="h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan focus:outline-none"
+              class="h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none"
               @keydown.enter.prevent="esTercero ? responsableRef?.focus() : (verPrecios ? precioRef?.focus() : guardarNuevo())"
             />
           </label>
           <label v-if="esTercero" class="block space-y-2">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">
+            <span class="text-xs font-semibold uppercase tracking-wider text-lyer-fg">
               Responsable del tercero
               <span class="text-lyer-accent">*</span>
             </span>
@@ -357,14 +357,14 @@ const guardarNuevo = async () => {
               v-model="formNuevo.responsable"
               type="text"
               placeholder="Empresa o persona"
-              class="h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan focus:outline-none"
+              class="h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none"
               @keydown.enter.prevent="verPrecios ? precioRef?.focus() : guardarNuevo()"
             />
           </label>
           <label v-if="verPrecios" class="block space-y-2">
-            <span class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-200">
+            <span class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-lyer-fg">
               <span>Precio base (S/)</span>
-              <span class="font-medium normal-case tracking-normal text-slate-400">Opcional</span>
+              <span class="font-medium normal-case tracking-normal text-lyer-muted">Opcional</span>
             </span>
             <input
               ref="precioRef"
@@ -373,15 +373,15 @@ const guardarNuevo = async () => {
               step="0.01"
               min="0"
               placeholder="Lo completas después en la orden"
-              class="h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-4 font-mono text-sm text-lyer-cyan placeholder:text-slate-600 focus:border-lyer-cyan focus:outline-none"
+              class="h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-4 font-mono text-sm text-lyer-cyan placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none"
               @keydown.enter.prevent="guardarNuevo"
             />
           </label>
         </div>
-        <div class="flex shrink-0 gap-2 border-t border-[#4a2870]/50 bg-[#10041f] p-4">
+        <div class="flex shrink-0 gap-2 border-t border-lyer-linea/50 bg-lyer-barra p-4">
           <button
             type="button"
-            class="flex-1 rounded-xl border border-[#4a2870]/50 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-300 hover:text-white disabled:opacity-60"
+            class="flex-1 rounded-xl border border-lyer-linea/50 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-lyer-muted hover:text-lyer-fg disabled:opacity-60"
             :disabled="guardando"
             @click="volverSeleccion"
           >
@@ -389,7 +389,7 @@ const guardarNuevo = async () => {
           </button>
           <button
             type="button"
-            class="inline-flex flex-[2] items-center justify-center gap-1.5 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-[#3a1260] disabled:opacity-60"
+            class="inline-flex flex-[2] items-center justify-center gap-1.5 rounded-xl border border-lyer-accent/40 bg-lyer-boton px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-lyer-fg hover:bg-lyer-boton disabled:opacity-60"
             :disabled="guardando"
             @click="guardarNuevo"
           >

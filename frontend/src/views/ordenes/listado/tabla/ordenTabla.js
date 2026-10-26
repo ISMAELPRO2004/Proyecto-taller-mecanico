@@ -11,7 +11,7 @@ export const PILLS = {
   [ESTADO.CANCELADO]: 'border-rose-500/40 bg-rose-500/15 text-rose-300',
 };
 
-export const pillEstado = (estado) => PILLS[estado] || 'border-slate-600 bg-slate-800 text-slate-300';
+export const pillEstado = (estado) => PILLS[estado] || 'border-slate-600 bg-slate-800 text-lyer-muted';
 
 export const etiquetaEstado = labelEstadoOrden;
 
@@ -32,4 +32,4 @@ export const vehiculoOrden = (orden) =>
 
 export { nombreClienteOrden };
 
-export const accionBtn = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#4a2870]/50 bg-[#2a1840] transition-colors disabled:opacity-40';
+export const accionBtn = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-lyer-linea/50 bg-lyer-hover transition-colors disabled:opacity-40';

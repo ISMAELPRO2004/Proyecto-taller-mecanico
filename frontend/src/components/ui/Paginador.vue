@@ -37,42 +37,42 @@ const itemsPorPaginaLocal = computed({
 <template>
   <div class="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
     <div :class="['flex items-center', mostrarLabelVer ? 'gap-4' : 'gap-3']">
-      <div v-if="mostrarLabelVer" class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+      <div v-if="mostrarLabelVer" class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-lyer-muted">
         <ListOrdered class="w-4 h-4" /> Mostrar:
         <select v-model="itemsPorPaginaLocal"
           :class="oscuro
-            ? 'h-8 rounded-lg border border-[#4a2870]/50 bg-[#160a24] px-2 text-xs font-bold text-slate-200'
+            ? 'h-8 rounded-lg border border-lyer-linea/50 bg-lyer-panel px-2 text-xs font-bold text-lyer-fg'
             : 'select select-ghost select-xs font-black text-lyer-green focus:bg-transparent'">
           <option v-for="opt in opcionesItems" :key="opt" :value="opt">{{ opt }} {{ labelItems }}</option>
         </select>
       </div>
       <select v-else v-model="itemsPorPaginaLocal"
         :class="oscuro
-          ? 'h-8 rounded-lg border border-[#4a2870]/50 bg-[#160a24] px-2 text-xs font-bold text-slate-200'
+          ? 'h-8 rounded-lg border border-lyer-linea/50 bg-lyer-panel px-2 text-xs font-bold text-lyer-fg'
           : 'select select-ghost select-xs font-black text-lyer-green focus:bg-transparent'">
         <option v-for="opt in opcionesItems" :key="opt" :value="opt">{{ opt }} {{ labelItems }}</option>
       </select>
-      <span v-if="total !== null" :class="['text-[10px] font-black uppercase tracking-widest', oscuro ? 'text-slate-400' : 'text-slate-400']">
-        Total: <strong :class="oscuro ? 'text-white' : ''">{{ total }}</strong><template v-if="totalSufijo"> {{ totalSufijo }}</template>
+      <span v-if="total !== null" :class="['text-[10px] font-black uppercase tracking-widest', oscuro ? 'text-lyer-muted' : 'text-lyer-muted']">
+        Total: <strong :class="oscuro ? 'text-lyer-fg' : ''">{{ total }}</strong><template v-if="totalSufijo"> {{ totalSufijo }}</template>
       </span>
     </div>
 
-    <div :class="['join overflow-hidden rounded-xl border', oscuro ? 'border-[#4a2870]/50 bg-[#160a24]' : 'border-slate-200 bg-white shadow-sm']">
+    <div :class="['join overflow-hidden rounded-xl border', oscuro ? 'border-lyer-linea/50 bg-lyer-panel' : 'border-slate-200 bg-white shadow-sm']">
       <button @click="paginaActual--" :disabled="paginaActual === 1"
-        :class="['join-item btn btn-sm border-none', oscuro ? 'bg-transparent text-slate-300 disabled:text-slate-600' : 'bg-white disabled:text-slate-200']">
+        :class="['join-item btn btn-sm border-none', oscuro ? 'bg-transparent text-lyer-muted disabled:text-slate-600' : 'bg-white disabled:text-lyer-fg']">
         <ChevronLeft class="w-4 h-4" />
       </button>
       <button v-for="p in paginas" :key="p" @click="paginaActual = p"
         :class="[
           'join-item btn btn-sm border-none font-black px-3',
           paginaActual === p
-            ? (oscuro ? 'bg-lyer-accent text-[#1a0633]' : 'bg-lyer-green text-white')
-            : (oscuro ? 'bg-transparent text-slate-400' : 'bg-white text-slate-400'),
+            ? (oscuro ? 'bg-lyer-accent text-[#1a0633]' : 'bg-lyer-green text-lyer-fg')
+            : (oscuro ? 'bg-transparent text-lyer-muted' : 'bg-white text-lyer-muted'),
         ]">
         {{ p }}
       </button>
       <button @click="paginaActual++" :disabled="paginaActual === totalPaginasSeguro"
-        :class="['join-item btn btn-sm border-none', oscuro ? 'bg-transparent text-slate-300 disabled:text-slate-600' : 'bg-white disabled:text-slate-200']">
+        :class="['join-item btn btn-sm border-none', oscuro ? 'bg-transparent text-lyer-muted disabled:text-slate-600' : 'bg-white disabled:text-lyer-fg']">
         <ChevronRight class="w-4 h-4" />
       </button>
     </div>

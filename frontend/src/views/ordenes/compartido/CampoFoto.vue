@@ -73,7 +73,7 @@ const quitar = () => {
 <template>
   <div
     :class="oscuro
-      ? 'space-y-4 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-7'
+      ? 'space-y-4 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-7'
       : 'space-y-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4'"
   >
     <div class="flex items-start justify-between gap-3">
@@ -85,11 +85,11 @@ const quitar = () => {
           <Camera class="h-4 w-4" />
         </div>
         <div>
-          <p :class="oscuro ? 'font-display text-base font-bold uppercase tracking-wide text-white' : 'text-[10px] font-black uppercase tracking-widest text-slate-500'">
+          <p :class="oscuro ? 'font-display text-base font-bold uppercase tracking-wide text-lyer-fg' : 'text-[10px] font-black uppercase tracking-widest text-slate-500'">
             {{ titulo }}
             <span v-if="obligatoria" class="text-lyer-accent">*</span>
           </p>
-          <p v-if="ayuda" :class="oscuro ? 'mt-0.5 text-xs text-slate-400' : 'mt-0.5 text-[11px] text-slate-400'">{{ ayuda }}</p>
+          <p v-if="ayuda" :class="oscuro ? 'mt-0.5 text-xs text-lyer-muted' : 'mt-0.5 text-[11px] text-lyer-muted'">{{ ayuda }}</p>
           <p v-if="puedeCambiar && esMovil" :class="oscuro ? 'mt-1 text-[11px] font-semibold text-lyer-cyan' : 'mt-1 text-[10px] font-bold text-emerald-600'">
             En el celular puedes tomar la foto o elegirla de la galería.
           </p>
@@ -98,8 +98,8 @@ const quitar = () => {
       <span
         v-if="src && !puedeCambiar"
         :class="oscuro
-          ? 'inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#4a2870]/50 bg-[#140a22] px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-slate-400'
-          : 'shrink-0 text-slate-300'"
+          ? 'inline-flex shrink-0 items-center gap-1.5 rounded-md border border-lyer-linea/50 bg-lyer-fondo px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-lyer-muted'
+          : 'shrink-0 text-lyer-muted'"
       >
         <Lock class="h-3.5 w-3.5 text-amber-400" />
         <span v-if="oscuro">Bloqueado tras registro</span>
@@ -108,15 +108,15 @@ const quitar = () => {
 
     <div
       :class="oscuro
-        ? ['relative flex min-h-[220px] items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-[#140a22]', error ? 'border-rose-400' : 'border-[#4a2870] hover:border-lyer-cyan/50']
+        ? ['relative flex min-h-[220px] items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-lyer-fondo', error ? 'border-rose-400' : 'border-lyer-linea hover:border-lyer-cyan/50']
         : 'flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-200 bg-white'"
     >
       <img v-if="vista" :src="vista" :alt="titulo" :class="oscuro ? 'max-h-[300px] w-full object-cover' : 'h-full w-full object-cover'" />
-      <div v-else :class="oscuro ? 'px-4 py-10 text-center text-slate-500' : 'px-4 text-center text-slate-300'">
-        <div :class="oscuro ? 'mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border border-[#4a2870] bg-[#221433] text-slate-400' : ''">
+      <div v-else :class="oscuro ? 'px-4 py-10 text-center text-slate-500' : 'px-4 text-center text-lyer-muted'">
+        <div :class="oscuro ? 'mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border border-lyer-linea bg-lyer-card text-lyer-muted' : ''">
           <Camera :class="oscuro ? 'h-8 w-8' : 'mx-auto mb-2 h-8 w-8'" />
         </div>
-        <p :class="oscuro ? 'text-xs font-bold uppercase tracking-widest text-slate-300' : 'text-[10px] font-bold uppercase tracking-widest'">
+        <p :class="oscuro ? 'text-xs font-bold uppercase tracking-widest text-lyer-muted' : 'text-[10px] font-bold uppercase tracking-widest'">
           {{ oscuro ? 'Sin foto registrada' : 'Sin foto' }}
         </p>
         <p v-if="oscuro" class="mx-auto mt-1 max-w-md text-xs text-slate-500">
@@ -141,8 +141,8 @@ const quitar = () => {
         <button
           type="button"
           :class="oscuro
-          ? 'inline-flex h-11 flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-4 text-xs font-bold uppercase tracking-wider text-white'
-          : 'btn btn-sm min-w-[8rem] flex-1 rounded-xl border-none bg-lyer-green text-white'"
+          ? 'inline-flex h-11 flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-lyer-boton px-4 text-xs font-bold uppercase tracking-wider text-lyer-fg'
+          : 'btn btn-sm min-w-[8rem] flex-1 rounded-xl border-none bg-lyer-green text-lyer-fg'"
           :disabled="subiendo"
           @click="abrirCamara"
         >
@@ -153,7 +153,7 @@ const quitar = () => {
         <button
           type="button"
           :class="oscuro
-          ? 'inline-flex h-11 flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-[#4a2870]/50 bg-[#2a1840] px-4 text-xs font-semibold uppercase tracking-wider text-slate-200'
+          ? 'inline-flex h-11 flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-lyer-linea/50 bg-lyer-hover px-4 text-xs font-semibold uppercase tracking-wider text-lyer-fg'
           : 'btn btn-sm min-w-[8rem] flex-1 rounded-xl border border-emerald-100 bg-white text-lyer-green'"
           :disabled="subiendo"
           @click="abrirGaleria"
@@ -167,8 +167,8 @@ const quitar = () => {
         v-else-if="puedeCambiar"
         type="button"
         :class="oscuro
-          ? 'inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-[#2a0a4a] px-5 text-xs font-bold uppercase tracking-wider text-white'
-          : 'btn btn-sm flex-1 rounded-xl border-none bg-lyer-green text-white'"
+          ? 'inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-lyer-accent/40 bg-lyer-boton px-5 text-xs font-bold uppercase tracking-wider text-lyer-fg'
+          : 'btn btn-sm flex-1 rounded-xl border-none bg-lyer-green text-lyer-fg'"
         :disabled="subiendo"
         @click="abrirGaleria"
       >

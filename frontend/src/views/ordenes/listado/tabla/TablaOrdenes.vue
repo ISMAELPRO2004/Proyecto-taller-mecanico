@@ -18,13 +18,13 @@ const { verPrecios } = useTablaOrdenes();
   <div v-if="cargando" class="py-16 text-center">
     <span class="loading loading-ring loading-md text-lyer-accent" />
   </div>
-  <div v-else-if="ordenes.length === 0" class="py-16 text-center text-sm text-slate-400">
+  <div v-else-if="ordenes.length === 0" class="py-16 text-center text-sm text-lyer-muted">
     No hay órdenes.
   </div>
 
   <div v-else class="overflow-x-auto">
-    <table class="w-full min-w-[980px] border-collapse text-left text-sm text-slate-200">
-      <thead class="border-b border-[#4a2870]/40 bg-[#160a24] text-[11px] font-bold uppercase tracking-wider text-slate-400">
+    <table class="w-full min-w-[980px] border-collapse text-left text-sm text-lyer-fg">
+      <thead class="border-b border-lyer-linea/40 bg-lyer-panel text-[11px] font-bold uppercase tracking-wider text-lyer-muted">
         <tr>
           <th class="whitespace-nowrap px-4 py-3.5 text-left">Fecha</th>
           <th class="whitespace-nowrap px-4 py-3.5 text-left">Orden #</th>
@@ -35,7 +35,7 @@ const { verPrecios } = useTablaOrdenes();
           <th class="min-w-[210px] whitespace-nowrap px-4 py-3.5 text-center">Acciones</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-[#4a2870]/35">
+      <tbody class="divide-y divide-lyer-linea/35">
         <FilaOrden
           v-for="o in ordenes"
           :key="o.id"

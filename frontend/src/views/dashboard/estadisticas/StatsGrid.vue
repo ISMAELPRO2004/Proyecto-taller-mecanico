@@ -9,7 +9,7 @@ defineProps({
 
 <template>
   <div v-if="cargando" class="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-    <div v-for="n in 5" :key="n" class="h-28 animate-pulse rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90" />
+    <div v-for="n in 5" :key="n" class="h-28 animate-pulse rounded-2xl border border-lyer-linea/45 bg-lyer-card/90" />
   </div>
 
   <div v-else class="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">

@@ -15,8 +15,8 @@ defineEmits(['nuevo']);
         <ShieldCheck class="h-6 w-6" />
       </div>
       <div>
-        <h2 class="font-display text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">Seguridad</h2>
-        <p class="font-mono text-[11px] uppercase tracking-widest text-slate-400">Usuarios y auditoría</p>
+        <h2 class="font-display text-2xl font-bold uppercase tracking-tight text-lyer-fg md:text-3xl">Seguridad</h2>
+        <p class="font-mono text-[11px] uppercase tracking-widest text-lyer-muted">Usuarios y auditoría</p>
       </div>
     </div>
     <button

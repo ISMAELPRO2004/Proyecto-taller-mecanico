@@ -15,7 +15,7 @@ defineEmits(['update:nombre', 'crear']);
       type="text"
       placeholder="Nombre de la marca"
       aria-label="Nombre de la marca"
-      class="h-11 w-full rounded-xl border border-[#4a2870]/60 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none sm:w-56"
+      class="h-11 w-full rounded-xl border border-lyer-linea/60 bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan/70 focus:outline-none sm:w-56"
       @input="$emit('update:nombre', $event.target.value)"
       @keyup.enter="$emit('crear')"
     />

@@ -64,7 +64,7 @@ defineEmits([
     <div v-if="bloqueado && !puedeEditarCliente" class="flex justify-end">
       <button
         type="button"
-        class="text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white"
+        class="text-xs font-semibold uppercase tracking-wider text-lyer-muted hover:text-lyer-fg"
         @click="$emit('cambiar-cliente')"
       >
         Cambiar selección de cliente
@@ -75,7 +75,7 @@ defineEmits([
       <div class="flex w-full gap-3 sm:w-auto">
         <button
           type="button"
-          class="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-[#4a2870]/50 px-5 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white sm:flex-none"
+          class="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-lyer-linea/50 px-5 text-xs font-semibold uppercase tracking-wider text-lyer-muted hover:text-lyer-fg sm:flex-none"
           @click="$emit('atras')"
         >
           <ArrowLeft class="h-4 w-4" />
@@ -84,7 +84,7 @@ defineEmits([
         <button
           v-if="editando && clienteConfirmado"
           type="button"
-          class="inline-flex h-12 items-center justify-center rounded-xl border border-[#4a2870]/50 px-5 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white"
+          class="inline-flex h-12 items-center justify-center rounded-xl border border-lyer-linea/50 px-5 text-xs font-semibold uppercase tracking-wider text-lyer-muted hover:text-lyer-fg"
           @click="$emit('cancelar')"
         >
           Cancelar

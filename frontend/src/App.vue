@@ -20,7 +20,8 @@ html, body, #app {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #080d1a;
+  background: var(--lyer-fondo);
+  color: var(--lyer-fg);
 }
 
 .swal2-container {

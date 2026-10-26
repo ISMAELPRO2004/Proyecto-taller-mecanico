@@ -144,11 +144,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="space-y-5 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8">
+  <section class="space-y-5 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 class="font-display text-xl font-bold uppercase tracking-tight text-white">Escanear placa</h2>
-        <p class="mt-1 text-xs text-slate-400 sm:text-sm">
+        <h2 class="font-display text-xl font-bold uppercase tracking-tight text-lyer-fg">Escanear placa</h2>
+        <p class="mt-1 text-xs text-lyer-muted sm:text-sm">
           Encuadra la placa, toma la foto y confirma los dígitos.
         </p>
       </div>
@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-if="etapa === 'camara'" class="space-y-4">
-      <div class="relative overflow-hidden rounded-2xl border border-[#4a2870]/50 bg-black">
+      <div class="relative overflow-hidden rounded-2xl border border-lyer-linea/50 bg-black">
         <video
           ref="videoEl"
           class="aspect-[4/3] w-full object-cover"
@@ -190,17 +190,17 @@ onBeforeUnmount(() => {
         v-if="fotoUrl"
         :src="fotoUrl"
         alt="Placa capturada"
-        class="aspect-[4/3] w-full rounded-2xl border border-[#4a2870]/50 object-cover"
+        class="aspect-[4/3] w-full rounded-2xl border border-lyer-linea/50 object-cover"
       />
 
-      <p class="text-xs text-slate-400">
+      <p class="text-xs text-lyer-muted">
         {{ modeloDisponible
           ? 'Revisa que el modelo haya leído bien la placa.'
           : 'El modelo aún no está conectado. Escribe los dígitos que ves en la foto.' }}
       </p>
 
       <div>
-        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
           Placa <span class="text-lyer-accent">*</span>
         </label>
         <input
@@ -210,8 +210,8 @@ onBeforeUnmount(() => {
           autocomplete="off"
           :disabled="reconociendo || consultando"
           :class="[
-            'h-14 w-full rounded-xl border bg-[#140a22] px-4 font-mono text-xl font-bold uppercase tracking-widest text-white placeholder:text-slate-600 focus:outline-none',
-            errorPlaca ? 'border-rose-400' : 'border-[#4a2870]/50 focus:border-lyer-cyan',
+            'h-14 w-full rounded-xl border bg-lyer-fondo px-4 font-mono text-xl font-bold uppercase tracking-widest text-lyer-fg placeholder:text-lyer-muted focus:outline-none',
+            errorPlaca ? 'border-rose-400' : 'border-lyer-linea/50 focus:border-lyer-cyan',
           ]"
           @input="onPlacaInput"
         />
@@ -222,29 +222,29 @@ onBeforeUnmount(() => {
         </p>
       </div>
 
-      <div v-if="etapa === 'historial'" class="overflow-hidden rounded-xl border border-[#4a2870]/40">
-        <div class="flex items-center gap-2 bg-[#160a24] px-4 py-3 text-slate-400">
+      <div v-if="etapa === 'historial'" class="overflow-hidden rounded-xl border border-lyer-linea/40">
+        <div class="flex items-center gap-2 bg-lyer-panel px-4 py-3 text-lyer-muted">
           <History class="h-4 w-4" />
           <span class="text-[10px] font-bold uppercase tracking-widest">
             {{ vehiculoNuevo ? 'Sin historial' : `Historial (${historial.length})` }}
           </span>
         </div>
-        <p v-if="vehiculoNuevo" class="px-4 py-3 text-sm text-slate-300">
+        <p v-if="vehiculoNuevo" class="px-4 py-3 text-sm text-lyer-muted">
           Esta placa no tiene órdenes. Se registrará como vehículo nuevo.
         </p>
         <p v-else-if="marcaModelo" class="px-4 pt-3 text-xs font-semibold uppercase tracking-wider text-lyer-cyan">
           {{ marcaModelo }}
         </p>
-        <ul v-if="historial.length" class="divide-y divide-[#4a2870]/30">
+        <ul v-if="historial.length" class="divide-y divide-lyer-linea/30">
           <li v-for="o in historial" :key="o.id" class="flex justify-between gap-3 px-4 py-3 text-sm">
             <div>
               <span class="font-bold text-lyer-cyan">{{ o.numeroOrden }}</span>
-              <span class="ml-2 text-xs text-slate-400">{{ nombreClienteOrden(o) }}</span>
+              <span class="ml-2 text-xs text-lyer-muted">{{ nombreClienteOrden(o) }}</span>
             </div>
-            <span class="text-[10px] font-bold uppercase text-slate-400">{{ labelEstadoOrden(o.estado) }}</span>
+            <span class="text-[10px] font-bold uppercase text-lyer-muted">{{ labelEstadoOrden(o.estado) }}</span>
           </li>
         </ul>
-        <p v-else-if="!vehiculoNuevo" class="px-4 py-3 text-sm text-slate-300">
+        <p v-else-if="!vehiculoNuevo" class="px-4 py-3 text-sm text-lyer-muted">
           El vehículo existe, pero no tiene órdenes recientes.
         </p>
       </div>
@@ -252,7 +252,7 @@ onBeforeUnmount(() => {
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
         <button
           type="button"
-          class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#4a2870]/50 px-4 text-xs font-semibold uppercase tracking-wider text-slate-300"
+          class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-lyer-linea/50 px-4 text-xs font-semibold uppercase tracking-wider text-lyer-muted"
           @click="repetirFoto"
         >
           <RefreshCw class="h-4 w-4" />

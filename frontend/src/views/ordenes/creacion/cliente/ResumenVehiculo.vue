@@ -10,15 +10,15 @@ defineEmits(['editar', 'cambiar']);
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 rounded-2xl border border-lyer-cyan/30 bg-[#221433]/90 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+  <div class="flex flex-col gap-4 rounded-2xl border border-lyer-cyan/30 bg-lyer-card/90 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
     <div class="flex min-w-0 items-center gap-3.5">
       <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-lyer-cyan/40 bg-lyer-cyan/10 text-lyer-cyan">
         <Car class="h-5 w-5" />
       </div>
       <div class="min-w-0">
         <span class="block text-[11px] font-semibold uppercase tracking-wider text-lyer-cyan">Vehículo asociado</span>
-        <p class="mt-0.5 truncate text-sm text-slate-300 md:text-base">
-          <span class="mr-2 inline-block rounded border border-[#4a2870] bg-[#140a22] px-2 py-0.5 font-mono text-base font-bold tracking-wider text-white">
+        <p class="mt-0.5 truncate text-sm text-lyer-muted md:text-base">
+          <span class="mr-2 inline-block rounded border border-lyer-linea bg-lyer-fondo px-2 py-0.5 font-mono text-base font-bold tracking-wider text-lyer-fg">
             {{ resumen.placa }}
           </span>
           {{ resumen.marca }} {{ resumen.modelo }}
@@ -37,14 +37,14 @@ defineEmits(['editar', 'cambiar']);
       <button
         v-if="puedeEditar"
         type="button"
-        class="inline-flex items-center gap-1.5 rounded-lg border border-[#4a2870]/50 bg-[#2a1840] px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-lyer-cyan/40 hover:text-white"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-lyer-linea/50 bg-lyer-hover px-3 py-1.5 text-xs font-semibold text-lyer-muted hover:border-lyer-cyan/40 hover:text-lyer-fg"
         @click="$emit('editar')"
       >
         Editar
       </button>
       <button
         type="button"
-        class="inline-flex items-center gap-1.5 rounded-lg border border-[#4a2870]/50 bg-[#2a1840] px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-lyer-cyan/40 hover:text-white"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-lyer-linea/50 bg-lyer-hover px-3 py-1.5 text-xs font-semibold text-lyer-muted hover:border-lyer-cyan/40 hover:text-lyer-fg"
         @click="$emit('cambiar')"
       >
         Cambiar

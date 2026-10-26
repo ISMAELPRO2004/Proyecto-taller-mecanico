@@ -11,7 +11,7 @@ defineEmits(['update:tabActiva', 'update:busqueda', 'change']);
 </script>
 
 <template>
-  <div class="border-b border-[#4a2870]/40 px-4 py-4 md:px-6">
+  <div class="border-b border-lyer-linea/40 px-4 py-4 md:px-6">
     <Tabs
       :model-value="tabActiva"
       :items="tabs"
@@ -23,7 +23,7 @@ defineEmits(['update:tabActiva', 'update:busqueda', 'change']);
         :value="busqueda"
         type="text"
         placeholder="Buscar..."
-        class="h-11 w-full rounded-xl border border-[#4a2870]/60 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none lg:w-80"
+        class="h-11 w-full rounded-xl border border-lyer-linea/60 bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan/70 focus:outline-none lg:w-80"
         @input="$emit('update:busqueda', $event.target.value)"
       />
     </Tabs>

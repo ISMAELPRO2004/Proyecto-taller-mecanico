@@ -17,12 +17,12 @@ defineEmits(['editar', 'eliminar']);
     <span class="loading loading-ring loading-md text-lyer-accent" />
   </div>
 
-  <div v-else-if="items.length === 0" class="py-16 text-center text-sm text-slate-400">
+  <div v-else-if="items.length === 0" class="py-16 text-center text-sm text-lyer-muted">
     No hay ítems en este catálogo.
   </div>
 
   <template v-else>
-    <div class="divide-y divide-[#4a2870]/35 md:hidden">
+    <div class="divide-y divide-lyer-linea/35 md:hidden">
       <TarjetaCatalogo
         v-for="item in items"
         :key="'m-' + item.id"
@@ -34,15 +34,15 @@ defineEmits(['editar', 'eliminar']);
     </div>
 
     <div class="hidden overflow-x-auto md:block">
-      <table class="w-full border-collapse text-left text-sm text-slate-200">
-        <thead class="border-b border-[#4a2870]/40 bg-[#160a24] text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      <table class="w-full border-collapse text-left text-sm text-lyer-fg">
+        <thead class="border-b border-lyer-linea/40 bg-lyer-panel text-[11px] font-bold uppercase tracking-wider text-lyer-muted">
           <tr>
             <th class="px-6 py-3.5">Descripción del ítem</th>
             <th class="w-44 px-4 py-3.5 text-right">Precio base</th>
             <th class="w-36 px-6 py-3.5 text-center">Acciones</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-[#4a2870]/35">
+        <tbody class="divide-y divide-lyer-linea/35">
           <FilaCatalogo
             v-for="item in items"
             :key="item.id"

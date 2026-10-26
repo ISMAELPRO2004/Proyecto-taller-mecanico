@@ -14,7 +14,7 @@ defineEmits(['update:tab', 'update:busqueda', 'update:nuevaMarca', 'crear-marca'
 </script>
 
 <template>
-  <div class="space-y-4 border-b border-[#4a2870]/40 px-4 py-4 md:px-6">
+  <div class="space-y-4 border-b border-lyer-linea/40 px-4 py-4 md:px-6">
     <Tabs :model-value="tab" :items="tabs" oscuro @update:model-value="$emit('update:tab', $event)" />
     <div class="flex flex-col gap-3 sm:flex-row">
       <div class="relative flex-1">
@@ -23,7 +23,7 @@ defineEmits(['update:tab', 'update:busqueda', 'update:nuevaMarca', 'crear-marca'
           :value="busqueda"
           type="text"
           placeholder="Buscar..."
-          class="h-11 w-full rounded-xl border border-[#4a2870]/60 bg-[#140a22] pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-lyer-cyan/70 focus:outline-none"
+          class="h-11 w-full rounded-xl border border-lyer-linea/60 bg-lyer-fondo pl-10 pr-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan/70 focus:outline-none"
           @input="$emit('update:busqueda', $event.target.value)"
         />
       </div>

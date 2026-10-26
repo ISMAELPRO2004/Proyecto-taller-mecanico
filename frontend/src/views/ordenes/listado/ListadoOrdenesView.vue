@@ -50,7 +50,7 @@ const {
       @refrescar="obtenerOrdenes"
     />
 
-    <div class="overflow-hidden rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+    <div class="overflow-hidden rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
       <TablaOrdenes
         :ordenes="ordenesPaginadas"
         :cargando="cargando"
@@ -65,7 +65,7 @@ const {
         @factura="abrirFactura"
       />
 
-      <div class="border-t border-[#4a2870]/40 bg-[#160a24] px-4 py-4 md:px-6">
+      <div class="border-t border-lyer-linea/40 bg-lyer-panel px-4 py-4 md:px-6">
         <Paginador
           v-model="paginaActual"
           v-model:items-por-pagina="itemsPorPagina"

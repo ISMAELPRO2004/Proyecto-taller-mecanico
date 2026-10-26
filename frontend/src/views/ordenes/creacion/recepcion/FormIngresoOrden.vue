@@ -14,30 +14,30 @@ defineEmits([
   'update:observacionIngreso',
 ]);
 
-const campo = 'w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] p-4 text-sm leading-relaxed text-white placeholder:text-slate-600 focus:border-lyer-cyan focus:outline-none';
+const campo = 'w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo p-4 text-sm leading-relaxed text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none';
 </script>
 
 <template>
-  <section class="space-y-6 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-7">
-    <div class="flex items-center justify-between gap-3 border-b border-[#4a2870]/40 pb-4">
+  <section class="space-y-6 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] md:p-7">
+    <div class="flex items-center justify-between gap-3 border-b border-lyer-linea/40 pb-4">
       <div class="flex items-center gap-2.5">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
           <ClipboardList class="h-4 w-4" />
         </div>
         <div>
-          <h2 class="font-display text-base font-bold uppercase tracking-wide text-white">Datos de recepción</h2>
-          <p class="mt-0.5 text-xs text-slate-400">Lo que pide el cliente y el estado físico al ingresar</p>
+          <h2 class="font-display text-base font-bold uppercase tracking-wide text-lyer-fg">Datos de recepción</h2>
+          <p class="mt-0.5 text-xs text-lyer-muted">Lo que pide el cliente y el estado físico al ingresar</p>
         </div>
       </div>
     </div>
 
     <div class="space-y-2">
       <div class="flex items-center justify-between gap-2">
-        <label class="text-xs font-bold uppercase tracking-wider text-slate-200">
+        <label class="text-xs font-bold uppercase tracking-wider text-lyer-fg">
           Solicitud del cliente
           <span class="text-lyer-accent">*</span>
         </label>
-        <span class="text-[11px] font-medium uppercase tracking-wide text-slate-400">Voz del cliente</span>
+        <span class="text-[11px] font-medium uppercase tracking-wide text-lyer-muted">Voz del cliente</span>
       </div>
       <textarea
         :value="descripcionInformal"
@@ -54,7 +54,7 @@ const campo = 'w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] p-4 tex
 
     <div class="space-y-5">
       <div class="space-y-2">
-        <label class="text-xs font-bold uppercase tracking-wider text-slate-200">Estado de ingreso</label>
+        <label class="text-xs font-bold uppercase tracking-wider text-lyer-fg">Estado de ingreso</label>
         <div class="relative max-w-md">
           <select
             :value="estadoIngreso"
@@ -64,7 +64,7 @@ const campo = 'w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] p-4 tex
             <option value="ACEPTADO">Todo conforme / sin daños</option>
             <option value="OBSERVADO">Observado / con daños o detalles</option>
           </select>
-          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-lyer-muted" />
         </div>
         <p class="text-xs text-slate-500">Estado físico general de la unidad al recepcionarla.</p>
       </div>

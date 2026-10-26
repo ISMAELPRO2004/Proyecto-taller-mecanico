@@ -17,9 +17,9 @@ const columnas = computed(() => (verPrecios.value ? 6 : 5));
 </script>
 
 <template>
-  <div class="flex h-full flex-col overflow-hidden rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-    <div class="flex items-center justify-between border-b border-[#4a2870]/40 bg-black/15 px-5 py-4">
-      <h3 class="flex items-center gap-2.5 font-display text-sm font-bold tracking-wide text-white sm:text-base">
+  <div class="flex h-full flex-col overflow-hidden rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+    <div class="flex items-center justify-between border-b border-lyer-linea/40 bg-black/15 px-5 py-4">
+      <h3 class="flex items-center gap-2.5 font-display text-sm font-bold tracking-wide text-lyer-fg sm:text-base">
         <Car class="h-5 w-5 text-lyer-cyan" />
         Últimas unidades en taller
       </h3>
@@ -35,7 +35,7 @@ const columnas = computed(() => (verPrecios.value ? 6 : 5));
     <div class="flex-1 overflow-x-auto">
       <table class="w-full border-collapse text-left text-xs">
         <thead>
-          <tr class="border-b border-[#4a2870]/40 bg-black/20 text-[11px] uppercase tracking-wider text-slate-400">
+          <tr class="border-b border-lyer-linea/40 bg-black/20 text-[11px] uppercase tracking-wider text-lyer-muted">
             <th class="px-4 py-3 font-semibold">OT #</th>
             <th class="px-3 py-3 font-semibold">Placa y vehículo</th>
             <th class="hidden px-3 py-3 font-semibold sm:table-cell">Cliente</th>
@@ -44,7 +44,7 @@ const columnas = computed(() => (verPrecios.value ? 6 : 5));
             <th class="px-3 py-3 text-center font-semibold">Acción</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-[#4a2870]/35 text-slate-200">
+        <tbody class="divide-y divide-lyer-linea/35 text-lyer-fg">
           <tr v-if="cargando">
             <td :colspan="columnas" class="py-10 text-center">
               <span class="loading loading-ring loading-md text-lyer-accent" />
@@ -57,7 +57,7 @@ const columnas = computed(() => (verPrecios.value ? 6 : 5));
             :ver-precios="verPrecios"
           />
           <tr v-if="!cargando && ordenesRecientes.length === 0">
-            <td :colspan="columnas" class="py-12 text-center text-sm text-slate-400">
+            <td :colspan="columnas" class="py-12 text-center text-sm text-lyer-muted">
               No hay órdenes registradas.
             </td>
           </tr>
@@ -65,7 +65,7 @@ const columnas = computed(() => (verPrecios.value ? 6 : 5));
       </table>
     </div>
 
-    <div class="mt-auto border-t border-[#4a2870]/40 bg-black/15 px-5 py-3 text-[11px] text-slate-400">
+    <div class="mt-auto border-t border-lyer-linea/40 bg-black/15 px-5 py-3 text-[11px] text-lyer-muted">
       Mostrando {{ ordenesRecientes.length }} de {{ props.total }} órdenes
     </div>
   </div>

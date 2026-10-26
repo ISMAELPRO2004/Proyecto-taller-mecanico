@@ -26,7 +26,7 @@ const crearMarca = () => {
   mostrandoNueva.value = false;
 };
 
-const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-600 focus:border-lyer-cyan focus:outline-none disabled:cursor-not-allowed disabled:opacity-80';
+const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none disabled:cursor-not-allowed disabled:opacity-80';
 </script>
 
 <template>
@@ -36,12 +36,12 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
         <div class="flex h-8 w-8 items-center justify-center rounded-lg border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
           <Car class="h-4 w-4" />
         </div>
-        <h2 class="font-display text-base font-bold uppercase tracking-wider text-white md:text-lg">Datos del vehículo</h2>
+        <h2 class="font-display text-base font-bold uppercase tracking-wider text-lyer-fg md:text-lg">Datos del vehículo</h2>
       </div>
       <button
         v-if="bloqueado && puedeEditar"
         type="button"
-        class="inline-flex items-center gap-1 text-sm font-semibold text-lyer-cyan hover:text-white"
+        class="inline-flex items-center gap-1 text-sm font-semibold text-lyer-cyan hover:text-lyer-fg"
         @click="$emit('editar')"
       >
         <Edit3 class="h-4 w-4" />
@@ -57,7 +57,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div>
-        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
           Marca
           <span class="text-lyer-accent">*</span>
         </label>
@@ -75,7 +75,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
             v-if="!bloqueado"
             type="button"
             title="Añadir nueva marca"
-            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#4a2870]/50 bg-[#2a1840] text-lyer-cyan hover:border-lyer-cyan/50"
+            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-lyer-linea/50 bg-lyer-hover text-lyer-cyan hover:border-lyer-cyan/50"
             @click="mostrandoNueva = !mostrandoNueva"
           >
             <Plus class="h-5 w-5" />
@@ -96,7 +96,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
       </div>
 
       <div>
-        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
           Modelo
           <span class="text-lyer-accent">*</span>
         </label>
@@ -111,7 +111,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
       </div>
 
       <div>
-        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">Kilometraje</label>
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">Kilometraje</label>
         <div class="relative">
           <input
             :value="vehiculo.kilometraje ?? ''"
@@ -126,7 +126,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
       </div>
 
       <div>
-        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">Horómetro</label>
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">Horómetro</label>
         <div class="relative">
           <input
             :value="vehiculo.horometro ?? ''"

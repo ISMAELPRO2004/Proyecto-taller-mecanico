@@ -50,11 +50,11 @@ const onNumeroBusqueda = (numero) => {
   emit('cambiar-busqueda', { tipo: props.cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI', numero });
 };
 
-const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px-4 text-sm text-white placeholder:text-slate-600 focus:border-lyer-cyan focus:outline-none disabled:cursor-not-allowed disabled:opacity-80';
+const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none disabled:cursor-not-allowed disabled:opacity-80';
 </script>
 
 <template>
-  <section class="space-y-8 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10">
+  <section class="space-y-8 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10">
     <FormBusquedaCliente
       :tipo-documento="cliente.tipoDocumento === 'RUC' ? 'RUC' : 'DNI'"
       :numero-documento="cliente.numeroDocumento"
@@ -68,9 +68,9 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
     />
 
     <template v-if="consultado">
-      <div class="border-t border-[#4a2870]/40" />
+      <div class="border-t border-lyer-linea/40" />
 
-      <p v-if="esNuevo" class="flex items-start gap-2 text-sm text-slate-300">
+      <p v-if="esNuevo" class="flex items-start gap-2 text-sm text-lyer-muted">
         <Info class="mt-0.5 h-4 w-4 shrink-0 text-lyer-cyan" />
         <span>
           {{ cliente.tipoCliente === 'EMPRESA' ? 'Nueva empresa' : 'Nueva persona' }}.
@@ -88,12 +88,12 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
             <div class="flex h-8 w-8 items-center justify-center rounded-lg border border-lyer-cyan/30 bg-lyer-cyan/10 text-lyer-cyan">
               <User class="h-4 w-4" />
             </div>
-            <h2 class="font-display text-base font-bold uppercase tracking-wider text-white md:text-lg">Datos del cliente</h2>
+            <h2 class="font-display text-base font-bold uppercase tracking-wider text-lyer-fg md:text-lg">Datos del cliente</h2>
           </div>
           <button
             v-if="bloqueado && puedeEditar"
             type="button"
-            class="inline-flex items-center gap-1 text-sm font-semibold text-lyer-cyan hover:text-white"
+            class="inline-flex items-center gap-1 text-sm font-semibold text-lyer-cyan hover:text-lyer-fg"
             @click="$emit('editar')"
           >
             <Edit3 class="h-4 w-4" />
@@ -109,7 +109,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
 
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div class="md:col-span-2">
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
               {{ cliente.tipoCliente === 'EMPRESA' ? 'Razón social' : 'Nombre y apellidos' }}
               <span class="text-lyer-accent">*</span>
             </label>
@@ -124,7 +124,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
           </div>
 
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
               Tipo
               <span class="text-lyer-accent">*</span>
             </label>
@@ -138,12 +138,12 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
                 <option value="PERSONA">Persona</option>
                 <option value="EMPRESA">Empresa</option>
               </select>
-              <ChevronDown class="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-slate-400" />
+              <ChevronDown class="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-lyer-muted" />
             </div>
           </div>
 
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
               Representante / quien deja el vehículo
             </label>
             <input
@@ -156,7 +156,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
           </div>
 
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">Celular</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">Celular</label>
             <div class="relative">
               <Phone class="pointer-events-none absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
               <input
@@ -173,7 +173,7 @@ const campo = 'h-12 w-full rounded-xl border border-[#4a2870]/50 bg-[#140a22] px
           </div>
 
           <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-300">Correo electrónico</label>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">Correo electrónico</label>
             <div class="relative">
               <Mail class="pointer-events-none absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
               <input

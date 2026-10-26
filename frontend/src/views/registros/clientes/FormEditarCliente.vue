@@ -60,7 +60,7 @@ const conError = (nombre) => [campo, props.errores[nombre] ? 'border-rose-400 fo
             <option value="PERSONA">Persona</option>
             <option value="EMPRESA">Empresa</option>
           </select>
-          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-lyer-muted" />
         </span>
       </label>
       <label class="block space-y-1.5">
@@ -75,7 +75,7 @@ const conError = (nombre) => [campo, props.errores[nombre] ? 'border-rose-400 fo
             <option v-if="form.tipoCliente !== 'EMPRESA'" value="DNI">DNI</option>
             <option value="RUC">RUC</option>
           </select>
-          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <ChevronDown class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-lyer-muted" />
         </span>
         <p v-if="errores.tipoDocumento" class="text-xs text-rose-300">{{ errores.tipoDocumento }}</p>
       </label>

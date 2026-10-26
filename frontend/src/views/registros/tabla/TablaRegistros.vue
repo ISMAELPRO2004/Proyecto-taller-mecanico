@@ -17,13 +17,13 @@ defineEmits(['editar', 'eliminar']);
     <span class="loading loading-ring loading-md text-lyer-accent" />
   </div>
 
-  <div v-else-if="!items.length" class="py-16 text-center text-sm text-slate-400">
+  <div v-else-if="!items.length" class="py-16 text-center text-sm text-lyer-muted">
     Sin registros
   </div>
 
   <div v-else class="overflow-x-auto">
-    <table class="w-full min-w-[760px] border-collapse text-left text-sm text-slate-200">
-      <thead class="border-b border-[#4a2870]/40 bg-[#160a24] text-[11px] font-bold uppercase tracking-wider text-slate-400">
+    <table class="w-full min-w-[760px] border-collapse text-left text-sm text-lyer-fg">
+      <thead class="border-b border-lyer-linea/40 bg-lyer-panel text-[11px] font-bold uppercase tracking-wider text-lyer-muted">
         <tr v-if="tipo === 'clientes'">
           <th class="px-6 py-3.5">Nombre / razón social</th>
           <th class="px-4 py-3.5">Tipo</th>
@@ -46,7 +46,7 @@ defineEmits(['editar', 'eliminar']);
           <th class="px-6 py-3.5 text-center">Acciones</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-[#4a2870]/35">
+      <tbody class="divide-y divide-lyer-linea/35">
         <template v-if="tipo === 'clientes'">
           <FilaCliente
             v-for="c in items"

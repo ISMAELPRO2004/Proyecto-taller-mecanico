@@ -57,7 +57,7 @@ const puedeEscanear = computed(() => !props.ordenId && !props.placaConsultada);
 
   <div
     v-else
-    class="space-y-8 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10"
+    class="space-y-8 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10"
   >
     <FormBusquedaPlaca
       :placa="placa"
@@ -70,7 +70,7 @@ const puedeEscanear = computed(() => !props.ordenId && !props.placaConsultada);
     />
 
     <template v-if="placaConsultada">
-      <div class="border-t border-[#4a2870]/40" />
+      <div class="border-t border-lyer-linea/40" />
       <FormVehiculo
         :vehiculo="vehiculo"
         :marcas="marcas"
@@ -86,7 +86,7 @@ const puedeEscanear = computed(() => !props.ordenId && !props.placaConsultada);
         <button
           v-if="editando && ordenId"
           type="button"
-          class="h-12 rounded-xl border border-[#4a2870]/50 px-5 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white"
+          class="h-12 rounded-xl border border-lyer-linea/50 px-5 text-xs font-semibold uppercase tracking-wider text-lyer-muted hover:text-lyer-fg"
           @click="$emit('cancelar')"
         >
           Cancelar
