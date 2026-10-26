@@ -70,6 +70,8 @@ export function useRecepcionOrden() {
     errores: ctx.errores,
     onCambioPlaca: vehiculo.onCambioPlaca,
     buscarPlaca: vehiculo.buscarPlaca,
+    modoEntrada: vehiculo.modoEntrada,
+    elegirModoEntrada: vehiculo.elegirModoEntrada,
     marcas: ctx.marcas,
     puedeEditarVehiculoUI: ctx.puedeEditarVehiculoUI,
     onNuevaMarca: vehiculo.onNuevaMarca,

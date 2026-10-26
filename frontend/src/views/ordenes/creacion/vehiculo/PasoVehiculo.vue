@@ -1,9 +1,12 @@
 <script setup>
+import { computed } from 'vue';
 import { ArrowRight } from 'lucide-vue-next';
+import FormEleccionPlaca from './FormEleccionPlaca.vue';
+import FormEscanearPlaca from './FormEscanearPlaca.vue';
 import FormBusquedaPlaca from './FormBusquedaPlaca.vue';
 import FormVehiculo from './FormVehiculo.vue';
 
-defineProps({
+const props = defineProps({
   placa: { type: String, default: '' },
   historial: { type: Array, default: () => [] },
   errores: { type: Object, default: () => ({}) },
@@ -16,9 +19,10 @@ defineProps({
   ordenId: { type: [Number, String, null], default: null },
   guardandoPaso: { type: Boolean, default: false },
   pasoOrigenEdicion: { type: [Number, null], default: null },
+  modoEntrada: { type: String, default: null },
 });
 
-defineEmits([
+const emit = defineEmits([
   'update:placa',
   'buscar',
   'update:vehiculo',
@@ -26,17 +30,43 @@ defineEmits([
   'editar',
   'cancelar',
   'guardar',
+  'elegir-modo',
 ]);
+
+const mostrarEleccion = computed(() =>
+  !props.placaConsultada && !props.ordenId && !props.modoEntrada && !props.editando
+);
+const mostrarEscaner = computed(() =>
+  props.modoEntrada === 'escanear' && !props.placaConsultada && !props.ordenId
+);
+const puedeEscanear = computed(() => !props.ordenId && !props.placaConsultada);
 </script>
 
 <template>
-  <div class="space-y-8 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10">
+  <FormEleccionPlaca
+    v-if="mostrarEleccion"
+    @escanear="emit('elegir-modo', 'escanear')"
+    @manual="emit('elegir-modo', 'manual')"
+  />
+
+  <FormEscanearPlaca
+    v-else-if="mostrarEscaner"
+    @usar-placa="emit('buscar', $event)"
+    @manual="emit('elegir-modo', 'manual')"
+  />
+
+  <div
+    v-else
+    class="space-y-8 rounded-2xl border border-[#4a2870]/45 bg-[#221433]/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10"
+  >
     <FormBusquedaPlaca
       :placa="placa"
       :historial="historial"
       :error="errores.placa"
+      :puede-escanear="puedeEscanear"
       @update:placa="$emit('update:placa', $event)"
       @buscar="$emit('buscar', $event)"
+      @escanear="emit('elegir-modo', 'escanear')"
     />
 
     <template v-if="placaConsultada">

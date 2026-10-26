@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
-import { Search, History, Info, Loader2 } from 'lucide-vue-next';
+import { Search, History, Info, Loader2, Camera } from 'lucide-vue-next';
 import { nombreClienteOrden } from '../../../../utils/ordenDisplay.js';
+import { labelEstadoOrden } from '../../../../constants/estadosOrden.js';
 import { formatearPlacaEscrita } from '../../../../utils/placa.js';
 import { vehiculoService } from '../../../../services/vehiculoService.js';
 
@@ -9,9 +10,10 @@ const props = defineProps({
   placa: { type: String, default: '' },
   historial: { type: Array, default: () => [] },
   error: { type: String, default: '' },
+  puedeEscanear: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:placa', 'buscar']);
+const emit = defineEmits(['update:placa', 'buscar', 'escanear']);
 
 const sugerencias = ref([]);
 const buscando = ref(false);
@@ -125,9 +127,18 @@ onBeforeUnmount(() => clearTimeout(debounceTimer));
     </div>
 
     <p v-if="error" class="text-sm font-medium text-rose-300">{{ error }}</p>
-    <p class="flex items-start gap-2 text-xs text-slate-400 md:text-sm">
+    <button
+      v-if="puedeEscanear"
+      type="button"
+      class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-lyer-cyan"
+      @click="emit('escanear')"
+    >
+      <Camera class="h-4 w-4" />
+      Escanear con cámara
+    </button>
+    <p v-else-if="!historial.length && !placa" class="flex items-start gap-2 text-xs text-slate-400 md:text-sm">
       <Info class="mt-0.5 h-4 w-4 shrink-0 text-lyer-cyan" />
-      Por ahora la placa se ingresa manualmente. Más adelante se conectará el escaneo por cámara/IA.
+      Formato de placa: AAA-AAA.
     </p>
 
     <div v-if="historial.length" class="overflow-hidden rounded-xl border border-[#4a2870]/40">
@@ -141,7 +152,7 @@ onBeforeUnmount(() => clearTimeout(debounceTimer));
             <span class="font-bold text-lyer-cyan">{{ o.numeroOrden }}</span>
             <span class="ml-2 text-xs text-slate-400">{{ nombreClienteOrden(o) }}</span>
           </div>
-          <span class="text-[10px] font-bold uppercase text-slate-400">{{ o.estado }}</span>
+          <span class="text-[10px] font-bold uppercase text-slate-400">{{ labelEstadoOrden(o.estado) }}</span>
         </li>
       </ul>
     </div>

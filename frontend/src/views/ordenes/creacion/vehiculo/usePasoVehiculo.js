@@ -1,3 +1,4 @@
+import { ref } from 'vue';
 import { ordenService } from '../../../../services/ordenService.js';
 import { vehiculoService } from '../../../../services/vehiculoService.js';
 import { notify } from '../../../../utils/alerts.js';
@@ -26,6 +27,12 @@ export function usePasoVehiculo(ctx) {
     router,
     recordarGuardado,
   } = ctx;
+
+  const modoEntrada = ref(esEdicion.value ? 'manual' : null);
+
+  const elegirModoEntrada = (modo) => {
+    modoEntrada.value = modo;
+  };
 
   const cargarMarcas = async () => {
     try {
@@ -193,6 +200,7 @@ export function usePasoVehiculo(ctx) {
     placaConsultada.value = false;
     historialOrdenes.value = [];
     errores.value = {};
+    modoEntrada.value = ordenId.value ? 'manual' : null;
   };
 
   const irAEditarVehiculo = () => {
@@ -220,6 +228,8 @@ export function usePasoVehiculo(ctx) {
   };
 
   return {
+    modoEntrada,
+    elegirModoEntrada,
     cargarMarcas,
     buscarPlaca,
     onCambioPlaca,

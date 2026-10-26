@@ -8,7 +8,7 @@ import PasoRecepcion from './recepcion/PasoRecepcion.vue';
 
 const {
   router, ordenId, pasoRecepcion, paso, pasoAlcanzado, cargando, vehiculoBloqueado, placaConsultada,
-  form, historialOrdenes, errores, onCambioPlaca, buscarPlaca, marcas,
+  form, historialOrdenes, errores, onCambioPlaca, buscarPlaca, modoEntrada, elegirModoEntrada, marcas,
   puedeEditarVehiculoUI, onNuevaMarca, empezarEditarVehiculoEnPaso, editandoVehiculo,
   cancelarEdicionVehiculo, guardandoPaso, guardarPasoVehiculo, pasoOrigenEdicion,
   resumenVehiculo, irAEditarVehiculo, cambiarVehiculo, clienteBloqueado,
@@ -60,8 +60,10 @@ const {
         :orden-id="ordenId"
         :guardando-paso="guardandoPaso"
         :paso-origen-edicion="pasoOrigenEdicion"
+        :modo-entrada="modoEntrada"
         @update:placa="onCambioPlaca"
         @buscar="buscarPlaca"
+        @elegir-modo="elegirModoEntrada"
         @update:vehiculo="form.vehiculo = $event"
         @crear-marca="onNuevaMarca"
         @editar="empezarEditarVehiculoEnPaso"

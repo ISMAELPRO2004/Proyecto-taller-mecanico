@@ -5,6 +5,11 @@ export const vehiculoService = {
   listar: () => api.get('/vehiculos').then((r) => r.data),
   sugerir: (q) => api.get('/vehiculos/sugerencias', { params: { q } }).then((r) => r.data),
   buscarPorPlaca: (placa) => api.get(`/vehiculos/${encodeURIComponent(placa)}`).then((r) => r.data),
+  reconocerPlaca: (file) => {
+    const data = new FormData();
+    data.append('foto', file);
+    return api.post('/vehiculos/reconocer', data).then((r) => r.data);
+  },
   upsert: (payload) => api.post('/vehiculos', payload).then((r) => r.data),
   actualizar: (placa, payload) => api.put(`/vehiculos/${encodeURIComponent(placa)}`, payload).then((r) => r.data),
   eliminar: (placa) => api.delete(`/vehiculos/${encodeURIComponent(placa)}`).then((r) => r.data),

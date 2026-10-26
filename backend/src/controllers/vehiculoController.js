@@ -16,6 +16,11 @@ export const buscarPorPlaca = asyncHandler(async (req, res) => {
   res.json(vehiculo);
 }, { defaultStatus: 500 });
 
+export const reconocerPlaca = asyncHandler(async (req, res) => {
+  const resultado = await vehiculoService.reconocerPlaca(req.file);
+  res.json(resultado);
+});
+
 export const upsertVehiculo = asyncHandler(async (req, res) => {
   const vehiculo = await vehiculoService.upsertVehiculo(req.body, req);
   res.status(201).json(vehiculo);

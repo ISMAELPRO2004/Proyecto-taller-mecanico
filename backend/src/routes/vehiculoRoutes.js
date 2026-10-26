@@ -7,6 +7,7 @@ import {
   listarVehiculos,
   sugerirVehiculos,
   buscarPorPlaca,
+  reconocerPlaca,
   upsertVehiculo,
   actualizarVehiculo,
   eliminarVehiculo,
@@ -14,6 +15,7 @@ import {
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validateBody, validateParams } from '../middleware/validateBody.js';
+import { uploadFoto } from '../middleware/uploadFoto.js';
 import { crearMarcaSchema, upsertVehiculoSchema, placaParamSchema, idParamSchema } from '../schemas/index.js';
 
 const router = Router();
@@ -47,6 +49,12 @@ router.delete('/marcas/:id',
 
 router.get('/', authenticateJWT, authorize(SOLO_ADMIN), listarVehiculos);
 router.get('/sugerencias', authenticateJWT, authorize(ROLES), sugerirVehiculos);
+router.post('/reconocer',
+  authenticateJWT,
+  authorize(ROLES),
+  uploadFoto,
+  reconocerPlaca
+);
 router.get('/:placa',
   authenticateJWT,
   authorize(ROLES),

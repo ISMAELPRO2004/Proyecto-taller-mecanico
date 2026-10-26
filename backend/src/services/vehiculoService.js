@@ -1,5 +1,5 @@
 import prisma from '../config/prisma.js';
-import { AppError, NotFoundError } from '../utils/errors.js';
+import { AppError, NotFoundError, BadRequestError } from '../utils/errors.js';
 import { auditarMarca, auditarVehiculo } from './auditoria/index.js';
 
 export const listarMarcas = async () => {
@@ -176,4 +176,17 @@ export const upsertVehiculo = async (data, req) => {
   await auditarVehiculo.guardar(req, { anterior, vehiculo });
 
   return vehiculo;
+};
+
+/** El modelo de placas se enchufa aquí. Hasta entonces no inventa dígitos. */
+export const reconocerPlaca = async (file) => {
+  if (!file?.buffer?.length) {
+    throw new BadRequestError('Selecciona una imagen de la placa');
+  }
+  return {
+    disponible: false,
+    placa: null,
+    confianza: null,
+    mensaje: 'El modelo de placas aún no está conectado. Confirma los dígitos a mano.',
+  };
 };
