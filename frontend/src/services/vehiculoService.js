@@ -8,7 +8,7 @@ export const vehiculoService = {
   reconocerPlaca: (file) => {
     const data = new FormData();
     data.append('foto', file);
-    return api.post('/vehiculos/reconocer', data).then((r) => r.data);
+    return api.post('/vehiculos/reconocer', data, { timeout: 90000 }).then((r) => r.data);
   },
   upsert: (payload) => api.post('/vehiculos', payload).then((r) => r.data),
   actualizar: (placa, payload) => api.put(`/vehiculos/${encodeURIComponent(placa)}`, payload).then((r) => r.data),

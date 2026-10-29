@@ -105,7 +105,7 @@ Wizard de recepción (`NuevaOrdenView` también sirve en `/ordenes/editar/:id`).
 
 | Carpeta | Paso |
 | --- | --- |
-| `vehiculo/` | Elegir escanear o escribir, buscar placa, historial, marca/modelo |
+| `vehiculo/` | Celular: cámara. PC: escribir placa. Historial, marca/modelo |
 | `cliente/` | Búsqueda por nombre en clientes del taller, datos (documento opcional) |
 | `recepcion/` | Solicitud, foto de registro, observaciones |
 | `pasos/` | Indicador 1-2-3 |

@@ -17,6 +17,20 @@ import {
   upsertVehiculo,
 } from './comun.js';
 
+const ROLES_RESPONSABLE = ['ADMIN', 'SUPERVISOR', 'TECNICO'];
+
+const validarResponsableTaller = async (responsableId) => {
+  if (responsableId == null || responsableId === '') return null;
+  const id = parseInt(responsableId, 10);
+  if (!Number.isInteger(id) || id <= 0) throw new AppError('Responsable inválido.');
+  const usuario = await prisma.usuario.findUnique({ where: { id } });
+  if (!usuario?.activo) throw new AppError('El responsable no está disponible.');
+  if (!ROLES_RESPONSABLE.includes(usuario.rol)) {
+    throw new AppError('El responsable debe ser técnico, supervisor o admin.');
+  }
+  return id;
+};
+
 /** Validar borrador → ACEPTADO (supervisor/admin) */
 export const aceptarOrden = async (id, { responsableId } = {}, req) => {
   const orden = await prisma.ordenTrabajo.findUnique({ where: { id: parseInt(id) } });
@@ -32,13 +46,15 @@ export const aceptarOrden = async (id, { responsableId } = {}, req) => {
     throw new AppError('La orden no tiene cliente asignado.');
   }
 
+  const responsable = await validarResponsableTaller(responsableId);
+
   const actualizada = await prisma.ordenTrabajo.update({
     where: { id: parseInt(id) },
     data: {
       estado: 'ACEPTADO',
       vehiculoEditableEnBorrador: false,
       clienteEditableEnBorrador: false,
-      ...(responsableId ? { responsableId } : {}),
+      ...(responsable ? { responsableId: responsable } : {}),
     },
     include: includeOrdenDetalle,
   });
@@ -70,6 +86,10 @@ export const actualizarOrden = async (id, data, req) => {
 
   if (ordenPrevia.estado === 'EN_ESPERA' && (data.materiales || data.servicios || data.terceros)) {
     throw new AppError('La orden debe estar aceptada antes de registrar materiales o servicios.');
+  }
+
+  if (data.responsableId !== undefined) {
+    data.responsableId = await validarResponsableTaller(data.responsableId);
   }
 
   const ESTADOS_TRABAJO = ['EN_REPARACION', 'CAMBIO_ACEITE', 'ESPERANDO_REPUESTO', 'TERMINADO'];

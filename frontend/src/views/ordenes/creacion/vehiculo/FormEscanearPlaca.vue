@@ -1,13 +1,13 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { Camera, Check, History, Keyboard, RefreshCw, Loader2 } from 'lucide-vue-next';
+import { Camera, Check, History, RefreshCw, Loader2 } from 'lucide-vue-next';
 import { vehiculoService } from '../../../../services/vehiculoService.js';
 import { notify } from '../../../../utils/alerts.js';
 import { FORMATO_PLACA, MENSAJE_FORMATO_PLACA, formatearPlacaEscrita, errorPlacaEnCurso } from '../../../../utils/placa.js';
 import { labelEstadoOrden } from '../../../../constants/estadosOrden.js';
 import { nombreClienteOrden } from '../../../../utils/ordenDisplay.js';
 
-const emit = defineEmits(['usar-placa', 'manual']);
+const emit = defineEmits(['usar-placa']);
 
 const videoEl = ref(null);
 const etapa = ref('camara');
@@ -15,7 +15,6 @@ const streamActivo = ref(null);
 const fotoUrl = ref('');
 const fotoFile = ref(null);
 const reconociendo = ref(false);
-const modeloDisponible = ref(false);
 const placa = ref('');
 const errorPlaca = ref('');
 const consultando = ref(false);
@@ -63,9 +62,15 @@ const capturar = async () => {
     return;
   }
   const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  const x = Math.round(w * 0.08);
+  const y = Math.round(h * 0.14);
+  const cw = Math.max(1, Math.round(w * 0.84));
+  const ch = Math.max(1, Math.round(h * 0.72));
+  canvas.width = cw;
+  canvas.height = ch;
+  canvas.getContext('2d').drawImage(video, x, y, cw, ch, 0, 0, cw, ch);
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
   if (!blob) {
     notify.error('Cámara', 'No se pudo tomar la foto.');
@@ -81,10 +86,9 @@ const capturar = async () => {
   reconociendo.value = true;
   try {
     const data = await vehiculoService.reconocerPlaca(fotoFile.value);
-    modeloDisponible.value = !!data.disponible;
     if (data.placa) placa.value = formatearPlacaEscrita('', data.placa);
   } catch {
-    modeloDisponible.value = false;
+    /* Si falla la lectura, se confirma a mano. */
   } finally {
     reconociendo.value = false;
   }
@@ -152,14 +156,6 @@ onBeforeUnmount(() => {
           Encuadra la placa, toma la foto y confirma los dígitos.
         </p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-lyer-cyan"
-        @click="$emit('manual')"
-      >
-        <Keyboard class="h-4 w-4" />
-        Escribir a mano
-      </button>
     </div>
 
     <div v-if="etapa === 'camara'" class="space-y-4">
@@ -174,6 +170,24 @@ onBeforeUnmount(() => {
         <div class="pointer-events-none absolute inset-x-8 inset-y-10 rounded-xl border-2 border-lyer-cyan/70" />
       </div>
       <p v-if="errorCamara" class="text-sm text-rose-300">{{ errorCamara }}</p>
+      <div v-if="errorCamara" class="space-y-3">
+        <input
+          :value="placa"
+          maxlength="12"
+          placeholder="EJ: ABC-123"
+          autocomplete="off"
+          class="h-14 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-4 font-mono text-xl font-bold uppercase tracking-widest text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none"
+          @input="onPlacaInput"
+          @keyup.enter="confirmarDigitos"
+        />
+        <button
+          type="button"
+          class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lyer-accent font-display text-sm font-bold uppercase tracking-wider text-[#1a0633]"
+          @click="confirmarDigitos"
+        >
+          Continuar
+        </button>
+      </div>
       <button
         v-if="!errorCamara"
         type="button"
@@ -194,9 +208,7 @@ onBeforeUnmount(() => {
       />
 
       <p class="text-xs text-lyer-muted">
-        {{ modeloDisponible
-          ? 'Revisa que el modelo haya leído bien la placa.'
-          : 'El modelo aún no está conectado. Escribe los dígitos que ves en la foto.' }}
+        Confirma que la placa coincida con la foto. Si hace falta, corrígela.
       </p>
 
       <div>

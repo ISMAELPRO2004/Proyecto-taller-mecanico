@@ -5,7 +5,7 @@ import { ordenService } from '../../../services/ordenService.js';
 import { catalogoService } from '../../../services/catalogoService.js';
 import { usuarioService } from '../../../services/usuarioService.js';
 import { notify } from '../../../utils/alerts.js';
-import { puedeVerPrecios } from '../../../utils/roles.js';
+import { puedeVerPrecios, ROLES_RESPONSABLE } from '../../../utils/roles.js';
 import { ESTADO, ESTADOS_CERRADOS } from '../../../constants/estadosOrden.js';
 import { nombreClienteOrden, marcaVehiculoOrden, modeloVehiculoOrden } from '../../../utils/ordenDisplay.js';
 import {
@@ -414,7 +414,7 @@ const aplicarFactura = ({ requiereFactura, numeroFactura, montoFactura }) => {
         cargarFoto('registro', orden.fotoRegistro),
         cargarFoto('desarrollo', orden.fotoDesarrollo),
       ]);
-      responsables.value = (usuarios || []).filter((u) => u.activo && ['TECNICO', 'SUPERVISOR'].includes(u.rol));
+      responsables.value = (usuarios || []).filter((u) => u.activo && ROLES_RESPONSABLE.includes(u.rol));
       catalogos.value = { materiales, servicios, terceros };
       restaurando.value = false;
       persistirLocal();

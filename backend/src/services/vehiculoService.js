@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { AppError, NotFoundError, BadRequestError } from '../utils/errors.js';
 import { auditarMarca, auditarVehiculo } from './auditoria/index.js';
+import { reconocerConYolo } from './placa/reconocerConYolo.js';
 
 export const listarMarcas = async () => {
   return prisma.marcaVehiculo.findMany({
@@ -178,15 +179,10 @@ export const upsertVehiculo = async (data, req) => {
   return vehiculo;
 };
 
-/** El modelo de placas se enchufa aquí. Hasta entonces no inventa dígitos. */
+/** Llama al YOLO si hay peso en ml/placas/modelos/. Si no, no inventa dígitos. */
 export const reconocerPlaca = async (file) => {
   if (!file?.buffer?.length) {
     throw new BadRequestError('Selecciona una imagen de la placa');
   }
-  return {
-    disponible: false,
-    placa: null,
-    confianza: null,
-    mensaje: 'El modelo de placas aún no está conectado. Confirma los dígitos a mano.',
-  };
+  return reconocerConYolo(file);
 };

@@ -3,6 +3,7 @@ import { ordenService } from '../../../../services/ordenService.js';
 import { vehiculoService } from '../../../../services/vehiculoService.js';
 import { notify } from '../../../../utils/alerts.js';
 import { FORMATO_PLACA, MENSAJE_FORMATO_PLACA, errorPlacaEnCurso } from '../../../../utils/placa.js';
+import { esDispositivoMovil } from '../../../../utils/dispositivo.js';
 import { mapCliente } from '../composables/estadoRecepcion.js';
 
 export function usePasoVehiculo(ctx) {
@@ -28,7 +29,8 @@ export function usePasoVehiculo(ctx) {
     recordarGuardado,
   } = ctx;
 
-  const modoEntrada = ref(esEdicion.value ? 'manual' : null);
+  const modoPorDispositivo = () => (esDispositivoMovil() ? 'escanear' : 'manual');
+  const modoEntrada = ref(esEdicion.value ? 'manual' : modoPorDispositivo());
 
   const elegirModoEntrada = (modo) => {
     modoEntrada.value = modo;
@@ -200,7 +202,7 @@ export function usePasoVehiculo(ctx) {
     placaConsultada.value = false;
     historialOrdenes.value = [];
     errores.value = {};
-    modoEntrada.value = ordenId.value ? 'manual' : null;
+    modoEntrada.value = modoPorDispositivo();
   };
 
   const irAEditarVehiculo = () => {

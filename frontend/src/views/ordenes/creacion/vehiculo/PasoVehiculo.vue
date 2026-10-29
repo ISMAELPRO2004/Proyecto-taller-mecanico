@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue';
 import { ArrowRight } from 'lucide-vue-next';
-import FormEleccionPlaca from './FormEleccionPlaca.vue';
 import FormEscanearPlaca from './FormEscanearPlaca.vue';
 import FormBusquedaPlaca from './FormBusquedaPlaca.vue';
 import FormVehiculo from './FormVehiculo.vue';
@@ -30,29 +29,17 @@ const emit = defineEmits([
   'editar',
   'cancelar',
   'guardar',
-  'elegir-modo',
 ]);
 
-const mostrarEleccion = computed(() =>
-  !props.placaConsultada && !props.ordenId && !props.modoEntrada && !props.editando
-);
 const mostrarEscaner = computed(() =>
-  props.modoEntrada === 'escanear' && !props.placaConsultada && !props.ordenId
+  props.modoEntrada === 'escanear' && !props.placaConsultada && !props.ordenId && !props.editando
 );
-const puedeEscanear = computed(() => !props.ordenId && !props.placaConsultada);
 </script>
 
 <template>
-  <FormEleccionPlaca
-    v-if="mostrarEleccion"
-    @escanear="emit('elegir-modo', 'escanear')"
-    @manual="emit('elegir-modo', 'manual')"
-  />
-
   <FormEscanearPlaca
-    v-else-if="mostrarEscaner"
+    v-if="mostrarEscaner"
     @usar-placa="emit('buscar', $event)"
-    @manual="emit('elegir-modo', 'manual')"
   />
 
   <div
@@ -63,10 +50,8 @@ const puedeEscanear = computed(() => !props.ordenId && !props.placaConsultada);
       :placa="placa"
       :historial="historial"
       :error="errores.placa"
-      :puede-escanear="puedeEscanear"
       @update:placa="$emit('update:placa', $event)"
       @buscar="$emit('buscar', $event)"
-      @escanear="emit('elegir-modo', 'escanear')"
     />
 
     <template v-if="placaConsultada">

@@ -30,8 +30,8 @@ Detalle de cada carpeta: [backend/README.md](backend/README.md) y [frontend/READ
 | --- | --- |
 | **ADMIN** | Todo: usuarios, logs, precios, borrar, factura, cancelar un Terminado. |
 | **SUPERVISOR** | Aceptar borradores, taller, catálogo, ve precios. No gestiona usuarios ni logs. |
-| **TECNICO** | Taller y crear ítems de catálogo. **Sin precios.** |
-| **RECEPCIONISTA** | Crear/editar borradores de recepción. **Sin precios.** No entra a taller. |
+| **TECNICO** | Puede hacer recepción. En taller completa la orden ya aceptada. **Sin precios.** Puede ser responsable. |
+| **RECEPCIONISTA** | Solo el borrador de recepción (`EN_ESPERA`). **Sin precios.** No entra a taller ni es responsable. |
 
 Precios visibles solo para ADMIN y SUPERVISOR.
 

@@ -37,6 +37,7 @@ backend/
 │   ├── seed.js            Datos iniciales
 │   └── migrations/        Una sola baseline (`init`) + las que vengan después
 ├── uploads/ordenes/{id}/  Fotos (registro | desarrollo)
+├── ml/placas/             YOLO de placas: copiar best.pt a modelos/
 ├── src/
 │   ├── server.js          listen()
 │   ├── app.js             Express: CORS, JSON, rate limit login, rutas, errores
@@ -92,7 +93,8 @@ Los errores se lanzan en el servicio (`NotFoundError`, `UnauthorizedError`, etc.
 | `authService.js` | Login: sube `versionSesion` y firma un JWT de 8 h. Un login nuevo cierra el anterior |
 | `usuarioService.js` | Alta/edición (`contrasena` ≥ 6), no borrar la propia cuenta |
 | `clienteService.js` | CRUD y listado local por nombre/documento |
-| `vehiculoService.js` | Marcas y vehículos; `reconocerPlaca` (stub del modelo de placas) |
+| `vehiculoService.js` | Marcas y vehículos; `reconocerPlaca` llama al YOLO si hay peso |
+| `placa/reconocerConYolo.js` | Spawnea `ml/placas/reconocer.py` |
 | `catalogoService.js` | Factory CRUD; técnico recibe ítems **sin** `precioBase` |
 | `fotoOrdenService.js` | Guarda/lee JPG-PNG-WEBP ≤ 5 MB en `uploads/ordenes/{id}/` |
 | `orden/recepcion.js` | Pasos del borrador, completar recepción |
@@ -151,9 +153,15 @@ Errores de PostgreSQL (pool), Prisma (`P1001` conexión, `P2002` duplicado, etc.
 
 Fotos en disco, no en PostgreSQL. La columna guarda la ruta relativa.
 
-## Escaneo de placas (preparado)
+## Escaneo de placas (YOLO)
 
-`POST /api/vehiculos/reconocer` (multipart `foto`). Hoy `reconocerPlaca` responde `{ disponible: false, placa: null, mensaje }` sin adivinar dígitos. Cuando exista el modelo, este servicio es el único sitio a cambiar.
+`POST /api/vehiculos/reconocer` (multipart `foto`).
+
+1. Copia el peso entrenado a `ml/placas/modelos/best.pt` (o `best.onnx`).
+2. En esa carpeta: `pip install -r requirements.txt`.
+3. El servicio llama a `reconocer.py`. Si no hay archivo, responde `{ disponible: false }` y la recepcionista escribe la placa a mano.
+
+Detalle: [ml/placas/README.md](ml/placas/README.md).
 
 ## Modelos Prisma (visión)
 

@@ -2,6 +2,7 @@ import { ESTADO } from '../constants/estadosOrden.js';
 
 export const ROLES_CON_PRECIOS = ['ADMIN', 'SUPERVISOR'];
 export const ROLES_IMPRIMIR = ['ADMIN', 'SUPERVISOR'];
+export const ROLES_RESPONSABLE = ['ADMIN', 'SUPERVISOR', 'TECNICO'];
 
 export const puedeVerPrecios = (rol) => ROLES_CON_PRECIOS.includes(rol);
 
