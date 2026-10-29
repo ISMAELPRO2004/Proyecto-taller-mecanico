@@ -10,13 +10,17 @@ const props = defineProps({
   consultado: { type: Boolean, default: false },
   esNuevo: { type: Boolean, default: true },
   puedeEditar: { type: Boolean, default: false },
+  modoBusqueda: { type: String, default: 'documento' },
+  buscandoDocumento: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
   'update:cliente',
+  'cambiar-modo-busqueda',
   'actualizar-nombre',
   'marcar-cliente-nuevo',
   'seleccionar-cliente',
+  'consultar-documento',
   'editar',
 ]);
 
@@ -46,12 +50,21 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
 <template>
   <section class="space-y-8 rounded-2xl border border-lyer-linea/45 bg-lyer-card/90 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-8 md:p-10">
     <FormBusquedaCliente
+      :modo="modoBusqueda"
       :nombre="cliente.nombreRazonSocial"
+      :tipo-documento="cliente.tipoDocumento"
+      :numero-documento="cliente.numeroDocumento"
       :bloqueado="nombreBloqueado"
-      :error="errores.nombreRazonSocial"
+      :buscando="buscandoDocumento"
+      :error-nombre="errores.nombreRazonSocial"
+      :error-documento="errores.numeroDocumento"
+      @cambiar-modo="$emit('cambiar-modo-busqueda', $event)"
       @update:nombre="$emit('actualizar-nombre', $event)"
+      @update:tipo-documento="patch('tipoDocumento', $event)"
+      @update:numero-documento="patch('numeroDocumento', $event)"
       @marcar-nuevo="$emit('marcar-cliente-nuevo')"
       @seleccionar="$emit('seleccionar-cliente', $event)"
+      @consultar="$emit('consultar-documento')"
     />
 
     <template v-if="consultado">
@@ -61,7 +74,8 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
         <Info class="mt-0.5 h-4 w-4 shrink-0 text-lyer-cyan" />
         <span>
           {{ cliente.tipoCliente === 'EMPRESA' ? 'Nueva empresa' : 'Nueva persona' }}.
-          Completa los datos para registrarla. El documento es opcional.
+          Completa los datos para registrarla.
+          {{ modoBusqueda === 'nombre' ? 'El documento es opcional.' : '' }}
         </span>
       </p>
       <p v-else class="flex items-start gap-2 text-sm text-lyer-cyan">
@@ -95,6 +109,20 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
         </div>
 
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div v-if="modoBusqueda === 'documento'">
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
+              Nombre / razón social
+              <span class="text-lyer-accent">*</span>
+            </label>
+            <input
+              :value="cliente.nombreRazonSocial"
+              :disabled="bloqueado"
+              :class="[campo, errores.nombreRazonSocial ? 'border-rose-400' : '']"
+              @input="patch('nombreRazonSocial', $event.target.value)"
+            />
+            <p v-if="errores.nombreRazonSocial" class="mt-1 text-xs text-rose-300">{{ errores.nombreRazonSocial }}</p>
+          </div>
+
           <div>
             <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">
               Tipo
@@ -103,7 +131,7 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
             <div class="relative">
               <select
                 :value="cliente.tipoCliente"
-                :disabled="bloqueado"
+                :disabled="bloqueado || modoBusqueda === 'documento'"
                 :class="[campo, 'appearance-none pr-10']"
                 @change="patch('tipoCliente', $event.target.value)"
               >
@@ -114,36 +142,38 @@ const campo = 'h-12 w-full rounded-xl border border-lyer-linea/50 bg-lyer-fondo 
             </div>
           </div>
 
-          <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">Documento</label>
-            <div class="relative">
-              <select
-                :value="cliente.tipoCliente === 'EMPRESA' ? 'RUC' : cliente.tipoDocumento"
-                :disabled="bloqueado || cliente.tipoCliente === 'EMPRESA'"
-                :class="[campo, 'appearance-none pr-10', errores.tipoDocumento ? 'border-rose-400' : '']"
-                @change="patch('tipoDocumento', $event.target.value)"
-              >
-                <option v-if="cliente.tipoCliente !== 'EMPRESA'" value="DNI">DNI</option>
-                <option value="RUC">RUC</option>
-              </select>
-              <p v-if="errores.tipoDocumento" class="mt-1 text-xs text-rose-300">{{ errores.tipoDocumento }}</p>
-              <ChevronDown class="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-lyer-muted" />
+          <template v-if="modoBusqueda === 'nombre'">
+            <div>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">Documento</label>
+              <div class="relative">
+                <select
+                  :value="cliente.tipoCliente === 'EMPRESA' ? 'RUC' : cliente.tipoDocumento"
+                  :disabled="bloqueado || cliente.tipoCliente === 'EMPRESA'"
+                  :class="[campo, 'appearance-none pr-10', errores.tipoDocumento ? 'border-rose-400' : '']"
+                  @change="patch('tipoDocumento', $event.target.value)"
+                >
+                  <option v-if="cliente.tipoCliente !== 'EMPRESA'" value="DNI">DNI</option>
+                  <option value="RUC">RUC</option>
+                </select>
+                <p v-if="errores.tipoDocumento" class="mt-1 text-xs text-rose-300">{{ errores.tipoDocumento }}</p>
+                <ChevronDown class="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-lyer-muted" />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">N° documento</label>
-            <input
-              :value="cliente.numeroDocumento"
-              :disabled="bloqueado"
-              inputmode="numeric"
-              :maxlength="cliente.tipoDocumento === 'RUC' ? 11 : 8"
-              placeholder="Opcional"
-              :class="[campo, 'font-mono', errores.numeroDocumento ? 'border-rose-400' : '']"
-              @input="patch('numeroDocumento', $event.target.value)"
-            />
-            <p v-if="errores.numeroDocumento" class="mt-1 text-xs text-rose-300">{{ errores.numeroDocumento }}</p>
-          </div>
+            <div>
+              <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">N° documento</label>
+              <input
+                :value="cliente.numeroDocumento"
+                :disabled="bloqueado"
+                inputmode="numeric"
+                :maxlength="cliente.tipoDocumento === 'RUC' ? 11 : 8"
+                placeholder="Opcional"
+                :class="[campo, 'font-mono', errores.numeroDocumento ? 'border-rose-400' : '']"
+                @input="patch('numeroDocumento', $event.target.value)"
+              />
+              <p v-if="errores.numeroDocumento" class="mt-1 text-xs text-rose-300">{{ errores.numeroDocumento }}</p>
+            </div>
+          </template>
 
           <div>
             <label class="mb-2 block text-xs font-semibold uppercase tracking-wider text-lyer-muted">

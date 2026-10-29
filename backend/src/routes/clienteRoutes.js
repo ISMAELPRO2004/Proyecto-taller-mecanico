@@ -2,20 +2,22 @@ import { Router } from 'express';
 import {
   listarClientes,
   buscarPorDocumento,
+  consultarDocumento,
   upsertCliente,
   actualizarCliente,
   eliminarCliente,
 } from '../controllers/clienteController.js';
 import { authenticateJWT, authorize } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
-import { validateBody, validateParams } from '../middleware/validateBody.js';
-import { crearClienteSchema, idParamSchema } from '../schemas/index.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validateBody.js';
+import { crearClienteSchema, consultarDocumentoSchema, idParamSchema } from '../schemas/index.js';
 
 const router = Router();
 const ROLES = ['ADMIN', 'SUPERVISOR', 'TECNICO', 'RECEPCIONISTA'];
 const SOLO_ADMIN = ['ADMIN'];
 
 router.get('/', authenticateJWT, authorize(ROLES), listarClientes);
+router.get('/consulta', authenticateJWT, authorize(ROLES), validateQuery(consultarDocumentoSchema), consultarDocumento);
 router.get('/documento/:documento', authenticateJWT, authorize(ROLES), buscarPorDocumento);
 router.post('/',
   authenticateJWT,

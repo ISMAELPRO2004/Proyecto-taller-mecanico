@@ -12,6 +12,8 @@ defineProps({
   nombreBloqueado: { type: Boolean, default: false },
   consultado: { type: Boolean, default: false },
   esNuevo: { type: Boolean, default: true },
+  modoBusqueda: { type: String, default: 'documento' },
+  buscandoDocumento: { type: Boolean, default: false },
   puedeEditarCliente: { type: Boolean, default: false },
   editando: { type: Boolean, default: false },
   clienteConfirmado: { type: Boolean, default: false },
@@ -22,9 +24,11 @@ defineEmits([
   'editar-vehiculo',
   'cambiar-vehiculo',
   'update:cliente',
+  'cambiar-modo-busqueda',
   'actualizar-nombre',
   'marcar-cliente-nuevo',
   'seleccionar-cliente',
+  'consultar-documento',
   'editar-cliente',
   'cambiar-cliente',
   'atras',
@@ -49,11 +53,15 @@ defineEmits([
       :nombre-bloqueado="nombreBloqueado"
       :consultado="consultado"
       :es-nuevo="esNuevo"
+      :modo-busqueda="modoBusqueda"
+      :buscando-documento="buscandoDocumento"
       :puede-editar="puedeEditarCliente"
       @update:cliente="$emit('update:cliente', $event)"
+      @cambiar-modo-busqueda="$emit('cambiar-modo-busqueda', $event)"
       @actualizar-nombre="$emit('actualizar-nombre', $event)"
       @marcar-cliente-nuevo="$emit('marcar-cliente-nuevo')"
       @seleccionar-cliente="$emit('seleccionar-cliente', $event)"
+      @consultar-documento="$emit('consultar-documento')"
       @editar="$emit('editar-cliente')"
     />
 

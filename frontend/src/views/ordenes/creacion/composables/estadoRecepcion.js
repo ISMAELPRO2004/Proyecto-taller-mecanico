@@ -58,6 +58,7 @@ export function crearEstadoRecepcion() {
   const clienteEraNuevo = ref(true);
   const clienteConfirmado = ref(false);
   const clienteConsultado = ref(false);
+  const modoBusquedaCliente = ref('documento');
 
   const form = ref({
     cliente: clienteVacio(),
@@ -173,6 +174,7 @@ export function crearEstadoRecepcion() {
     clienteEraNuevo,
     clienteConfirmado,
     clienteConsultado,
+    modoBusquedaCliente,
     form,
     errores,
     restaurando,

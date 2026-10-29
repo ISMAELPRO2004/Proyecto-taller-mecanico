@@ -1,6 +1,90 @@
 import prisma from '../config/prisma.js';
+import { env } from '../config/env.js';
 import { AppError, NotFoundError } from '../utils/errors.js';
+import { log } from '../utils/logger.js';
 import { auditarCliente } from './auditoria/index.js';
+
+const plantillaConsulta = (tipoDocumento, numeroDocumento, extra = {}) => ({
+  id: null,
+  tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
+  tipoDocumento,
+  numeroDocumento,
+  nombreRazonSocial: '',
+  representante: '',
+  celular: extra.celular || '',
+  correo: '',
+});
+
+const cuerpoApisperu = (data) => (data?.data && typeof data.data === 'object' ? data.data : data) || {};
+
+const nombreDesdeDni = (cuerpo) => [cuerpo.nombres, cuerpo.apellidoPaterno, cuerpo.apellidoMaterno]
+  .map((p) => String(p || '').trim())
+  .filter(Boolean)
+  .join(' ')
+  .replace(/\s+/g, ' ')
+  .toUpperCase();
+
+const celularDesdeRuc = (telefonos) => {
+  const lista = Array.isArray(telefonos) ? telefonos : [];
+  const movil = lista
+    .map((t) => String(t || '').replace(/\D/g, ''))
+    .find((t) => t.length === 9 && t.startsWith('9'));
+  return movil || '';
+};
+
+const consultarApisperu = async (tipoDocumento, numeroDocumento) => {
+  if (!env.apisperuToken) {
+    return { fuente: 'manual', cliente: plantillaConsulta(tipoDocumento, numeroDocumento), mensaje: 'Consulta externa no configurada. Completa el nombre a mano.' };
+  }
+
+  const ruta = tipoDocumento === 'RUC' ? `ruc/${numeroDocumento}` : `dni/${numeroDocumento}`;
+  let respuesta;
+  try {
+    respuesta = await fetch(`${env.apisperuBaseUrl}/${ruta}`, {
+      headers: { Authorization: `Bearer ${env.apisperuToken}` },
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (error) {
+    log.warn('APIsPeru: no se pudo consultar el documento', {
+      tipoDocumento,
+      mensaje: error.message,
+    });
+    return { fuente: 'manual', cliente: plantillaConsulta(tipoDocumento, numeroDocumento), mensaje: 'No se pudo consultar el documento. Completa el nombre a mano.' };
+  }
+
+  const data = await respuesta.json().catch(() => null);
+  if (!respuesta.ok || data?.success === false) {
+    log.warn('APIsPeru: documento sin datos o error HTTP', {
+      tipoDocumento,
+      status: respuesta.status,
+    });
+    return { fuente: 'manual', cliente: plantillaConsulta(tipoDocumento, numeroDocumento), mensaje: 'No se encontraron datos para ese documento. Completa el nombre a mano.' };
+  }
+
+  const cuerpo = cuerpoApisperu(data);
+  if (tipoDocumento === 'DNI') {
+    const nombre = nombreDesdeDni(cuerpo);
+    if (!nombre) {
+      return { fuente: 'manual', cliente: plantillaConsulta('DNI', numeroDocumento), mensaje: 'No se encontró el nombre. Complétalo a mano.' };
+    }
+    return {
+      fuente: 'reniec',
+      cliente: { ...plantillaConsulta('DNI', numeroDocumento), nombreRazonSocial: nombre },
+    };
+  }
+
+  const razon = String(cuerpo.razonSocial || cuerpo.nombreComercial || '').trim().toUpperCase();
+  if (!razon) {
+    return { fuente: 'manual', cliente: plantillaConsulta('RUC', numeroDocumento), mensaje: 'No se encontró la razón social. Complétala a mano.' };
+  }
+  return {
+    fuente: 'sunat',
+    cliente: {
+      ...plantillaConsulta('RUC', numeroDocumento, { celular: celularDesdeRuc(cuerpo.telefonos) }),
+      nombreRazonSocial: razon,
+    },
+  };
+};
 
 export const listarClientes = async (q, { todos = false } = {}) => {
   const where = q
@@ -68,6 +152,18 @@ export const buscarPorDocumento = async (numeroDocumento) => {
   });
   if (!cliente) throw new NotFoundError('Cliente no encontrado');
   return cliente;
+};
+
+export const consultarDocumento = async (tipo, numero) => {
+  const tipoDocumento = tipo === 'RUC' ? 'RUC' : 'DNI';
+  const numeroDocumento = String(numero || '').replace(/\D/g, '');
+
+  const existente = await prisma.cliente.findUnique({
+    where: { numeroDocumento },
+  });
+  if (existente) return { fuente: 'local', cliente: existente };
+
+  return consultarApisperu(tipoDocumento, numeroDocumento);
 };
 
 export const crearOActualizarCliente = async (data, req) => {

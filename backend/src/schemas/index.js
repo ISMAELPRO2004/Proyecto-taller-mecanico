@@ -12,6 +12,7 @@ export {
 } from './orden.schema.js';
 export {
   crearClienteSchema,
+  consultarDocumentoSchema,
 } from './cliente.schema.js';
 export {
   crearMarcaSchema,

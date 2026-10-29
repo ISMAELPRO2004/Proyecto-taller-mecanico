@@ -16,6 +16,7 @@ export function useBorradorRecepcion(ctx) {
     placaConsultada,
     vehiculoEraNuevo,
     clienteConsultado,
+    modoBusquedaCliente,
     clienteEraNuevo,
     clienteConfirmado,
     vehiculoEditable,
@@ -33,6 +34,7 @@ export function useBorradorRecepcion(ctx) {
     placaConsultada: placaConsultada.value,
     vehiculoEraNuevo: vehiculoEraNuevo.value,
     clienteConsultado: clienteConsultado.value,
+    modoBusquedaCliente: modoBusquedaCliente.value,
     clienteEraNuevo: clienteEraNuevo.value,
     clienteConfirmado: clienteConfirmado.value,
     vehiculoEditable: vehiculoEditable.value,
@@ -91,6 +93,7 @@ export function useBorradorRecepcion(ctx) {
     placaConsultada.value = !!local.placaConsultada;
     vehiculoEraNuevo.value = !!local.vehiculoEraNuevo;
     clienteConsultado.value = !!local.clienteConsultado;
+    modoBusquedaCliente.value = local.modoBusquedaCliente === 'nombre' ? 'nombre' : 'documento';
     clienteEraNuevo.value = local.clienteEraNuevo !== false;
     clienteConfirmado.value = !!local.clienteConfirmado;
     vehiculoEditable.value = !!local.vehiculoEditable;

@@ -23,6 +23,8 @@ Variables en `.env` (nombres; no copiar secretos):
 | `JWT_SECRET` | Firma de tokens |
 | `PORT` | Por defecto 3000 |
 | `FRONTEND_URL` | Origen CORS (puede ser lista separada por comas; incluye el túnel si aplica) |
+| `APISPERU_BASE_URL` | Base de consulta DNI/RUC (opcional; hay valor por defecto) |
+| `APISPERU_TOKEN` | Token de APIsPeru; si falta, el nombre se completa a mano |
 
 Prisma 7 usa el adaptador `PrismaPg`. El cliente se crea en `src/config/prisma.js`.
 
@@ -78,7 +80,7 @@ Cada ruta declara **quién entra** (`authenticateJWT` + `authorize`) y **qué cu
 | `serviciosTercerosRoutes.js` | `/api/terceros` | Trabajos externos |
 | `ordenRoutes.js` | `/api/ordenes` | Borrador, taller, fotos, factura |
 | `vehiculoRoutes.js` | `/api/vehiculos` | Placa, marcas, `POST /reconocer` |
-| `clienteRoutes.js` | `/api/clientes` | CRUD y búsqueda local |
+| `clienteRoutes.js` | `/api/clientes` | CRUD, búsqueda local y `GET /consulta` DNI/RUC |
 
 ### `src/controllers/`
 
@@ -92,7 +94,7 @@ Los errores se lanzan en el servicio (`NotFoundError`, `UnauthorizedError`, etc.
 | --- | --- |
 | `authService.js` | Login: sube `versionSesion` y firma un JWT de 8 h. Un login nuevo cierra el anterior |
 | `usuarioService.js` | Alta/edición (`contrasena` ≥ 6), no borrar la propia cuenta |
-| `clienteService.js` | CRUD y listado local por nombre/documento |
+| `clienteService.js` | CRUD, listado y consulta DNI/RUC (taller + APIsPeru) |
 | `vehiculoService.js` | Marcas y vehículos; `reconocerPlaca` llama al YOLO si hay peso |
 | `placa/reconocerConYolo.js` | Spawnea `ml/placas/reconocer.py` |
 | `catalogoService.js` | Factory CRUD; técnico recibe ítems **sin** `precioBase` |
@@ -112,7 +114,7 @@ Zod. El middleware parsea y, si falla, 400 con `{ message, errors: [{ campo, men
 
 - `auth.schema.js` — login
 - `orden.schema.js` — borrador, taller, factura, pasos
-- `cliente.schema.js` — alta de cliente
+- `cliente.schema.js` — alta de cliente y consulta DNI/RUC
 - `vehiculo.schema.js` — marca, upsert, param placa
 - `inventario.schema.js` — material/servicio/tercero
 - `user.schema.js` — crear/editar usuario
