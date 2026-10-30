@@ -1,70 +1,88 @@
-version: '3.9'
+name: lyer-motors
 
 services:
-
-  # ── Base de datos ──────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: lyer_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-lyer}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio}
+      POSTGRES_DB: ${DB_NAME:-lyer_motors}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - lyer_net
-    # ← Healthcheck: espera que Postgres acepte conexiones reales
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 10s
 
-  # ── Backend ────────────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: lyer_backend
     restart: unless-stopped
-    # ← condition: service_healthy espera el healthcheck, no solo el arranque
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
-      JWT_SECRET: ${JWT_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL}
-      PORT: 3000
-      # ← Poner 'true' solo la primera vez para poblar la DB
-      RUN_SEED: ${RUN_SEED:-true}
-    ports:
-      - "3000:3000"
+      DATABASE_URL: postgresql://${DB_USER:-lyer}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-lyer_motors}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio}
+      FRONTEND_URL: ${FRONTEND_URL:-${PUBLIC_URL:-http://localhost}}
+      PORT: "3000"
+      RUN_SEED: ${RUN_SEED:-if-empty}
+      APISPERU_BASE_URL: ${APISPERU_BASE_URL:-https://dniruc.apisperu.com/api/v1}
+      APISPERU_TOKEN: ${APISPERU_TOKEN:-}
+      PYTHON: /opt/placas-venv/bin/python
+      YOLO_CONFIG_DIR: /tmp/Ultralytics
+      OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
+    volumes:
+      - uploads_data:/app/uploads
+      - ./backend/ml/placas/modelos:/app/ml/placas/modelos:ro
     networks:
       - lyer_net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/salud').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
 
-  # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL}
+        VITE_API_URL: ${VITE_API_URL:-/api}
     container_name: lyer_frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-80}:80"
     networks:
       - lyer_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   lyer_net:

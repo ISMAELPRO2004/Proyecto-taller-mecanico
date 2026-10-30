@@ -25,6 +25,8 @@ Variables en `.env` (nombres; no copiar secretos):
 | `FRONTEND_URL` | Origen CORS (puede ser lista separada por comas; incluye el túnel si aplica) |
 | `APISPERU_BASE_URL` | Base de consulta DNI/RUC (opcional; hay valor por defecto) |
 | `APISPERU_TOKEN` | Token de APIsPeru; si falta, el nombre se completa a mano |
+| `PYTHON` | Intérprete para el YOLO (en Docker: `/opt/placas-venv/bin/python`) |
+| `PLACA_MODELO` | Ruta opcional al peso `.pt` |
 
 Prisma 7 usa el adaptador `PrismaPg`. El cliente se crea en `src/config/prisma.js`.
 
@@ -72,6 +74,7 @@ Cada ruta declara **quién entra** (`authenticateJWT` + `authorize`) y **qué cu
 
 | Archivo | Prefijo | Notas |
 | --- | --- | --- |
+| `app.js` | `/api/salud` | Ping de Docker, sin auth |
 | `authRoutes.js` | `/api/auth` | Login |
 | `userRoutes.js` | `/api/usuarios` | CRUD usuarios; `GET /logs` legado |
 | `auditoriaRoutes.js` | `/api/auditoria` | Logs y foto de log (admin) |

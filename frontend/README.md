@@ -14,7 +14,7 @@ pnpm install
 pnpm dev
 ```
 
-`vite.config.js` permite cualquier host (`allowedHosts: true`) para Cloudflare Tunnel.
+En Docker el front se construye con `VITE_API_URL=/api` y Nginx proxea `/api` al backend. En local, `vite.config.js` permite cualquier host (`allowedHosts: true`) para Cloudflare Tunnel.
 
 Tema: `src/style.css` (`@theme`) y DaisyUI tema `lyer`. El violeta `#480078` es `lyer-green` / primary. No usar `emerald-*` como verde real; el verde de **Terminado** es `green-*`.
 

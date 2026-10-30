@@ -42,6 +42,10 @@ export const createApp = () => {
   });
   app.use('/api/auth/login', loginLimiter);
 
+  app.get('/api/salud', (_req, res) => {
+    res.json({ ok: true });
+  });
+
   app.use('/api/auth', authRoutes);
   app.use('/api/usuarios', userRoutes);
   app.use('/api/auditoria', auditoriaRoutes);

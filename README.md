@@ -60,7 +60,38 @@ EN_ESPERA ──aceptar──► ACEPTADO ──► EN_REPARACION
 
 Los precios que se copian a la orden (`precioAplicado` / `monto`) son los del momento; el catálogo puede cambiar después.
 
-## Arranque local
+## Docker (VPS o PC)
+
+Un comando levanta PostgreSQL, el API (con Python/YOLO) y el front detrás de Nginx. Solo se publica el puerto HTTP.
+
+**Requisitos del VPS:** Docker Engine + Compose v2, **4 GB RAM** (2 GB puede quedarse corto con el YOLO), ~8 GB de disco. El peso `backend/ml/placas/modelos/best.pt` es opcional: sin él la cámara pide confirmar la placa a mano.
+
+```bash
+cp .env.example .env
+# Edita PUBLIC_URL (http://IP_DEL_VPS o https://tu-dominio), DB_PASSWORD, JWT_SECRET
+# y APISPERU_TOKEN si vas a consultar DNI/RUC.
+
+# Opcional: copia el peso YOLO
+# cp best.pt backend/ml/placas/modelos/best.pt
+
+docker compose up -d --build
+```
+
+La primera construcción instala Torch CPU (YOLO) y puede tardar varios minutos. Las siguientes son más rápidas.
+
+Entra en `PUBLIC_URL`. El front llama a `/api` del mismo origen; Nginx lo pasa al backend. No hace falta exponer 3000 ni 5432.
+
+Primera vez: si la base está vacía se ejecuta el seed (`admin` / `supervisor` / `tecnico` / `recepcion`, clave `admin123`). Los arranques siguientes no pisan usuarios (`RUN_SEED=if-empty`). Fotos y PostgreSQL quedan en volúmenes Docker.
+
+```bash
+docker compose logs -f          # ver arranque
+docker compose down             # para, conserva datos
+docker compose down -v          # borra también la base y las fotos
+```
+
+HTTPS: pon Caddy, Nginx o Cloudflare delante apuntando al puerto `HTTP_PORT` y deja `PUBLIC_URL` con `https://...`.
+
+## Arranque local (sin Docker)
 
 **Base de datos:** PostgreSQL. En `backend/.env` hace falta `DATABASE_URL` y `JWT_SECRET`.
 
