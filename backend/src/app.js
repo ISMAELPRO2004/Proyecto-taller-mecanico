@@ -7,6 +7,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 
 import { env } from './config/env.js';
+import { rutaModeloPlaca } from './services/placa/reconocerConYolo.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -43,7 +44,7 @@ export const createApp = () => {
   app.use('/api/auth/login', loginLimiter);
 
   app.get('/api/salud', (_req, res) => {
-    res.json({ ok: true });
+    res.json({ ok: true, modeloPlacas: !!rutaModeloPlaca() });
   });
 
   app.use('/api/auth', authRoutes);

@@ -10,6 +10,7 @@ import { log } from '../../utils/logger.js';
 const DIR_PLACAS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../ml/placas');
 const SCRIPT = path.join(DIR_PLACAS, 'reconocer.py');
 const DIR_MODELOS = path.join(DIR_PLACAS, 'modelos');
+const DIR_MODELOS_IMAGEN = process.env.PLACA_MODELO_DIR || '/opt/placas-modelo';
 const CANDIDATOS = ['best.pt', 'best.onnx', 'placa.pt', 'yolo.pt'];
 const SIN_MODELO = {
   disponible: false,
@@ -24,10 +25,15 @@ const extensionDe = (mimetype = '') => {
   return '.jpg';
 };
 
+const buscarPesoEn = (carpeta) => {
+  if (!carpeta) return null;
+  return CANDIDATOS.map((nombre) => path.join(carpeta, nombre)).find((ruta) => existsSync(ruta)) || null;
+};
+
 export const rutaModeloPlaca = () => {
   const indicado = process.env.PLACA_MODELO;
   if (indicado && existsSync(indicado)) return indicado;
-  return CANDIDATOS.map((nombre) => path.join(DIR_MODELOS, nombre)).find((ruta) => existsSync(ruta)) || null;
+  return buscarPesoEn(DIR_MODELOS) || buscarPesoEn(DIR_MODELOS_IMAGEN) || null;
 };
 
 const pythonBin = () => {
@@ -77,7 +83,14 @@ const correrPython = (imagen, modelo) => new Promise((resolve, reject) => {
 /** Si no hay peso en modelos/, no inventa dígitos. Si hay, llama al YOLO. */
 export const reconocerConYolo = async (file) => {
   const modelo = rutaModeloPlaca();
-  if (!modelo || !existsSync(SCRIPT)) return SIN_MODELO;
+  if (!modelo || !existsSync(SCRIPT)) {
+    log.warn('Modelo de placas: no hay peso YOLO', {
+      script: existsSync(SCRIPT),
+      modelos: DIR_MODELOS,
+      imagen: DIR_MODELOS_IMAGEN,
+    });
+    return SIN_MODELO;
+  }
 
   const tmp = path.join(os.tmpdir(), `lyer-placa-${randomUUID()}${extensionDe(file.mimetype)}`);
   try {

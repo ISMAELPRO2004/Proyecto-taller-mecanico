@@ -64,15 +64,15 @@ Los precios que se copian a la orden (`precioAplicado` / `monto`) son los del mo
 
 Un comando levanta PostgreSQL, el API (con Python/YOLO) y el front detrás de Nginx. Solo se publica el puerto HTTP.
 
-**Requisitos del VPS:** Docker Engine + Compose v2, **4 GB RAM** (2 GB puede quedarse corto con el YOLO), ~8 GB de disco. El peso `backend/ml/placas/modelos/best.pt` es opcional: sin él la cámara pide confirmar la placa a mano.
+**Requisitos del VPS:** Docker Engine + Compose v2, **4 GB RAM** (2 GB puede quedarse corto con el YOLO), ~8 GB de disco. El escaneo de placas necesita `backend/ml/placas/modelos/best.pt` (no viaja en git a menos que lo agregues). Sin ese archivo la cámara abre, pero no lee dígitos.
 
 ```bash
 cp .env.example .env
 # Edita PUBLIC_URL (http://IP_DEL_VPS o https://tu-dominio), DB_PASSWORD, JWT_SECRET
 # y APISPERU_TOKEN si vas a consultar DNI/RUC.
 
-# Opcional: copia el peso YOLO
-# cp best.pt backend/ml/placas/modelos/best.pt
+# El YOLO no lee placas si falta este archivo en el VPS:
+# scp backend/ml/placas/modelos/best.pt usuario@vps:~/Proyecto-taller/backend/ml/placas/modelos/
 
 docker compose up -d --build
 ```

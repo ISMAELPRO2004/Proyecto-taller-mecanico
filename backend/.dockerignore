@@ -6,7 +6,5 @@ node_modules
 ml/placas/.venv
 ml/placas/**/__pycache__
 ml/placas/modelos/.venv
-ml/placas/modelos/*.pt
-ml/placas/modelos/*.onnx
 uploads/ordenes
 uploads/auditoria

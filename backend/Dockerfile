@@ -41,6 +41,7 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./
 COPY src ./src
 COPY ml ./ml
+COPY ml/placas/modelos /opt/placas-modelo
 COPY scripts ./scripts
 COPY uploads ./uploads
 COPY docker-entrypoint.sh ./

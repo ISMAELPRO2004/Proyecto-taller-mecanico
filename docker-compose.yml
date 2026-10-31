@@ -38,7 +38,10 @@ services:
       APISPERU_BASE_URL: ${APISPERU_BASE_URL:-https://dniruc.apisperu.com/api/v1}
       APISPERU_TOKEN: ${APISPERU_TOKEN:-}
       PYTHON: /opt/placas-venv/bin/python
+      PLACA_MODELO_DIR: /opt/placas-modelo
       YOLO_CONFIG_DIR: /tmp/Ultralytics
+      MPLCONFIGDIR: /tmp
+      HOME: /tmp
       OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
     volumes:
       - uploads_data:/app/uploads

@@ -9,3 +9,5 @@ ml/placas/modelos/.venv/
 ml/placas/**/__pycache__/
 ml/placas/modelos/*
 !ml/placas/modelos/.gitkeep
+!ml/placas/modelos/best.pt
+!ml/placas/modelos/best.onnx

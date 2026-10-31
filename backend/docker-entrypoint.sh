@@ -3,6 +3,10 @@ set -eu
 
 mkdir -p /app/uploads/ordenes /app/uploads/auditoria /tmp/Ultralytics
 
+if [ ! -f /app/ml/placas/modelos/best.pt ] && [ ! -f /opt/placas-modelo/best.pt ]; then
+  echo "AVISO: no hay best.pt. Copia el peso a backend/ml/placas/modelos/ y reinicia el backend."
+fi
+
 echo "Aplicando migraciones..."
 i=0
 until node_modules/.bin/prisma migrate deploy; do
