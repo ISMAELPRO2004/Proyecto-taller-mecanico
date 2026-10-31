@@ -140,32 +140,34 @@ onBeforeUnmount(() => clearTimeout(debounceTimer));
         <span class="text-lyer-accent">*</span>
       </label>
       <div class="flex flex-col gap-2 sm:flex-row">
-        <select
-          :value="tipoDocumento"
-          :disabled="bloqueado"
-          class="h-12 rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-3 text-sm font-semibold text-lyer-fg focus:border-lyer-cyan focus:outline-none disabled:opacity-80 sm:w-28"
-          @change="$emit('update:tipoDocumento', $event.target.value)"
-        >
-          <option value="DNI">DNI</option>
-          <option value="RUC">RUC</option>
-        </select>
-        <input
-          :value="numeroDocumento"
-          :disabled="bloqueado"
-          inputmode="numeric"
-          :maxlength="maxDigitos"
-          :placeholder="tipoDocumento === 'RUC' ? '11 dígitos' : '8 dígitos'"
-          :class="[
-            'h-12 min-w-0 flex-1 rounded-xl border bg-lyer-fondo px-4 font-mono text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none disabled:opacity-80',
-            errorDocumento ? 'border-rose-400' : 'border-lyer-linea/50',
-          ]"
-          @input="onNumeroInput"
-          @keydown.enter.prevent="consultarDocumento"
-        />
+        <div class="flex min-w-0 flex-1 gap-2">
+          <select
+            :value="tipoDocumento"
+            :disabled="bloqueado"
+            class="h-14 w-[5.75rem] shrink-0 rounded-xl border border-lyer-linea/50 bg-lyer-fondo px-2.5 text-base font-semibold text-lyer-fg focus:border-lyer-cyan focus:outline-none disabled:opacity-80 sm:h-12 sm:w-28 sm:px-3 sm:text-sm"
+            @change="$emit('update:tipoDocumento', $event.target.value)"
+          >
+            <option value="DNI">DNI</option>
+            <option value="RUC">RUC</option>
+          </select>
+          <input
+            :value="numeroDocumento"
+            :disabled="bloqueado"
+            inputmode="numeric"
+            :maxlength="maxDigitos"
+            :placeholder="tipoDocumento === 'RUC' ? '11 dígitos' : '8 dígitos'"
+            :class="[
+              'h-14 min-w-0 flex-1 rounded-xl border bg-lyer-fondo px-4 font-mono text-lg tracking-widest text-lyer-fg placeholder:text-base placeholder:tracking-normal placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none disabled:opacity-80 sm:h-12 sm:text-sm',
+              errorDocumento ? 'border-rose-400' : 'border-lyer-linea/50',
+            ]"
+            @input="onNumeroInput"
+            @keydown.enter.prevent="consultarDocumento"
+          />
+        </div>
         <button
           type="button"
           :disabled="bloqueado || buscando"
-          class="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-lyer-cyan px-5 text-sm font-bold text-lyer-green disabled:opacity-60"
+          class="inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-lyer-cyan px-5 text-sm font-bold text-lyer-green disabled:opacity-60 sm:h-12 sm:w-auto"
           @click="consultarDocumento"
         >
           <Loader2 v-if="buscando" class="h-4 w-4 animate-spin" />
@@ -182,50 +184,50 @@ onBeforeUnmount(() => clearTimeout(debounceTimer));
         Nombre / razón social
         <span class="text-lyer-accent">*</span>
       </label>
-      <div class="relative" @focusout="cerrarSugerencias">
-        <div class="flex gap-2">
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <div class="relative min-w-0 flex-1" @focusout="cerrarSugerencias">
           <input
             :value="nombre"
             :disabled="bloqueado"
             placeholder="Escribe al menos 2 letras"
             autocomplete="off"
             :class="[
-              'h-12 min-w-0 flex-1 rounded-xl border bg-lyer-fondo px-4 text-sm text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none disabled:opacity-80',
+              'h-14 w-full rounded-xl border bg-lyer-fondo px-4 text-base text-lyer-fg placeholder:text-lyer-muted focus:border-lyer-cyan focus:outline-none disabled:opacity-80 sm:h-12 sm:text-sm',
               errorNombre ? 'border-rose-400' : 'border-lyer-linea/50',
             ]"
             @input="onNombreInput"
             @keydown.enter.prevent="buscarCliente"
             @focus="mostrarSugerencias = sugerencias.length > 0"
           />
-          <button
-            type="button"
-            :disabled="bloqueado"
-            class="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-lyer-cyan px-5 text-sm font-bold text-lyer-green disabled:opacity-60"
-            @click="buscarCliente"
+          <div
+            v-if="mostrarSugerencias && sugerencias.length"
+            class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-lyer-linea/50 bg-lyer-card shadow-lg"
           >
-            <Search class="h-4 w-4" />
-            Buscar cliente
-          </button>
+            <button
+              v-for="c in sugerencias"
+              :key="c.id"
+              type="button"
+              class="flex w-full flex-col gap-0.5 px-4 py-2.5 text-left hover:bg-lyer-cyan/10"
+              @mousedown.prevent="seleccionar(c)"
+            >
+              <span class="text-sm font-semibold text-lyer-fg">{{ c.nombreRazonSocial }}</span>
+              <span class="font-mono text-[11px] text-lyer-muted">
+                {{ c.tipoDocumento }} {{ c.numeroDocumento || 'sin documento' }}
+              </span>
+            </button>
+          </div>
         </div>
-        <div
-          v-if="mostrarSugerencias && sugerencias.length"
-          class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-lyer-linea/50 bg-lyer-card shadow-lg"
+        <button
+          type="button"
+          :disabled="bloqueado"
+          class="inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-lyer-cyan px-5 text-sm font-bold text-lyer-green disabled:opacity-60 sm:h-12 sm:w-auto"
+          @click="buscarCliente"
         >
-          <button
-            v-for="c in sugerencias"
-            :key="c.id"
-            type="button"
-            class="flex w-full flex-col gap-0.5 px-4 py-2.5 text-left hover:bg-lyer-cyan/10"
-            @mousedown.prevent="seleccionar(c)"
-          >
-            <span class="text-sm font-semibold text-lyer-fg">{{ c.nombreRazonSocial }}</span>
-            <span class="font-mono text-[11px] text-lyer-muted">
-              {{ c.tipoDocumento }} {{ c.numeroDocumento || 'sin documento' }}
-            </span>
-          </button>
-        </div>
-        <p v-if="buscandoNombre" class="mt-1 text-xs text-lyer-muted">Buscando coincidencias…</p>
+          <Search class="h-4 w-4" />
+          Buscar cliente
+        </button>
       </div>
+      <p v-if="buscandoNombre" class="mt-1 text-xs text-lyer-muted">Buscando coincidencias…</p>
       <p v-if="errorNombre" class="mt-1 text-xs text-rose-300">{{ errorNombre }}</p>
       <p v-else class="mt-1 text-xs text-lyer-muted">Elige una coincidencia o pulsa Buscar cliente para registrar uno nuevo.</p>
     </div>
