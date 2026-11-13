@@ -6,14 +6,18 @@ import TablaOrdenesRecientes from './unidades-taller/TablaOrdenesRecientes.vue';
 import PanelAccesosRapidos from './accesos-rapidos/PanelAccesosRapidos.vue';
 import { useDashboard } from './composables/useDashboard.js';
 
-const { cargando, ordenes, stats, ordenesRecientes } = useDashboard();
+const { cargando, ordenes, stats, ordenesRecientes, mesSeleccionado } = useDashboard();
 </script>
 
 <template>
   <div class="w-full space-y-5 animate-fade-in">
     <EncabezadoDashboard />
     <CtaNuevaOrden />
-    <StatsGrid :stats="stats" :cargando="cargando" />
+    <StatsGrid
+      :stats="stats"
+      :cargando="cargando"
+      v-model:mes-seleccionado="mesSeleccionado"
+    />
 
     <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-12 lg:items-stretch">
       <TablaOrdenesRecientes
